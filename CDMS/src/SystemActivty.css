@@ -1,0 +1,160 @@
+/* SYSTEM ACTIVITY PAGE */
+.content {
+  flex: 1;
+  background: #f4f4f5;
+  padding: 24px;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden; /* ← add this */
+  height: calc(100vh - 60px); /* ← add this */
+}
+
+.activity-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.activity-header {
+  padding-bottom: 24px;
+  flex-shrink: 0; /* ← header never shrinks */
+}
+.activity-header h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #18181b;
+  margin: 0;
+}
+
+.activity-header p {
+  font-size: 0.85rem;
+  color: #71717a;
+  margin: 4px 0 0;
+}
+
+/* TABLE CONTAINER - merged */
+.activity-table-wrapper {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0; /* ← critical */
+}
+
+/* STICKY HEADER */
+.activity-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f4f4f5;
+  z-index: 1;
+}
+
+/* TABLE */
+.activity-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.activity-table thead {
+  background: #f4f4f5;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.activity-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #71717a;
+}
+
+.activity-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f4f4f5;
+  color: #18181b;
+}
+
+.activity-table tr:last-child td {
+  border-bottom: none;
+}
+
+.activity-table tr:hover td {
+  background: #fafafa;
+}
+
+/* BADGES */
+.role-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.role-badge.admin {
+  background: #18181b;
+  color: #fafafa;
+}
+
+.role-badge.staff {
+  background: #e4e4e7;
+  color: #3f3f46;
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.action-badge.in {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.action-badge.out {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* EMPTY & ERROR STATES */
+.activity-empty {
+  padding: 40px;
+  text-align: center;
+  color: #71717a;
+  font-size: 0.9rem;
+}
+
+.activity-error {
+  padding: 40px;
+  text-align: center;
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+/* SCROLLBAR STYLING */
+.activity-table-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.activity-table-wrapper::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
+
+.activity-table-wrapper::-webkit-scrollbar-thumb {
+  background: #a1a1aa;
+  border-radius: 10px;
+}
+
+.activity-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}

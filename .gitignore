@@ -1,0 +1,11 @@
+# Ignore dependency folders in both frontend and backend
+node_modules/
+CDMS/node_modules/
+server/node_modules/
+
+# Ignore environment variables (very important for your server)
+.env
+server/.env
+CDMS/.env
+.vercel
+.env*.local

@@ -1,0 +1,100 @@
+.calibration-container {
+  width: 100%;
+  height: 100vh;
+  overflow-y: auto;
+  background: #f3f3f3;
+  font-family: Arial, sans-serif;
+}
+
+/* HEADER */
+.calibration-header {
+  background: #000;
+  color: #fff;
+  padding: 15px 20px;
+}
+
+.calibration-header h1 {
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.calibration-header h2 {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* TABS */
+.calibration-tabs {
+  display: flex;
+  background: #efefef;
+  border-bottom: 1px solid #ccc;
+}
+
+.calibration-tabs button {
+  border: none;
+  background: transparent;
+  padding: 14px 24px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: background 0.2s ease;
+}
+
+.calibration-tabs button.active {
+  background: #fff;
+  border-bottom: 3px solid #000;
+  font-weight: bold;
+}
+
+/* SEARCH BAR */
+.calibration-search {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f9f9f9;
+  border-bottom: 1px solid #ddd;
+}
+
+.calibration-search select,
+.calibration-search input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+}
+
+.calibration-search button {
+  padding: 8px 14px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.calibration-search button:hover {
+  background: #f0f0f0;
+}
+
+/* TABLE */
+.calibration-table-wrapper {
+  overflow-x: auto;
+  padding: 10px 20px 20px;
+}
+
+.calibration-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.calibration-table th,
+.calibration-table td {
+  border: 1px solid #dcdcdc;
+  padding: 10px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.calibration-table th {
+  background: #efefef;
+  font-weight: bold;
+}

@@ -1,0 +1,306 @@
+/* Make the root fill whatever height the parent gives it */
+.account-settings {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* ← add this */
+}
+
+/* TOP NAV */
+.settings-topnav {
+  display: flex;
+  gap: 4px;
+  padding: 16px 24px 0;
+  border-bottom: 1px solid #e4e4e7;
+  background: #f4f4f5;
+  flex-shrink: 0;
+}
+
+.topnav-btn {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #71717a;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+  border-radius: 6px 6px 0 0;
+}
+
+.topnav-btn:hover {
+  color: #18181b;
+  background: #e4e4e7;
+}
+
+.topnav-btn.active {
+  color: #18181b;
+  border-bottom: 2px solid #18181b;
+  background: white;
+}
+
+/* TAB CONTENT */
+.tab-content {
+  padding: 24px;
+  flex: 1;
+  min-height: 0; /* ← critical for flex scroll to work */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.tab-content h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #18181b;
+  margin: 0 0 4px 0;
+  text-align: center;
+}
+
+.tab-subtitle {
+  font-size: 0.85rem;
+  color: #71717a;
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+/* FORM */
+.account-form {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  align-items: center; /* ← label and input side by side */
+  gap: 12px;
+}
+
+.form-group label {
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #3f3f46;
+  width: 90px; /* ← fixed width so inputs align */
+  flex-shrink: 0;
+  text-align: right; /* ← label text aligns right */
+}
+
+.form-group input,
+.form-group select {
+  flex: 1; /* ← takes remaining space */
+  padding: 10px 12px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #18181b;
+  background: #fafafa;
+  outline: none;
+  transition:
+    border 0.2s,
+    box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #a1a1aa;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(161, 161, 170, 0.15);
+}
+
+/* BUTTONS */
+.btn-primary {
+  width: 100%;
+  max-width: 480px;
+  padding: 11px;
+  background: #18181b;
+  color: #fafafa;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #27272a;
+}
+
+/* MESSAGE */
+.form-message {
+  width: 100%;
+  max-width: 480px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.form-message.success {
+  background: #dcfce7;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.form-message.error {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+/* TABLE */
+.accounts-table-wrapper {
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  overflow-y: auto; /* ← change from overflow:hidden to overflow-y:auto */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  max-height: 480px; /* ← add this — adjust value to taste */
+  width: 100%;
+}
+.accounts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.accounts-table thead {
+  background: #f4f4f5;
+}
+
+.accounts-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #71717a;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.accounts-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f4f4f5;
+  color: #18181b;
+}
+
+.accounts-table tr:last-child td {
+  border-bottom: none;
+}
+
+.accounts-table tr:hover td {
+  background: #fafafa;
+}
+
+/* TABLE INPUT */
+.table-input {
+  padding: 6px 10px;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  width: 100%;
+  outline: none;
+}
+
+.table-input:focus {
+  border-color: #a1a1aa;
+}
+
+/* ACTION BUTTONS */
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-edit {
+  padding: 5px 12px;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #18181b;
+  transition: all 0.2s;
+}
+
+.btn-edit:hover {
+  background: #e4e4e7;
+}
+
+.btn-delete {
+  padding: 5px 12px;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #dc2626;
+  transition: all 0.2s;
+}
+
+.btn-delete:hover {
+  background: #fecaca;
+}
+
+.btn-save {
+  padding: 5px 12px;
+  background: #18181b;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-save:hover {
+  background: #27272a;
+}
+
+.btn-cancel {
+  padding: 5px 12px;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #71717a;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #e4e4e7;
+}
+
+/* ROLE BADGE */
+.role-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.role-badge.admin {
+  background: #18181b;
+  color: #fafafa;
+}
+
+.role-badge.staff {
+  background: #e4e4e7;
+  color: #3f3f46;
+}

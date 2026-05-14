@@ -1,0 +1,350 @@
+/* VARIABLES - 60-30-10 Monochromatic Gray Scale */
+:root {
+  --bg-main: #f4f4f5; /* 60% - Light Gray (Content Area) */
+  --bg-dark: #18181b; /* 30% - Deep Charcoal (Sidebar/Header) */
+  --accent: #a1a1aa; /* 10% - Muted Silver (Details/Icons) */
+  --active-bg: #27272a; /* Highlight for active links */
+  --text-light: #fafafa;
+  --transition: all 0.2s ease-in-out;
+}
+#systemClock {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-light);
+  margin-left: auto; /* Pushes it to the right */
+}
+html,
+body {
+  overflow: hidden;
+  height: 100vh;
+  background-color: var(--bg-main);
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* HEADER */
+.header {
+  height: 60px;
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 25px;
+  color: var(--text-light);
+  border-bottom: 1px solid #3f3f46; /* Subtle dark border */
+  z-index: 1001;
+  position: relative;
+}
+
+/* LAYOUT */
+.layout {
+  display: flex;
+  height: calc(100vh - 60px);
+  width: 100%;
+  overflow: hidden;
+}
+
+/* SIDEBAR - INDUSTRIAL GRAY */
+.sidebar {
+  width: 240px;
+  background: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  transition: var(--transition);
+  /* 👇 ADD THIS */
+}
+
+.nav-label {
+  padding: 0 20px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #52525b; /* Darker gray label */
+  margin-bottom: 15px;
+  font-weight: 800;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.sidebar-right {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+
+  height: 100%; /* Ensure full height */
+  max-height: 100%; /* Prevent overflow */
+  overflow-y: auto; /* Allow scrolling instead of clipping */
+  gap: 15px;
+  padding: 20px;
+  background-color: #ebebeb;
+
+  /* Remove any unintended clipping */
+  border-bottom: none;
+  border-radius: 0; /* Ensures no rounded cut edge */
+}
+
+/* THE RIGHT SIDEBAR */
+.sidebar-right {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+
+  /* --- THE FIXES --- */
+  height: 100%; /* Ensure it fills the .layout height */
+  max-height: 100%; /* Prevent it from ever growing taller than the screen */
+  overflow: hidden; /* Prevent the sidebar itself from scrolling */
+  gap: 15px;
+  padding: 20px;
+  background-color: #ebebeb;
+}
+
+/* Ensure the panels don't try to be bigger than their assigned space */
+.right-panel {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 15px;
+
+  /* --- THE FIXES --- */
+  min-height: 0; /* CRITICAL: Allows flex items to shrink below their content size */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Inner content area of the panels */
+.panel-content {
+  flex: 1;
+  overflow-y: auto; /* If content is too long, the PANEL scrolls, not the page */
+}
+
+.panel-top {
+  flex: 4; /* 40% */
+}
+
+.panel-bottom {
+  flex: 6; /* 60% */
+}
+
+/* Responsive: Stack them on mobile or hide them */
+@media (max-width: 1024px) {
+  .sidebar-right {
+    display: none;
+  }
+}
+.nav-menu::-webkit-scrollbar {
+  width: 6px;
+}
+.nav-menu {
+  flex: 1; /* takes available space */
+  overflow-y: auto; /* enables scrolling */
+}
+.nav-menu::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 10px;
+}
+
+.nav-link i {
+  width: 18px;
+  text-align: center;
+}
+
+.nav-link:hover {
+  background: #27272a;
+  color: var(--text-light);
+}
+.nav-link.logout {
+  margin-top: auto; /* Pushes it to the bottom */
+  color: #a1a1aa; /* Same gray as other links */
+}
+
+.nav-link.logout:hover {
+  background-color: #fef2f2; /* Very light red tint */
+  color: #ef4444; /* Professional red */
+  border-left: 3px solid #ef4444;
+}
+
+.nav-link.active {
+  background: var(--active-bg);
+  color: var(--text-light);
+  border-left: 3px solid var(--accent); /* Silver accent line */
+}
+
+/* SIDEBAR FOOTER CONTAINER */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 6px 12px; /* ↓ tighter padding */
+  border-top: 1px solid #27272a;
+  background: #18181b;
+  font-size: 0.8rem; /* ↓ slightly smaller text */
+}
+
+/* User Display - Minimalist */
+.user-display {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* ↓ tighter */
+  margin-bottom: 8px; /* ↓ reduced from 15px */
+}
+
+/* The Icon - Silver */
+.user-display i {
+  font-size: 1.1rem; /* ↓ slightly smaller */
+}
+
+/* THE NAME - Bright White & Clear */
+#displayName {
+  color: #ffffff !important; /* Maximum contrast */
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Logout - Muted Gray */
+.nav-link.logout {
+  color: #71717a !important;
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: color 0.2s;
+}
+
+.nav-link.logout:hover {
+  color: #ff4d4d !important; /* Clear red feedback on hover */
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+  background: #f4f4f5; /* Light gray background */
+  padding: 24px; /* Generous breathing room */
+  display: flex;
+  align-items: stretch;
+}
+iframe {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+
+  /* Remove the old-school border */
+  border: none;
+
+  /* Add a professional "Soft Shadow" to make it pop */
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1);
+
+  /* Rounded corners for a modern feel */
+  border-radius: 12px;
+
+  /* Smooth transition when pages load */
+  transition: var(--transition);
+}
+
+/* Subtle hover effect to show interactivity */
+iframe:hover {
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+.activity-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.activity-item p {
+  margin: 0;
+  color: #333;
+}
+
+.activity-item span {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.panel-content {
+  max-height: 300px; /* Limits height and adds scroll if too many logs */
+  overflow-y: auto;
+}
+/* MOBILE */
+@media (max-width: 768px) {
+  .menu-btn {
+    display: block;
+  }
+  .sidebar {
+    width: 240px;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    transition: var(--transition);
+  }
+  .sidebar.active {
+    left: 0;
+  }
+}
+.panel-content {
+  background: var(--color-background-primary, #fff);
+  border: 0.5px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.log-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid #f0f0f0;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.log-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.log-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
+.log-meta {
+  font-size: 12px;
+  color: #888;
+}

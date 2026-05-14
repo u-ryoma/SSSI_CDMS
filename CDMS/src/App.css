@@ -1,0 +1,398 @@
+/* VARIABLES - 60-30-10 Monochromatic Gray Scale */
+:root {
+  --bg-main: #f4f4f5;
+  --bg-dark: #18181b;
+  --accent: #a1a1aa;
+  --active-bg: #27272a;
+  --text-light: #fafafa;
+  --transition: all 0.2s ease-in-out;
+}
+
+#systemClock {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-light);
+  margin-left: auto;
+}
+
+html,
+body {
+  overflow: hidden;
+  height: 100vh;
+  background-color: var(--bg-main);
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* HEADER */
+.header {
+  height: 60px;
+  background: var(--bg-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 25px;
+  color: var(--text-light);
+  border-bottom: 1px solid #3f3f46;
+  z-index: 1001;
+  position: relative;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+}
+
+.logo i {
+  color: var(--accent);
+}
+
+/* HAMBURGER BUTTON */
+.menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0;
+  margin-right: 10px;
+}
+
+/* LAYOUT */
+.layout {
+  display: flex;
+  height: calc(100vh - 60px);
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 240px;
+  background: var(--bg-dark);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.nav-label {
+  padding: 0 20px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #52525b;
+  margin-bottom: 15px;
+  font-weight: 800;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: #a1a1aa;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 400;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-link i {
+  width: 18px;
+  text-align: center;
+}
+
+.nav-link:hover {
+  background: #27272a;
+  color: var(--text-light);
+}
+
+.nav-link.active {
+  background: var(--active-bg);
+  color: var(--text-light);
+  border-left: 3px solid var(--accent);
+}
+
+/* NAV MENU */
+.nav-menu {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nav-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.nav-menu::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 10px;
+}
+
+/* SIDEBAR FOOTER */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 6px 12px;
+  border-top: 1px solid #27272a;
+  background: #18181b;
+  font-size: 0.8rem;
+}
+
+.user-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.user-display i {
+  font-size: 1.1rem;
+}
+
+#displayName {
+  color: #ffffff !important;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* LOGOUT */
+.nav-link.logout {
+  color: #71717a !important;
+  text-decoration: none;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: color 0.2s;
+  margin-top: auto;
+}
+
+.nav-link.logout:hover {
+  background-color: #fef2f2;
+  color: #ef4444 !important;
+  border-left: 3px solid #ef4444;
+}
+
+/* RIGHT SIDEBAR */
+.sidebar-right {
+  width: 280px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  gap: 15px;
+  padding: 20px;
+  background-color: #ebebeb;
+}
+
+.right-panel {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 15px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-top {
+  flex: 4;
+}
+
+.panel-bottom {
+  flex: 6;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-bottom h3 {
+  flex-shrink: 0;
+  margin: 0 0 10px 0;
+}
+
+.panel-bottom .panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.panel-bottom .panel-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.panel-bottom .panel-content::-webkit-scrollbar-track {
+  background: #f4f4f5;
+}
+
+.panel-bottom .panel-content::-webkit-scrollbar-thumb {
+  background: #a1a1aa;
+  border-radius: 10px;
+}
+
+.panel-bottom .panel-content::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
+}
+
+/* CONTENT */
+.content {
+  flex: 1;
+  background: #f4f4f5;
+  padding: 24px;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* PANEL CONTENT */
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.panel-content {
+  background: var(--color-background-primary, #fff);
+  border: 0.5px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* LOG ENTRIES */
+.log-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid #f0f0f0;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+.log-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.log-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.log-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111;
+}
+
+.log-meta {
+  font-size: 12px;
+  color: #888;
+}
+
+/* IFRAME */
+iframe {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border: none;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  transition: var(--transition);
+}
+
+iframe:hover {
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.05),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05);
+}
+
+/* ACTIVITY */
+.activity-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+}
+
+.activity-item p {
+  margin: 0;
+  color: #333;
+}
+
+.activity-item span {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+/* HIDE RIGHT SIDEBAR ON MEDIUM SCREENS */
+@media (max-width: 1024px) {
+  .sidebar-right {
+    display: none;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .menu-btn {
+    display: block !important;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 60px;
+    left: -100%;
+    height: calc(100vh - 60px);
+    z-index: 1000;
+    width: 240px;
+    background: var(--bg-dark);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.active {
+    left: 0;
+  }
+
+  .sidebar-right {
+    display: none !important;
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  html,
+  body {
+    overflow: auto;
+  }
+}
