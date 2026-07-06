@@ -43,8 +43,8 @@ const Login = () => {
       const data = await res.json();
 
       if (data.success) {
-        localStorage.setItem("name", data.name);
-        localStorage.setItem("username", data.username);
+        sessionStorage.setItem("name", data.name);
+        sessionStorage.setItem("username", data.username);
 
         sessionStorage.setItem("role", data.role);
         sessionStorage.setItem("activeUser", data.username);

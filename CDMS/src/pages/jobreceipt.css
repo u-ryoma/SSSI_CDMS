@@ -1,10 +1,14 @@
-/* jobreceipt.css */
-
-.receipt-container {
-  width: 100%;
+jobreceipt.css .receipt-container {
+  /* width: 100%;
   height: 100vh;
   overflow-y: auto;
-  background: #f3f3f3;
+  background: #f3f3f3; */
+  width: 100%;
+  height: 100vh;
+  background: #f5f5f5;
+  overflow: hidden; /* REMOVE PAGE SCROLL */
+  display: flex;
+  flex-direction: column;
 }
 
 /* HEADER */
@@ -70,8 +74,18 @@
 
 /* TABLE */
 .table-wrapper {
+  /* overflow-x: auto;
+  padding: 10px 20px 20px; */
+  margin: 20px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+
   overflow-x: auto;
-  padding: 10px 20px 20px;
+  overflow-y: auto;
+
+  max-height: 60vh;
+  width: calc(100% - 40px);
 }
 
 .receipt-table {
@@ -135,7 +149,1274 @@
 .save-btn {
   padding: 12px 20px;
   border: none;
-  background: #2563eb;
+  background: #151515;
   color: white;
   cursor: pointer;
+}
+.receipt-container {
+  width: 100%;
+  background: #f5f5f5;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* HEADER */
+.receipt-header {
+  background: #000;
+  padding: 14px 20px;
+}
+
+.receipt-header h2 {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* TABS */
+.receipt-tabs {
+  display: flex;
+  align-items: center;
+  background: #f4f4f4;
+  border-bottom: 1px solid #dcdcdc;
+  padding-left: 10px;
+}
+
+.receipt-tabs button {
+  background: transparent;
+  border: none;
+  padding: 16px 28px;
+  font-size: 16px;
+  cursor: pointer;
+  color: #555;
+  position: relative;
+  transition: 0.2s ease;
+}
+
+.receipt-tabs button:hover {
+  background: #ececec;
+}
+
+.receipt-tabs button.active {
+  background: white;
+  color: black;
+}
+
+.receipt-tabs button.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: black;
+}
+
+/* SEARCH BAR */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #dcdcdc;
+  flex-wrap: wrap;
+}
+
+.search-bar select,
+.search-bar input {
+  padding: 7px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 150px;
+}
+
+.search-bar button {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #000000;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.search-bar button:hover {
+  background: #070707;
+}
+
+/* TABLE WRAPPER */
+.table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 60vh;
+  margin: 20px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+/* TABLE */
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.receipt-table th,
+.receipt-table td {
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.receipt-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.receipt-table tbody tr:hover {
+  background: #f0f7ff;
+  cursor: pointer;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+}
+
+/* ================================
+   JOB RECEIPT MODAL
+================================ */
+.jr-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.jr-modal-box {
+  background: #f0f0f0;
+  border-radius: 6px;
+  width: 95%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* MODAL HEADER */
+.jr-modal-header {
+  background: #000;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.jr-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.jr-cdms-logo {
+  background: white;
+  color: black;
+  font-weight: 900;
+  font-size: 1.4rem;
+  padding: 8px 12px;
+  border-radius: 4px;
+  letter-spacing: 2px;
+}
+
+.jr-modal-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.jr-modal-title-main {
+  font-size: 1.3rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.jr-modal-title-sub {
+  font-size: 0.75rem;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jr-modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.jr-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* TOP ROW */
+.jr-top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+  flex-wrap: wrap;
+}
+
+.jr-top-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jr-top-field label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #333;
+}
+
+.jr-top-field input {
+  padding: 5px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+}
+
+.jr-input-auto {
+  background: #e0e0e0 !important;
+  color: #555;
+}
+
+.jr-input-with-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.jr-lookup-btn {
+  padding: 5px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.jr-lookup-btn:hover {
+  background: #ccc;
+}
+
+.jr-pdf-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jr-pdf-btn:hover {
+  background: #ccc;
+}
+
+/* FORM BODY */
+.jr-form-body {
+  display: flex;
+  gap: 0;
+  padding: 12px 16px;
+  background: #f0f0f0;
+}
+
+.jr-form-left {
+  flex: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 16px;
+  border-right: 1px solid #ccc;
+}
+
+.jr-form-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 16px;
+}
+
+.jr-field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.jr-field-row label {
+  width: 110px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  padding-top: 6px;
+  white-space: nowrap;
+}
+
+.jr-field-row input,
+.jr-field-row textarea {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+}
+
+.jr-field-row textarea {
+  resize: vertical;
+  min-height: 50px;
+}
+
+/* BOTTOM ACTIONS */
+
+.jr-modal-wrapper {
+  background: #f0f0f0;
+  border-radius: 6px;
+  width: 95%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+.jr-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #e0e0e0;
+  border-top: 1px solid #ccc;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jr-modal-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jr-modal-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.jr-add-btn {
+  padding: 5px 14px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jr-add-btn:hover {
+  background: #ccc;
+}
+
+.jr-radio-label {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.jr-reserve-btn {
+  padding: 5px 14px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.jr-reserve-btn:hover {
+  background: #ccc;
+}
+
+.jr-action-btn {
+  padding: 5px 12px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.jr-action-btn:hover {
+  background: #ccc;
+}
+
+.jr-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jr-save-btn {
+  padding: 5px 18px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #000000;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.jr-save-btn:hover {
+  background: #0f0f0f;
+}
+
+/* JOB NUMBER TABLE */
+.jr-job-table-wrapper {
+  margin: 0 16px 16px 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 200px;
+  background: white;
+}
+
+.jr-job-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.jr-job-table th,
+.jr-job-table td {
+  border: 1px solid #ddd;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.jr-job-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.jr-no-data {
+  text-align: center;
+  padding: 16px;
+  color: #888;
+}
+
+/* MOBILE RESPONSIVE */
+@media (max-width: 768px) {
+  .jr-form-body {
+    flex-direction: column;
+  }
+
+  .jr-form-left {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 12px;
+  }
+
+  .jr-form-right {
+    padding-left: 0;
+    padding-top: 12px;
+  }
+
+  .jr-top-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .jr-pdf-btn {
+    margin-left: 0;
+  }
+
+  .jr-modal-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .jr-field-row label {
+    width: 90px;
+  }
+}
+/* CUSTOMER LOOKUP MODAL */
+.lookup-modal-box {
+  background: white;
+  border-radius: 6px;
+  width: 90%;
+  max-width: 750px;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.lookup-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ddd;
+}
+
+.lookup-modal-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.lookup-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.lookup-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.lookup-search input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.lookup-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.lookup-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.lookup-table th,
+.lookup-table td {
+  border: 1px solid #ddd;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.lookup-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.lookup-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.lookup-row:hover {
+  background: #f0f7ff;
+}
+
+.lookup-loading {
+  padding: 20px;
+  text-align: center;
+  color: #888;
+}
+/* JOB NUMBER MODAL BOX */
+/* JOB NUMBER MODAL BOX */
+.jn-modal-box {
+  background: #f0f0f0;
+  border-radius: 6px;
+  width: 95%;
+  max-width: 780px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* JOB NUMBER TOP ROW */
+.jn-top-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+}
+.jn-modal-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: #f0f0f0;
+  border-radius: 6px;
+  width: 95%;
+  max-width: 780px;
+  max-height: 90vh;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.jn-modal-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+}
+.jn-top-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.jn-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.jn-info-row label {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #333;
+}
+
+.jn-info-row input {
+  padding: 4px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  width: 160px;
+}
+
+/* JOB NUMBER FORM BODY - single column */
+.jn-form-body {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  background: #f0f0f0;
+  gap: 8px;
+}
+
+.jn-form-left,
+.jn-form-right {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: none;
+}
+
+/* FIELD ROWS - label left, input right */
+.jr-field-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.jr-field-row label {
+  width: 110px;
+  min-width: 110px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  padding-top: 6px;
+  white-space: nowrap;
+}
+
+.jr-field-row input,
+.jr-field-row textarea,
+.jr-field-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+  box-sizing: border-box;
+}
+
+.jr-field-row textarea {
+  resize: vertical;
+  min-height: 50px;
+}
+
+/* INLINE FIELDS (Frequency+ETA, EvalBy+Priority on same row) */
+.jn-inline-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.jn-inline-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  padding-top: 0;
+}
+
+.jn-inline-row input,
+.jn-inline-row select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* JOB NUMBER BOTTOM ACTIONS */
+.jn-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #e0e0e0;
+  border-top: 1px solid #ccc;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .jn-inline-row {
+    flex-wrap: wrap;
+  }
+
+  .jr-field-row label {
+    width: 90px;
+    min-width: 90px;
+  }
+}
+/* INSTRUMENT LIST MODAL */
+.il-modal-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: #f0f0f0;
+  border-radius: 6px;
+  width: 95%;
+  max-width: 850px;
+  max-height: 90vh;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.il-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+.il-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+}
+
+.il-search-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.il-search-input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.il-search-select {
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+}
+
+.il-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 400px;
+  background: white;
+  margin: 12px 16px 0 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.il-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.il-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.il-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.il-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.il-row:hover {
+  background: #dbeafe;
+}
+
+.il-no-data {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+}
+
+.il-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #e0e0e0;
+  border-top: 1px solid #ccc;
+  margin-top: 12px;
+}
+/* RECALL JOB NUMBER MODAL */
+.recall-modal-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: #f0f0f0;
+  border-radius: 6px;
+  width: 95%;
+  max-width: 850px;
+  max-height: 90vh;
+  z-index: 10000;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.recall-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.recall-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+  flex-wrap: wrap;
+}
+
+.recall-select {
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+}
+
+.recall-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  font-size: 13px;
+  background: white;
+}
+
+.recall-search-btn {
+  padding: 6px 10px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
+  background: #e0e0e0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.recall-search-btn:hover {
+  background: #ccc;
+}
+
+.recall-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 280px;
+  margin: 12px 16px 0 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+}
+
+.recall-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.recall-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.recall-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.recall-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.recall-row:hover {
+  background: #dbeafe;
+}
+
+.recall-row-selected {
+  background: #bfdbfe !important;
+}
+
+/* PREVIEW */
+.recall-preview {
+  margin: 12px 16px 0 16px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.recall-preview-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+
+.recall-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+  font-size: 12px;
+  color: #555;
+}
+
+.recall-preview-grid span {
+  font-weight: 600;
+  color: #333;
+}
+
+.recall-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #e0e0e0;
+  border-top: 1px solid #ccc;
+  margin-top: 12px;
+}
+
+.recall-btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+.search-results-info {
+  padding: 6px 20px;
+  font-size: 13px;
+  color: #555;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.search-results-info strong {
+  color: #2563eb;
+}
+
+.clear-search-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.clear-search-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clickable-row:hover {
+  background-color: #f0f7ff;
+}
+.jn-type-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+}
+/* VALIDATION */
+.jr-error {
+  color: #ff4d4d;
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.jr-input-error {
+  border-color: #ff4d4d !important;
+  background: #fff5f5 !important;
+}
+
+.jr-table-error {
+  color: #ff4d4d;
+  font-size: 13px;
+  padding: 8px 12px;
+  background: #fff5f5;
+  border: 1px solid #ff4d4d;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.il-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 4px;
+}
+
+.il-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.il-form-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.il-form-full {
+  grid-column: 1 / -1;
+}
+
+.il-form-grid input,
+.il-form-grid select,
+.il-form-grid textarea {
+  border: 1px solid #999;
+  padding: 5px 6px;
+  font-size: 13px;
+}
+
+.il-error {
+  color: #b3261e;
+  font-size: 12px;
+  margin: 0;
+}
+
+.il-confirm-prompt {
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.il-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.il-confirm-btn {
+  background: #4a90d9;
+  color: #fff;
+  border-color: #2c6cb0;
+}
+.ac-modal-wrapper {
+  width: 420px;
+  max-width: 92vw;
+  background: #e8e8e8;
+  border: 1px solid #999;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.ac-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ac-id-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 6px;
+}
+
+.ac-id-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ac-id-field label {
+  font-size: 12px;
+  width: 90px;
+  text-align: right;
+}
+
+.ac-id-field input {
+  width: 160px;
+  border: 1px solid #999;
+  padding: 3px 6px;
+  background: #f0f0f0;
+}
+
+.ac-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ac-field-row label {
+  width: 100px;
+  font-size: 13px;
+}
+
+.ac-field-row input,
+.ac-field-row select,
+.ac-field-row textarea {
+  flex: 1;
+  border: 1px solid #999;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.ac-field-row-textarea {
+  align-items: flex-start;
+}
+
+.ac-error {
+  color: #b3261e;
+  font-size: 12px;
+  margin: 0;
+}
+
+.ac-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
 }

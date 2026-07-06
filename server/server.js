@@ -279,6 +279,435 @@ process.on("SIGTERM", async () => {
   process.exit(0);
 });
 
+// ==========================
+// CUSTOMERS
+// ==========================
+
+// GET all customers
+app.get("/api/customers", async (req, res) => {
+  try {
+    const customers = await db.collection("customers").find().toArray();
+    res.json(customers);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// // GET single customer by customerID (for auto-fill in Job Receipt)
+// app.get("/api/customers/:customerID", async (req, res) => {
+//   try {
+//     const customer = await db.collection("customers").findOne({
+//       customerID: req.params.customerID,
+//     });
+//     if (!customer)
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Customer not found" });
+//     res.json(customer);
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// });// GET a single customer by customerID
+app.get("/api/customers/:customerID", async (req, res) => {
+  try {
+    const customer = await db
+      .collection("customers")
+      .findOne({ customerID: req.params.customerID });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+
+    res.json(customer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// POST create customer (with auto-increment customerID)
+app.post("/api/customers", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "customerID" },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
+    const customerID = `C-${String(counter.seq).padStart(4, "0")}`;
+
+    const newCustomer = {
+      customerID,
+      ...req.body,
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection("customers").insertOne(newCustomer);
+    res.status(201).json({ success: true, customerID });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// PUT update customer
+app.put("/api/customers/:customerID", async (req, res) => {
+  try {
+    await db
+      .collection("customers")
+      .updateOne({ customerID: req.params.customerID }, { $set: req.body });
+    res.json({ success: true, message: "Customer updated" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Update failed" });
+  }
+});
+
+// POST add contact to existing customer
+app.post("/api/customers/:customerID/contacts", async (req, res) => {
+  try {
+    const { contactName } = req.body;
+    await db
+      .collection("customers")
+      .updateOne(
+        { customerID: req.params.customerID },
+        { $push: { contactNames: contactName } },
+      );
+    res.json({ success: true, message: "Contact added" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to add contact" });
+  }
+});
+app.delete("/api/customers/:customerID", async (req, res) => {
+  try {
+    await db
+      .collection("customers")
+      .deleteOne({ customerID: req.params.customerID });
+    res.json({ success: true, message: "Customer deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Delete failed" });
+  }
+});
+// POST reserve a new Contact ID (separate counter, doesn't touch customerID counter)
+app.post("/api/contacts/reserve", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "contactID" },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
+
+    const contactID = `CON-${String(counter.seq).padStart(4, "0")}`;
+    res.json({ success: true, contactID });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// POST save a full contact record, linked to a customer
+app.post("/api/contacts", async (req, res) => {
+  try {
+    const { contactID, customerID, contactName, contactType, remarks } =
+      req.body;
+
+    if (!contactID || !customerID || !contactName?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Contact ID, Customer ID, and Contact Name are required.",
+      });
+    }
+
+    const newContact = {
+      contactID,
+      customerID,
+      contactName: contactName.trim(),
+      contactType: contactType || "",
+      remarks: remarks || "",
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection("contacts").insertOne(newContact);
+
+    // keep the customer's contactNames array in sync for the dropdown
+    await db
+      .collection("customers")
+      .updateOne(
+        { customerID },
+        { $addToSet: { contactNames: newContact.contactName } },
+      );
+
+    res.status(201).json({ success: true, contact: newContact });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// GET all full contact records for a given customer (Contact ID, Type, Remarks included)
+app.get("/api/customers/:customerID/contacts/full", async (req, res) => {
+  try {
+    const contacts = await db
+      .collection("contacts")
+      .find({ customerID: req.params.customerID })
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(contacts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+// GET next JR ID preview
+app.get("/api/jobreceipts/next-id", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOne({ _id: "jobReceiptID" });
+    const nextSeq = (counter?.seq || 0) + 1;
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const nextJrId = `JR/${String(nextSeq).padStart(4, "0")}/${yr}`;
+    res.json({ nextJrId });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// GET all job receipts
+app.get("/api/jobreceipts", async (req, res) => {
+  try {
+    const receipts = await db
+      .collection("jobreceipts")
+      .find()
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(receipts);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// GET next JR ID preview
+app.get("/api/jobreceipts/next-id", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOne({ _id: "jobReceiptID" });
+    const nextSeq = (counter?.seq || 0) + 1;
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const nextJrId = `JR/${String(nextSeq).padStart(4, "0")}/${yr}`;
+    res.json({ nextJrId });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// POST save job receipt
+app.post("/api/jobreceipts", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "jobReceiptID" },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const jrId = `JR/${String(counter.seq).padStart(4, "0")}/${yr}`;
+
+    const newReceipt = {
+      ...req.body,
+      jrId,
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection("jobreceipts").insertOne(newReceipt);
+    res.status(201).json({ success: true, jrId });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+app.post("/api/instruments", async (req, res) => {
+  try {
+    const newInstrument = {
+      ...req.body,
+      createdAt: new Date().toISOString(),
+    };
+    await db.collection("instruments").insertOne(newInstrument);
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+app.get("/api/instruments", async (req, res) => {
+  try {
+    const instruments = await db
+      .collection("instruments")
+      .find()
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(instruments); // must be a plain array, not { data: [...] }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+// // GET all job numbers
+// app.get("/api/jobnumbers", async (req, res) => {
+//   try {
+//     const jobs = await db
+//       .collection("jobnumbers")
+//       .find()
+//       .sort({ createdAt: -1 })
+//       .toArray();
+//     res.json(jobs);
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// });
+
+// // POST save job number
+// app.post("/api/jobnumbers", async (req, res) => {
+//   try {
+//     const type = req.body.type || "mechanical";
+//     const prefix = type === "electrical" ? "SSE" : "SSS";
+//     const counterId =
+//       type === "electrical" ? "jobNumberID_SSE" : "jobNumberID_SSS";
+
+//     const counter = await db
+//       .collection("counters")
+//       .findOneAndUpdate(
+//         { _id: counterId },
+//         { $inc: { seq: 1 } },
+//         { upsert: true, returnDocument: "after" },
+//       );
+
+//     const yr = new Date().getFullYear().toString().slice(-2);
+//     const jobNumber = `${prefix}/${String(counter.seq).padStart(4, "0")}/${yr}`;
+
+//     const newJob = {
+//       ...req.body,
+//       jobNumber,
+//       createdAt: new Date().toISOString(),
+//     };
+
+//     await db.collection("jobnumbers").insertOne(newJob);
+//     res.status(201).json({ success: true, jobNumber });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// });// GET all job numbers
+app.get("/api/jobnumbers", async (req, res) => {
+  try {
+    const jobs = await db
+      .collection("jobnumbers")
+      .find()
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(jobs);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// POST reserve a job number (increments counter, does NOT insert a job doc)
+app.post("/api/jobnumbers/reserve", async (req, res) => {
+  try {
+    const type = req.body.type === "electrical" ? "electrical" : "mechanical";
+    const prefix = type === "electrical" ? "SSE" : "SSS";
+    const counterId =
+      type === "electrical" ? "jobNumberID_SSE" : "jobNumberID_SSS";
+
+    const counter = await db
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: counterId },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
+
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const jobNumber = `${prefix}/${String(counter.seq).padStart(4, "0")}/${yr}`;
+
+    res.json({ success: true, jobNumber });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// POST save job number (uses the already-reserved number if provided)
+app.post("/api/jobnumbers", async (req, res) => {
+  try {
+    const { jobNumber, ...rest } = req.body;
+    let finalJobNumber = jobNumber;
+
+    // Fallback only — normally jobNumber is already reserved by this point
+    if (!finalJobNumber) {
+      const type = req.body.type === "electrical" ? "electrical" : "mechanical";
+      const prefix = type === "electrical" ? "SSE" : "SSS";
+      const counterId =
+        type === "electrical" ? "jobNumberID_SSE" : "jobNumberID_SSS";
+      const counter = await db
+        .collection("counters")
+        .findOneAndUpdate(
+          { _id: counterId },
+          { $inc: { seq: 1 } },
+          { upsert: true, returnDocument: "after" },
+        );
+      const yr = new Date().getFullYear().toString().slice(-2);
+      finalJobNumber = `${prefix}/${String(counter.seq).padStart(4, "0")}/${yr}`;
+    }
+
+    const newJob = {
+      ...rest,
+      jobNumber: finalJobNumber,
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection("jobnumbers").insertOne(newJob);
+    res.status(201).json({ success: true, jobNumber: finalJobNumber });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// PUT - mark job number as tagged (moves it to Incoming Calib or Incoming Concern)
+app.put("/api/jobnumbers/tag", async (req, res) => {
+  try {
+    const { jobNumber, tagged, concernTagged, taggedAt } = req.body;
+
+    if (!jobNumber) {
+      return res
+        .status(400)
+        .json({ success: false, message: "jobNumber is required" });
+    }
+
+    const result = await db.collection("jobnumbers").updateOne(
+      { jobNumber },
+      {
+        $set: {
+          tagged: tagged ?? true,
+          concernTagged: concernTagged ?? false,
+          taggedAt: taggedAt || new Date().toISOString(),
+        },
+      },
+    );
+
+    if (result.matchedCount === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Job number not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 // ✅ FIXED PORT - Works on Vercel
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

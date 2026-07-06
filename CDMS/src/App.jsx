@@ -19,7 +19,7 @@ import ForCheckingSig from "./pages/ForCheckingSig";
 import ForTyping from "./pages/ForTyping";
 import IncomingCalib from "./pages/IncomingCalib";
 import InstrumentTag from "./pages/InstrumentTag";
-import JobReceipt from "./pages/JobReceipt";
+import JobReceipt from "./pages/jobreceipt/index";
 import Monitoring from "./pages/Monitoring";
 import OnGoingCalib from "./pages/OnGoingCalib";
 import OnHoldList from "./pages/OnHoldList";
