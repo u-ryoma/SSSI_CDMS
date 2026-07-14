@@ -636,7 +636,7 @@
 
 // export default ForTyping;
 import React, { useState, useEffect, useMemo } from "react";
-import "../OnGoingCalibration/Ongoinglistcalib.css";
+import "../OngoingCalibration/Ongoinglistcalib.css";
 import ForTypingDetailsModal from "./ForTypingDetailsModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 

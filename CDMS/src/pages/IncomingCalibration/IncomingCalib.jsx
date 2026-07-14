@@ -330,7 +330,7 @@
 
 // export default IncomingCalib;
 import React, { useState, useEffect, useMemo } from "react";
-import "../OnGoingCalibration/Ongoinglistcalib.css";
+import "../OngoingCalibration/Ongoinglistcalib.css";
 import IncomingCalibDetailsModal from "./IncomingCalibDetailsModal";
 
 const API = import.meta.env.VITE_API_URL;
