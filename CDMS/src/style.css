@@ -31,16 +31,35 @@ body {
 
 /* HEADER */
 .header {
-  height: 60px;
-  background: var(--bg-dark);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background-color: #111111;
+  color: #ffffff;
+  font-family:
+    "Inter",
+    -apple-system,
+    sans-serif;
+}
+
+.logo {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 25px;
-  color: var(--text-light);
-  border-bottom: 1px solid #3f3f46; /* Subtle dark border */
-  z-index: 1001;
-  position: relative;
+  gap: 0.75rem;
+}
+
+.logo span {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.header-logo {
+  height: 36px;
+  width: 36px;
+  object-fit: contain;
+  border-radius: 50%;
 }
 
 /* LAYOUT */

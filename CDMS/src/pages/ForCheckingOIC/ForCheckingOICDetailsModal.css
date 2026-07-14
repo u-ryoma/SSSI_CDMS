@@ -1,0 +1,228 @@
+.foc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px 0;
+  z-index: 999999;
+}
+
+.foc-modal-wrapper {
+  background: #f0f0f0;
+  width: 1320px;
+  max-width: 98vw;
+  border: 1px solid #999;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.foc-modal-scroll {
+  padding: 12px 16px;
+}
+
+.foc-top-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.foc-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.foc-meta-row label {
+  font-size: 12px;
+  min-width: 100px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.foc-meta-row input {
+  width: 160px;
+}
+
+.foc-body {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.65fr 1fr;
+  gap: 12px;
+}
+
+.foc-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 7px;
+}
+
+.foc-field label {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.foc-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.foc-inline-field label {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.foc-inline-field input {
+  flex: 1;
+}
+
+.foc-input-with-btn {
+  display: flex;
+  gap: 4px;
+}
+
+.foc-input-with-btn input,
+.foc-input-with-btn textarea {
+  flex: 1;
+}
+
+.foc-lookup-btn {
+  border: 1px solid #999;
+  background: #e8e8e8;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.foc-lookup-btn:disabled {
+  cursor: not-allowed;
+  color: #aaa;
+}
+
+.foc-modal-scroll input:disabled,
+.foc-modal-scroll textarea:disabled {
+  background: #f5f5f5;
+  color: #444;
+}
+
+.foc-col-standard {
+  display: flex;
+  flex-direction: column;
+}
+
+.foc-box-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.foc-standard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid #aaa;
+  background: #fff;
+  padding: 8px;
+}
+
+.foc-standard-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.foc-standard-cell {
+  display: flex;
+  gap: 4px;
+}
+
+.foc-standard-cell input {
+  flex: 1;
+}
+
+.foc-camera-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.foc-camera-actions button {
+  padding: 6px 12px;
+  border: 1px solid #999;
+  background: #e8e8e8;
+  cursor: pointer;
+}
+
+.foc-mid-section {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.foc-accreditation-box,
+.foc-procedure-box {
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 7px 10px;
+  background: #fff;
+}
+
+.foc-radio-label {
+  display: block;
+  font-size: 11.5px;
+  margin-bottom: 3px;
+}
+
+.foc-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+}
+
+.foc-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.foc-footer-row-secondary {
+  padding-top: 2px;
+}
+
+.foc-footer-row button {
+  padding: 8px 16px;
+  border: 1px solid #999;
+  background: #e8e8e8;
+  cursor: pointer;
+}
+
+.foc-footer-row button:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+  background: #ededed;
+}
+
+.foc-primary-btn {
+  border: 1px solid #1d4fbb;
+  background: #2f6fed;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 3px;
+}
+
+.foc-primary-btn:hover {
+  background: #255fd6;
+}

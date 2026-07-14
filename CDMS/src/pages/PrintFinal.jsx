@@ -1,78 +1,159 @@
-// export default function PrintFinal() {
-//   return (
-//     <div>
-//       <h1>Print Final Certificate</h1>
-//       <p>Print Final Certificate coming soon.</p>
-//     </div>
-//   );
-// }
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./Ongoinglistcalib.css";
 
+const API = import.meta.env.VITE_API_URL;
+
+const searchKeyMap = {
+  "Company Name": "companyName",
+  "Contact Name": "contactName",
+  "JR ID": "jobReceiptID",
+};
+
 const PrintFinal = () => {
-  const [company, setCompany] = useState("");
-  const [search, setSearch] = useState("");
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchBy, setSearchBy] = useState("Company Name");
+  const [searchInput, setSearchInput] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
-  const companies = ["Company Name", "Contact Name", "JR ID"];
+  useEffect(() => {
+    fetchRecords();
+  }, []);
 
-  const calibrations = [
-    // {
-    //   jobNumber: "JOB-001",
-    //   dateRec: "2026-05-08",
-    //   priority: "High",
-    //   oic: "Engr. Santos",
-    //   company: "ABC Company",
-    //   description: "Calibration",
-    //   brand: "Fluke",
-    //   model: "F101",
-    //   serialNo: "SN001",
-    //   eta: "2026-05-15",
-    //   remarks: "Waiting",
-    // },
-  ];
+  const fetchRecords = async () => {
+    setLoading(true);
+    try {
+      const [jobsRes, receiptsRes] = await Promise.all([
+        fetch(`${API}/api/jobnumbers`),
+        fetch(`${API}/api/jobreceipts`),
+      ]);
+      const jobs = await jobsRes.json();
+      const receipts = await receiptsRes.json();
 
-  const filteredCalibrations = calibrations.filter(
-    (c) =>
-      (!company || c.company === company) &&
-      (!search || c.description.toLowerCase().includes(search.toLowerCase())),
-  );
+      const receiptsMap = {};
+      if (Array.isArray(receipts)) {
+        receipts.forEach((r) => {
+          receiptsMap[r.jrId] = r;
+        });
+      }
+
+      const merged = Array.isArray(jobs)
+        ? jobs
+            // Only jobs updated from Checking SIG, ready for final
+            // certificate printing.
+            .filter((job) => job.forPrintFinalTagged === true)
+            .map((job) => {
+              const receipt = receiptsMap[job.jobReceiptID] || {};
+              return {
+                jobNumber: job.jobNumber,
+                jobReceiptID: job.jobReceiptID,
+                description: job.description || "",
+                brand: job.brand || "",
+                model: job.model || "",
+                serialNo: job.serialNo || "",
+                remarks: job.remarks || "",
+                concern: job.concern || "",
+                eta: job.eta || "",
+                evalBy: job.evalBy || "",
+                priority: job.priority || "Normal",
+                dateRec: receipt.date || "",
+                companyName: receipt.companyName || "",
+                contactName: receipt.contactName || "",
+              };
+            })
+        : [];
+
+      setRecords(merged);
+    } catch (err) {
+      console.error("Failed to fetch print-final calibration:", err);
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredRecords = useMemo(() => {
+    if (!activeSearch.trim()) return records;
+    const key = searchKeyMap[searchBy];
+    return records.filter((r) =>
+      r[key]?.toString().toLowerCase().includes(activeSearch.toLowerCase()),
+    );
+  }, [records, activeSearch, searchBy]);
+
+  const handleSearch = () => setActiveSearch(searchInput);
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") handleSearch();
+  };
+  const handleRefresh = () => {
+    setSearchInput("");
+    setActiveSearch("");
+    setSearchBy("Company Name");
+    fetchRecords();
+  };
 
   return (
     <div className="calibration-container">
       {/* Header */}
       <div className="calibration-header">
-        {/* <h1>CALIBRATION DATABASE AND MONITORING SYSTEM (CDMS)</h1> */}
         <h2>PRINT FINAL CERTIFICATE</h2>
       </div>
 
       {/* Tabs */}
       <div className="calibration-tabs">
         <button className="active">List of Jobs</button>
-        {/* <button>Add Job</button> */}
       </div>
 
       {/* Search bar */}
       <div className="calibration-search">
-        {/* <label>Company Name:</label> */}
-        <select value={company} onChange={(e) => setCompany(e.target.value)}>
-          {/* <option value="">Company Name</option> */}
-          {companies.map((comp, idx) => (
-            <option key={idx} value={comp}>
-              {comp}
+        <select
+          value={searchBy}
+          onChange={(e) => {
+            setSearchBy(e.target.value);
+            setSearchInput("");
+            setActiveSearch("");
+          }}
+        >
+          {Object.keys(searchKeyMap).map((label) => (
+            <option key={label} value={label}>
+              {label}
             </option>
           ))}
         </select>
 
         <input
           type="text"
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Search by ${searchBy}...`}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
         />
 
         <button>Re-Log</button>
         <button>Quick Log</button>
-        <button>Refresh</button>
+        <button onClick={handleRefresh}>Refresh</button>
+      </div>
+
+      <div className="search-results-info">
+        <span>
+          Showing <strong>{filteredRecords.length}</strong> of{" "}
+          <strong>{records.length}</strong> records
+        </span>
+        {activeSearch && (
+          <span>
+            {" "}
+            — searching <strong>{searchBy}</strong>: "
+            <strong>{activeSearch}</strong>"
+            <button
+              className="clear-search-btn"
+              onClick={() => {
+                setSearchInput("");
+                setActiveSearch("");
+              }}
+            >
+              ✕ Clear
+            </button>
+          </span>
+        )}
       </div>
 
       {/* Table */}
@@ -91,24 +172,42 @@ const PrintFinal = () => {
               <th>Serial No</th>
               <th>ETA</th>
               <th>Remarks</th>
+              <th>Concern</th>
             </tr>
           </thead>
           <tbody>
-            {filteredCalibrations.map((c, idx) => (
-              <tr key={idx}>
-                <td>{c.jobNumber}</td>
-                <td>{c.dateRec}</td>
-                <td>{c.priority}</td>
-                <td>{c.oic}</td>
-                <td>{c.company}</td>
-                <td>{c.description}</td>
-                <td>{c.brand}</td>
-                <td>{c.model}</td>
-                <td>{c.serialNo}</td>
-                <td>{c.eta}</td>
-                <td>{c.remarks}</td>
+            {loading ? (
+              <tr>
+                <td colSpan="12" className="no-data">
+                  Loading...
+                </td>
               </tr>
-            ))}
+            ) : filteredRecords.length > 0 ? (
+              filteredRecords.map((r, idx) => (
+                <tr key={idx}>
+                  <td>{r.jobNumber}</td>
+                  <td>{r.dateRec}</td>
+                  <td>{r.priority}</td>
+                  <td>{r.evalBy || r.contactName}</td>
+                  <td>{r.companyName}</td>
+                  <td>{r.description}</td>
+                  <td>{r.brand}</td>
+                  <td>{r.model}</td>
+                  <td>{r.serialNo}</td>
+                  <td>{r.eta}</td>
+                  <td>{r.remarks}</td>
+                  <td>{r.concern}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="12" className="no-data">
+                  {activeSearch
+                    ? `No results found for "${activeSearch}"`
+                    : "No jobs ready for final certificate"}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

@@ -15,9 +15,6 @@
 //   Brand: "brand",
 // };
 
-// // =====================
-// // TAGGING MODAL
-// // =====================
 // const TaggingModal = ({ record, onClose, onTagged }) => {
 //   const [concernPicTaken, setConcernPicTaken] = useState(
 //     record.concernTagged || false,
@@ -34,7 +31,6 @@
 //   return createPortal(
 //     <div className="modal-overlay" onClick={onClose}>
 //       <div className="tag-modal-wrapper" onClick={(e) => e.stopPropagation()}>
-//         {/* HEADER */}
 //         <div className="jr-modal-header">
 //           <div className="jr-modal-header-left">
 //             <div className="jr-cdms-logo">CDMS</div>
@@ -53,9 +49,7 @@
 //           </button>
 //         </div>
 
-//         {/* SCROLLABLE CONTENT */}
 //         <div className="tag-modal-scroll">
-//           {/* TOP INFO ROW */}
 //           <div className="tag-info-row">
 //             <div className="tag-info-item">
 //               <span className="tag-info-label">Job Number</span>
@@ -79,7 +73,6 @@
 //             </div>
 //           </div>
 
-//           {/* DETAILS TABLE */}
 //           <div className="tag-details-section">
 //             <table className="tag-details-table">
 //               <tbody>
@@ -137,10 +130,14 @@
 //             </table>
 //           </div>
 
-//           {/* CONFIRM PROMPT */}
 //           {confirming && (
 //             <div className="tag-confirm-prompt">
-//               <p>Are you sure you want to mark this instrument as tagged?</p>
+//               <p>
+//                 Are you sure you want to mark this as tagged?
+//                 {concernPicTaken
+//                   ? " It will be moved to Incoming Concern."
+//                   : " It will be moved to Incoming Calibration."}
+//               </p>
 //               <div className="tag-confirm-actions">
 //                 <button
 //                   className="cancel-btn"
@@ -156,7 +153,6 @@
 //           )}
 //         </div>
 
-//         {/* FOOTER - checkbox aligned with button */}
 //         <div className="tag-footer">
 //           <label className="tag-checkbox-label">
 //             <input
@@ -185,9 +181,6 @@
 //   );
 // };
 
-// // =====================
-// // MAIN COMPONENT
-// // =====================
 // const InstrumentTag = () => {
 //   const [records, setRecords] = useState([]);
 //   const [loading, setLoading] = useState(false);
@@ -264,6 +257,9 @@
 
 //     return records
 //       .filter((r) => {
+//         // HIDE tagged records
+//         if (r.tagged) return false;
+
 //         const parts = r.jobNumber?.split("/");
 //         const jobYear = parts?.[2];
 //         if (jobYear !== yr) return false;
@@ -288,39 +284,39 @@
 
 //   const handleTagged = async (record, { concernPicTaken }) => {
 //     try {
-//       await fetch(
-//         `${API}/api/jobnumbers/${encodeURIComponent(record.jobNumber)}/tag`,
-//         {
-//           method: "PUT",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify({
-//             tagged: true,
-//             concernTagged: concernPicTaken,
-//             taggedAt: new Date().toISOString(),
-//           }),
-//         },
-//       );
+//       const res = await fetch(`${API}/api/jobnumbers/tag`, {
+//         method: "PUT",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           jobNumber: record.jobNumber,
+//           tagged: true,
+//           concernTagged: concernPicTaken,
+//           taggedAt: new Date().toISOString(),
+//         }),
+//       });
 
-//       setRecords((prev) =>
-//         prev.map((r) =>
-//           r.jobNumber === record.jobNumber
-//             ? { ...r, tagged: true, concernTagged: concernPicTaken }
-//             : r,
-//         ),
-//       );
-
-//       setShowModal(false);
+//       const data = await res.json();
+//       if (data.success) {
+//         setRecords((prev) =>
+//           prev.map((r) =>
+//             r.jobNumber === record.jobNumber
+//               ? { ...r, tagged: true, concernTagged: concernPicTaken }
+//               : r,
+//           ),
+//         );
+//         setShowModal(false);
+//       } else {
+//         console.error("Tag update failed:", data.message);
+//       }
 //     } catch (err) {
 //       console.error("Failed to mark as tagged:", err);
 //     }
 //   };
 
 //   const handleSearch = () => setActiveSearch(searchInput);
-
 //   const handleSearchKeyDown = (e) => {
 //     if (e.key === "Enter") handleSearch();
 //   };
-
 //   const handleRefresh = () => {
 //     setSearchInput("");
 //     setActiveSearch("");
@@ -381,14 +377,14 @@
 //           ))}
 //         </select>
 
-//         {/* <select
+//         <select
 //           value={rowsPerPage}
 //           onChange={(e) => setRowsPerPage(Number(e.target.value))}
 //         >
 //           <option value={25}>25</option>
 //           <option value={50}>50</option>
 //           <option value={100}>100</option>
-//         </select> */}
+//         </select>
 
 //         <button>Log Printed</button>
 //         <button>Re-Print</button>
@@ -398,8 +394,8 @@
 //       <div className="search-results-info">
 //         <span>
 //           Showing <strong>{filteredRecords.length}</strong> of{" "}
-//           <strong>{records.length}</strong> records for{" "}
-//           <strong>{selectedYear}</strong>
+//           <strong>{records.filter((r) => !r.tagged).length}</strong> untagged
+//           records for <strong>{selectedYear}</strong>
 //         </span>
 //         {activeSearch && (
 //           <span>
@@ -423,7 +419,6 @@
 //         <table className="instrument-table">
 //           <thead>
 //             <tr>
-//               <th>Status</th>
 //               <th>Job Number</th>
 //               <th>Date Rec</th>
 //               <th>Priority</th>
@@ -439,7 +434,7 @@
 //           <tbody>
 //             {loading ? (
 //               <tr>
-//                 <td colSpan="11" className="no-data">
+//                 <td colSpan="10" className="no-data">
 //                   Loading...
 //                 </td>
 //               </tr>
@@ -447,16 +442,9 @@
 //               filteredRecords.map((record, index) => (
 //                 <tr
 //                   key={index}
-//                   className={`clickable-row ${record.tagged ? "row-tagged" : ""}`}
+//                   className="clickable-row"
 //                   onClick={() => handleRowClick(record)}
 //                 >
-//                   <td>
-//                     {record.tagged ? (
-//                       <span className="tag-status-done">✔ Tagged</span>
-//                     ) : (
-//                       <span className="tag-status-pending">Pending</span>
-//                     )}
-//                   </td>
 //                   <td>{record.jobNumber}</td>
 //                   <td>{record.dateRec}</td>
 //                   <td>{record.priority}</td>
@@ -471,10 +459,10 @@
 //               ))
 //             ) : (
 //               <tr>
-//                 <td colSpan="11" className="no-data">
+//                 <td colSpan="10" className="no-data">
 //                   {activeSearch
 //                     ? `No results found for "${activeSearch}"`
-//                     : `No records found for ${selectedYear}`}
+//                     : `No untagged records found for ${selectedYear}`}
 //                 </td>
 //               </tr>
 //             )}
@@ -925,12 +913,13 @@ const InstrumentTag = () => {
               <th>Serial No</th>
               <th>ETA</th>
               <th>Remarks</th>
+              <th>Concern</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="10" className="no-data">
+                <td colSpan="11" className="no-data">
                   Loading...
                 </td>
               </tr>
@@ -951,11 +940,12 @@ const InstrumentTag = () => {
                   <td>{record.serialNo}</td>
                   <td>{record.eta}</td>
                   <td>{record.remarks}</td>
+                  <td>{record.concern}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="10" className="no-data">
+                <td colSpan="11" className="no-data">
                   {activeSearch
                     ? `No results found for "${activeSearch}"`
                     : `No untagged records found for ${selectedYear}`}

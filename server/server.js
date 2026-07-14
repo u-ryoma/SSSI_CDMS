@@ -156,7 +156,36 @@ app.post("/api/login", async (req, res) => {
     res.status(500).send("Server error");
   }
 });
+// ==========================
+// ADMIN PASSWORD VERIFICATION (for locked field unlocking)
+// ==========================
+app.post("/api/auth/verify-admin-password", async (req, res) => {
+  const { password } = req.body;
 
+  if (!password) {
+    return res.json({ success: false, message: "Password is required." });
+  }
+
+  try {
+    const admins = await db
+      .collection("users")
+      .find({ role: { $in: ["admin", "owner"] } })
+      .toArray();
+
+    for (const admin of admins) {
+      const match = await bcrypt.compare(password, admin.password);
+      if (match) {
+        return res.json({ success: true });
+      }
+    }
+
+    return res.json({ success: false, message: "Incorrect admin password." });
+  } catch (err) {
+    console.error("Admin password verification failed:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+  s;
+});
 // ==========================
 // LOGS
 // ==========================
@@ -706,6 +735,25 @@ app.put("/api/jobnumbers/tag", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// UPDATE job number details from incoming calibration
+app.put("/api/jobnumbers/update-details", async (req, res) => {
+  try {
+    const { jobNumber, ...updateData } = req.body;
+    const result = await db
+      .collection("jobnumbers")
+      .updateOne({ jobNumber }, { $set: updateData });
+    if (result.matchedCount === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Job number not found" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
   }
 });
 // ✅ FIXED PORT - Works on Vercel

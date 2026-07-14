@@ -282,13 +282,9 @@ export default function Sidebar({ isOpen, onClose }) {
             Site Calibration
           </Link>
         )}
-        {(role === "admin" || role === "technician") && (
-          <Link
-            className="nav-link"
-            to="/admin/forcheckingsig"
-            onClick={onClose}
-          >
-            For Checking Sig
+        {(role === "admin" || role === "clerk" || role === "typist") && (
+          <Link className="nav-link" to="/admin/fortyping" onClick={onClose}>
+            For Typing
           </Link>
         )}
         {(role === "admin" || role === "technician") && (
@@ -300,9 +296,13 @@ export default function Sidebar({ isOpen, onClose }) {
             For Checking OIC
           </Link>
         )}
-        {(role === "admin" || role === "clerk" || role === "typist") && (
-          <Link className="nav-link" to="/admin/fortyping" onClick={onClose}>
-            For Typing
+        {(role === "admin" || role === "technician") && (
+          <Link
+            className="nav-link"
+            to="/admin/forcheckingsig"
+            onClick={onClose}
+          >
+            For Checking Sig
           </Link>
         )}
         {(role === "admin" || role === "clerk" || role === "typist") && (
@@ -384,6 +384,11 @@ export default function Sidebar({ isOpen, onClose }) {
             onClick={onClose}
           >
             Quotation For Follow Up
+          </Link>
+        )}
+        {(role === "admin" || role === "clerk") && (
+          <Link className="nav-link" to="/admin/qtnforsend" onClick={onClose}>
+            Quotation For Send
           </Link>
         )}
         {/* <p className="nav-label">Documents</p> */}

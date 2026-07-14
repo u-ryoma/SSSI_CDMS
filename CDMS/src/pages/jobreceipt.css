@@ -1420,3 +1420,12 @@ jobreceipt.css .receipt-container {
   border-top: 1px solid #ccc;
   padding-top: 10px;
 }
+.jn-lock-banner {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}

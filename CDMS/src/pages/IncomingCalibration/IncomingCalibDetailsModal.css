@@ -1,0 +1,289 @@
+.icd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+}
+
+.icd-modal-wrapper {
+  background: #f0f0f0;
+  width: 1180px;
+  max-width: 96vw;
+  max-height: 92vh;
+  border: 1px solid #999;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.icd-modal-header {
+  background: #000;
+  color: #fff;
+  border-bottom: 1px solid #000;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.icd-modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icd-cdms-logo {
+  background: #fff;
+  color: #000;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 8px 14px;
+  border-radius: 2px;
+  letter-spacing: 0.5px;
+}
+
+.icd-modal-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.icd-modal-title-sub {
+  font-size: 11px;
+  color: #ccc;
+  letter-spacing: 0.5px;
+}
+
+.icd-modal-title-main {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.icd-modal-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.icd-modal-scroll {
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.icd-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.icd-meta-row label {
+  font-size: 12px;
+  min-width: 90px;
+  font-weight: 600;
+}
+
+.icd-meta-row input {
+  flex: 1;
+}
+
+.icd-body {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.7fr 1fr;
+  gap: 14px;
+}
+
+.icd-col-image {
+  display: flex;
+  flex-direction: column;
+}
+
+.icd-image-viewer {
+  flex: 1;
+  min-height: 220px;
+  border: 1px solid #aaa;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.icd-image-viewer img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.icd-image-placeholder {
+  color: #999;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+}
+
+.icd-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.icd-field label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.icd-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.icd-inline-field label {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.icd-inline-field select,
+.icd-inline-field input {
+  flex: 1;
+}
+
+.icd-input-with-btn {
+  display: flex;
+  gap: 4px;
+}
+
+.icd-input-with-btn input,
+.icd-input-with-btn textarea {
+  flex: 1;
+}
+
+.icd-lookup-btn {
+  border: 1px solid #999;
+  background: #e8e8e8;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+.icd-mid-section {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 14px;
+  margin-top: 6px;
+  margin-bottom: 14px;
+}
+
+.icd-accreditation-box,
+.icd-procedure-box {
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.icd-box-title {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.icd-radio-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.icd-procedure-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.icd-procedure-actions button {
+  padding: 4px 10px;
+  border: 1px solid #999;
+  background: #e8e8e8;
+  cursor: pointer;
+}
+
+.icd-primary-btn {
+  background: #2f7d32 !important;
+  color: #fff;
+  border-color: #256428 !important;
+  font-weight: 600;
+}
+
+.icd-standard-section {
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  padding: 10px;
+  background: #fff;
+  margin-bottom: 14px;
+}
+
+.icd-standard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.icd-standard-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.icd-standard-cell {
+  display: flex;
+  gap: 4px;
+}
+
+.icd-standard-cell input {
+  flex: 1;
+}
+
+.icd-standard-cell input:disabled,
+.icd-standard-cell button:disabled {
+  background: #eee;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.icd-footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #ccc;
+  padding-top: 10px;
+}
+
+.icd-footer button {
+  padding: 6px 14px;
+  border: 1px solid #999;
+  background: #e8e8e8;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.icd-footer-left button {
+  margin-left: 0;
+  margin-right: 8px;
+}
+
+.icd-update-btn {
+  background: #2f6fed !important;
+  color: #fff;
+  border-color: #1d4fbb !important;
+  font-weight: 600;
+}

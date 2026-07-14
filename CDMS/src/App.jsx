@@ -13,22 +13,23 @@ import AccountSettings from "./pages/AccountSettings.jsx";
 import AssetMonitoring from "./pages/AssetMonitoring";
 import ConcernIncoming from "./pages/ConcernIncoming";
 import ConcernOut from "./pages/ConcernOut";
-import DeliveryReceipt from "./pages/DeliveryReceipt";
-import ForCheckingOIC from "./pages/ForCheckingOIC";
-import ForCheckingSig from "./pages/ForCheckingSig";
-import ForTyping from "./pages/ForTyping";
-import IncomingCalib from "./pages/IncomingCalib";
+import DeliveryReceipt from "./pages/DeliveryReceipt/DeliveryReceipt";
+import ForCheckingOIC from "./pages/ForCheckingOIC/ForCheckingOIC";
+import ForCheckingSig from "./pages/ForCheckingSIG/ForCheckingSig";
+import ForTyping from "./pages/ForTyping/ForTyping";
+import IncomingCalib from "./pages/IncomingCalibration/IncomingCalib";
 import InstrumentTag from "./pages/InstrumentTag";
 import JobReceipt from "./pages/jobreceipt/index";
 import Monitoring from "./pages/Monitoring";
-import OnGoingCalib from "./pages/OnGoingCalib";
+import OnGoingCalib from "./pages/OngoingCalibration/OnGoingCalib";
 import OnHoldList from "./pages/OnHoldList";
 import PrintAgreement from "./pages/PrintAgreement";
-import PrintFinal from "./pages/PrintFinal";
+import PrintFinal from "./pages/PrintFinalCertificate/PrintFinal";
 import QtnForCheck from "./pages/QtnForCheck";
 import QtnForFile from "./pages/QtnForFile";
 import QtnForFollowUp from "./pages/QtnForFollowUp";
 import QtnList from "./pages/QtnList";
+import QtnForSend from "./pages/QtnForSend";
 import RecallSys from "./pages/RecallSys";
 import SchedMonitor from "./pages/SchedMonitor";
 import SiteCalibration from "./pages/SiteCalibration";
@@ -79,6 +80,7 @@ function App() {
           <Route path="qtnforfile" element={<QtnForFile />} />
           <Route path="qtnforfolowup" element={<QtnForFollowUp />} />
           <Route path="qtnlist" element={<QtnList />} />
+          <Route path="qtnforsend" element={<QtnForSend />} />
           <Route path="recallsys" element={<RecallSys />} />
           <Route path="schedmonitor" element={<SchedMonitor />} />
           <Route path="sitecalibration" element={<SiteCalibration />} />
