@@ -600,7 +600,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import "./IncomingCalibDetailsModal.css";
 import CdmsModalHeader from "./CdmsModalHeader";
-import CalibrationStandardLookupModal from "./CalibrationStandardLookupModal";
+import CalibrationStandardLookupModal from "./CalibrationStandardLookUpModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 
 // Rows for the "Calibration Standard" grid (3 item columns x N rows,
