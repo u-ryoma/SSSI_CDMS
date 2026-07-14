@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
-import "./CalibrationStandardLookupModal.css";
+import "./CalibrationStandardLookUpModal.css";
 import CdmsModalHeader from "./CdmsModalHeader";
 
 /**
