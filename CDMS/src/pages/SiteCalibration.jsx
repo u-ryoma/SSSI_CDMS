@@ -7,7 +7,7 @@
 //   );
 // }
 import React, { useState } from "react";
-import "./OnGoingCalibration/Ongoinglistcalib.css";
+import "./OngoingCalibration/Ongoinglistcalib.css";
 
 const SiteCalibration = () => {
   const [company, setCompany] = useState("");

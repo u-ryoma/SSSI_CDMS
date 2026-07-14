@@ -438,7 +438,7 @@
 
 // export default DeliveryReceiptList;
 import React, { useState, useEffect, useMemo } from "react";
-import "../OnGoingCalibration/Ongoinglistcalib.css";
+import "../OngoingCalibration/Ongoinglistcalib.css";
 import DeliveryTypeModal from "./DeliveryReceiptTypeModal";
 import DeliveryReceiptUnitModal from "./DeliveryReceiptUnitModal";
 import DeliveryReceiptCertificateModal from "./DeliveryReceiptCertificateModal";

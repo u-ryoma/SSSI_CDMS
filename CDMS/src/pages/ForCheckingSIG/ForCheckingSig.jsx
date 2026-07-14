@@ -324,7 +324,7 @@
 
 // export default ForCheckingSig;
 import React, { useState, useEffect, useMemo } from "react";
-import "../OnGoingCalibration/Ongoinglistcalib.css";
+import "../OngoingCalibration/Ongoinglistcalib.css";
 import ForCheckingSigDetailsModal from "./ForCheckingSigDetailsModal";
 
 const API = import.meta.env.VITE_API_URL;
