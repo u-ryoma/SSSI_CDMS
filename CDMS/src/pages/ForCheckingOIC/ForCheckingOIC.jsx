@@ -19,6 +19,12 @@
 //   const [selectedRecord, setSelectedRecord] = useState(null);
 //   const [showModal, setShowModal] = useState(false);
 
+//   // Local "reviewed" gate — true once Check and Sign Report has been
+//   // clicked for the currently open record. Controls whether the
+//   // Update button is enabled. Reset whenever a (new) modal is opened
+//   // or closed, since it's not persisted to the backend.
+//   const [isSigned, setIsSigned] = useState(false);
+
 //   useEffect(() => {
 //     fetchRecords();
 //   }, []);
@@ -64,7 +70,7 @@
 //                 contactCert: job.contactCert || "",
 //                 frequency: job.frequency || "1 Year",
 //                 eta: job.eta || "",
-//                 evalBy: job.evalBy || "",
+//                 oicBy: job.oicBy || "",
 //                 priority: job.priority || "Normal",
 //                 typedBy: job.typedBy || "",
 //                 sig: job.sig || "",
@@ -99,20 +105,40 @@
 
 //   const handleRowClick = (record) => {
 //     setSelectedRecord(record);
+//     setIsSigned(false); // fresh record -> Update starts disabled again
 //     setShowModal(true);
 //   };
 
-//   // "Check and Sign Report" moves the job on to Checking SIG: tag it on
-//   // the backend, then drop it out of this table immediately.
-//   const handleCheckAndSignReport = async () => {
+//   const handleCloseModal = () => {
+//     setShowModal(false);
+//     setSelectedRecord(null);
+//     setIsSigned(false);
+//   };
+
+//   // "Check and Sign Report" no longer touches the backend or moves the
+//   // job. It's just a local confirmation gate that unlocks the Update
+//   // button for this record.
+//   const handleCheckAndSignReport = () => {
+//     setIsSigned(true);
+//   };
+
+//   // "Update" is what actually persists the move: stamp the OIC review
+//   // dates and who performed the check, tag the job as ready for
+//   // Checking SIG, then drop it out of this table and close.
+//   const handleUpdate = async () => {
 //     if (!selectedRecord) return;
 //     try {
+//       const now = new Date().toISOString();
+//       const oicCheckedBy = sessionStorage.getItem("username") || "";
 //       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
 //         method: "PUT",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({
 //           jobNumber: selectedRecord.jobNumber,
 //           forCheckingSigTagged: true,
+//           draftCheckedOICAt: now,
+//           certCheckedOICAt: now,
+//           oicCheckedBy,
 //         }),
 //       });
 //       const data = await res.json();
@@ -120,10 +146,10 @@
 //         setRecords((prev) =>
 //           prev.filter((r) => r.jobNumber !== selectedRecord.jobNumber),
 //         );
-//         setShowModal(false);
+//         handleCloseModal();
 //       }
 //     } catch (err) {
-//       console.error("Check and sign failed:", err);
+//       console.error("Update (move to Checking SIG) failed:", err);
 //     }
 //   };
 
@@ -236,7 +262,7 @@
 //                   <td>{r.jobNumber}</td>
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
-//                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.oicBy || "Ready"}</td>
 //                   <td>{r.typedBy}</td>
 //                   <td>{r.companyName}</td>
 //                   <td>{r.description}</td>
@@ -264,14 +290,15 @@
 //       {showModal && selectedRecord && (
 //         <ForCheckingOICDetailsModal
 //           jobForm={selectedRecord}
-//           onClose={() => setShowModal(false)}
+//           onClose={handleCloseModal}
 //           onOpenCamera={() => {}}
 //           onOpenFolder={() => {}}
 //           onCheckAndSignReport={handleCheckAndSignReport}
-//           onUpdate={() => {}}
+//           onUpdate={handleUpdate}
 //           onLogForRetyping={() => {}}
 //           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
 //           onOpenCalProcedureLookup={() => {}}
+//           isUpdateEnabled={isSigned}
 //         />
 //       )}
 //     </div>
@@ -351,7 +378,8 @@ const ForCheckingOIC = () => {
                 contactCert: job.contactCert || "",
                 frequency: job.frequency || "1 Year",
                 eta: job.eta || "",
-                evalBy: job.evalBy || "",
+                oicBy: job.oicBy || "",
+                oicCheckedBy: job.oicCheckedBy || "",
                 priority: job.priority || "Normal",
                 typedBy: job.typedBy || "",
                 sig: job.sig || "",
@@ -403,17 +431,29 @@ const ForCheckingOIC = () => {
     setIsSigned(true);
   };
 
-  // "Update" is what actually persists the move: tag the job as ready
-  // for Checking SIG, then drop it out of this table and close.
+  // "Update" is what actually persists the move: stamp the OIC review
+  // dates and who performed the check (oicCheckedBy — an audit-trail
+  // field, separate from `oicBy`). `oicBy` is the *assigned* OIC set
+  // back in Incoming/On-Going Calibration and must stay untouched here;
+  // `oicCheckedBy` records whoever actually reviewed and signed off at
+  // this stage, mirroring how `sig` (assigned) vs `sigCheckedBy`
+  // (audit stamp) work at the Checking SIG stage.
   const handleUpdate = async () => {
     if (!selectedRecord) return;
     try {
+      const now = new Date().toISOString();
+      // "name" is the sessionStorage key used app-wide for the logged-in
+      // user's display name (see JobReceipt.jsx, IncomingCalibDetailsModal.jsx).
+      const oicCheckedBy = sessionStorage.getItem("name") || "";
       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobNumber: selectedRecord.jobNumber,
           forCheckingSigTagged: true,
+          draftCheckedOICAt: now,
+          certCheckedOICAt: now,
+          oicCheckedBy,
         }),
       });
       const data = await res.json();
@@ -537,7 +577,7 @@ const ForCheckingOIC = () => {
                   <td>{r.jobNumber}</td>
                   <td>{r.dateRec}</td>
                   <td>{r.priority}</td>
-                  <td>{r.evalBy || r.contactName}</td>
+                  <td>{r.oicBy || "Ready"}</td>
                   <td>{r.typedBy}</td>
                   <td>{r.companyName}</td>
                   <td>{r.description}</td>

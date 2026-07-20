@@ -1,5 +1,6 @@
 /* instrumenttag.css */
 
+/* CONTAINER */
 .instrument-container {
   width: 100%;
   height: 100vh;
@@ -22,78 +23,188 @@
 .instrument-header h2 {
   font-size: 28px;
   font-weight: bold;
+  color: #fff;
+  margin: 0;
 }
 
 /* TABS */
 .instrument-tabs {
   display: flex;
-  background: #efefef;
-  border-bottom: 1px solid #ccc;
+  align-items: center;
+  background: #f4f4f4;
+  border-bottom: 1px solid #dcdcdc;
+  padding-left: 10px;
 }
 
 .instrument-tabs button {
-  border: none;
   background: transparent;
-  padding: 14px 24px;
+  border: none;
+  padding: 16px 28px;
+  font-size: 16px;
   cursor: pointer;
-  font-size: 15px;
+  color: #555;
+  position: relative;
+  transition: 0.2s ease;
+}
+
+.instrument-tabs button:hover {
+  background: #ececec;
 }
 
 .instrument-tabs button.active {
   background: white;
-  border-bottom: 3px solid black;
-  font-weight: bold;
+  color: black;
+}
+
+.instrument-tabs button.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: black;
 }
 
 /* SEARCH BAR */
 .search-bar {
   display: flex;
-  gap: 10px;
   align-items: center;
-  padding: 15px 20px;
-  background: #f9f9f9;
-  border-bottom: 1px solid #ddd;
+  gap: 8px;
+  padding: 12px 20px;
+  background: white;
+  border-bottom: 1px solid #dcdcdc;
+  flex-wrap: wrap;
 }
 
 .search-bar select,
 .search-bar input {
-  padding: 8px;
+  padding: 7px 10px;
   border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 150px;
 }
 
 .search-bar button {
-  padding: 8px 14px;
-  border: 1px solid #ccc;
-  background: white;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #2563eb;
+  color: white;
   cursor: pointer;
+  font-size: 14px;
+}
+
+.search-bar button:hover {
+  background: #1d4ed8;
+}
+
+/* SEARCH RESULTS INFO */
+.search-results-info {
+  padding: 6px 20px;
+  font-size: 13px;
+  color: #555;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.search-results-info strong {
+  color: #2563eb;
+}
+
+.clear-search-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.clear-search-btn:hover {
+  background: #f0f0f0;
 }
 
 /* TABLE */
 .table-wrapper {
   overflow-x: auto;
-  padding: 10px 20px 20px;
+  overflow-y: auto;
+  max-height: 65vh;
+  margin: 20px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
 .instrument-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
+  white-space: nowrap;
 }
 
 .instrument-table th,
 .instrument-table td {
-  border: 1px solid #dcdcdc;
-  padding: 10px;
-  font-size: 13px;
+  border: 1px solid #ddd;
+  padding: 10px 12px;
   text-align: left;
+  font-size: 14px;
 }
 
 .instrument-table th {
-  background: #efefef;
-  font-weight: bold;
+  background: #f3f4f6;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
-/* FORM */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clickable-row:hover {
+  background-color: #f0f7ff;
+}
+
+.row-tagged {
+  background-color: #f0fdf4;
+}
+
+.row-tagged:hover {
+  background-color: #dcfce7 !important;
+}
+
+.tag-status-done {
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.tag-status-pending {
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #888;
+}
+
+/* FORM (legacy card form, still used elsewhere) */
 .instrument-card {
   background: white;
   margin: 20px;
@@ -101,7 +212,6 @@
   border-radius: 5px;
 }
 
-/* FORM GROUP */
 .form-group {
   display: flex;
   align-items: flex-start;
@@ -127,7 +237,6 @@
   resize: vertical;
 }
 
-/* BUTTON */
 .button-wrapper {
   margin-left: 200px;
 }
@@ -139,745 +248,10 @@
   color: white;
   cursor: pointer;
 }
-.instrument-container {
-  width: 100%;
-  background: #f5f5f5;
-  height: 100vh;
-  overflow-y: auto;
-}
 
-.instrument-header {
-  background: #000;
-  padding: 14px 20px;
-}
-
-.instrument-header h2 {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.instrument-tabs {
-  display: flex;
-  align-items: center;
-  background: #f4f4f4;
-  border-bottom: 1px solid #dcdcdc;
-  padding-left: 10px;
-}
-
-.instrument-tabs button {
-  background: transparent;
-  border: none;
-  padding: 16px 28px;
-  font-size: 16px;
-  cursor: pointer;
-  color: #555;
-  position: relative;
-  transition: 0.2s ease;
-}
-
-.instrument-tabs button:hover {
-  background: #ececec;
-}
-
-.instrument-tabs button.active {
-  background: white;
-  color: black;
-}
-
-.instrument-tabs button.active::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: black;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: white;
-  border-bottom: 1px solid #dcdcdc;
-  flex-wrap: wrap;
-}
-
-.search-bar select,
-.search-bar input {
-  padding: 7px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-bar input {
-  flex: 1;
-  min-width: 150px;
-}
-
-.search-bar button {
-  padding: 7px 16px;
-  border: none;
-  border-radius: 4px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.search-bar button:hover {
-  background: #1d4ed8;
-}
-
-.search-results-info {
-  padding: 6px 20px;
-  font-size: 13px;
-  color: #555;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.search-results-info strong {
-  color: #2563eb;
-}
-
-.clear-search-btn {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-size: 12px;
-  color: #666;
-  margin-left: 4px;
-}
-
-.clear-search-btn:hover {
-  background: #f0f0f0;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 65vh;
-  margin: 20px;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-}
-
-.instrument-table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-}
-
-.instrument-table th,
-.instrument-table td {
-  border: 1px solid #ddd;
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 14px;
-}
-
-.instrument-table th {
-  background: #f3f4f6;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.clickable-row:hover {
-  background-color: #f0f7ff;
-}
-
-.no-data {
-  text-align: center;
-  padding: 20px;
-  color: #888;
-}
-.instrument-container {
-  width: 100%;
-  background: #f5f5f5;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.instrument-header {
-  background: #000;
-  padding: 14px 20px;
-}
-
-.instrument-header h2 {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.instrument-tabs {
-  display: flex;
-  align-items: center;
-  background: #f4f4f4;
-  border-bottom: 1px solid #dcdcdc;
-  padding-left: 10px;
-}
-
-.instrument-tabs button {
-  background: transparent;
-  border: none;
-  padding: 16px 28px;
-  font-size: 16px;
-  cursor: pointer;
-  color: #555;
-  position: relative;
-  transition: 0.2s ease;
-}
-
-.instrument-tabs button:hover {
-  background: #ececec;
-}
-
-.instrument-tabs button.active {
-  background: white;
-  color: black;
-}
-
-.instrument-tabs button.active::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: black;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: white;
-  border-bottom: 1px solid #dcdcdc;
-  flex-wrap: wrap;
-}
-
-.search-bar select,
-.search-bar input {
-  padding: 7px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-bar input {
-  flex: 1;
-  min-width: 150px;
-}
-
-.search-bar button {
-  padding: 7px 16px;
-  border: none;
-  border-radius: 4px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.search-bar button:hover {
-  background: #1d4ed8;
-}
-
-.search-results-info {
-  padding: 6px 20px;
-  font-size: 13px;
-  color: #555;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.search-results-info strong {
-  color: #2563eb;
-}
-
-.clear-search-btn {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-size: 12px;
-  color: #666;
-  margin-left: 4px;
-}
-
-.clear-search-btn:hover {
-  background: #f0f0f0;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 65vh;
-  margin: 20px;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-}
-
-.instrument-table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-}
-
-.instrument-table th,
-.instrument-table td {
-  border: 1px solid #ddd;
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 14px;
-}
-
-.instrument-table th {
-  background: #f3f4f6;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.clickable-row:hover {
-  background-color: #f0f7ff;
-}
-
-.row-tagged {
-  background-color: #f0fdf4;
-}
-
-.row-tagged:hover {
-  background-color: #dcfce7 !important;
-}
-
-.tag-status-done {
-  color: #16a34a;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.tag-status-pending {
-  color: #f59e0b;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.no-data {
-  text-align: center;
-  padding: 20px;
-  color: #888;
-}
-
-/* TAGGING MODAL */
-.tag-modal-wrapper {
-  display: flex;
-  flex-direction: column;
-  background: #f0f0f0;
-  border-radius: 6px;
-  width: 95%;
-  max-width: 650px;
-  max-height: 90vh;
-  overflow: hidden;
-  z-index: 10000;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-}
-
-.tag-info-row {
-  display: flex;
-  gap: 24px;
-  padding: 12px 16px;
-  background: #e8e8e8;
-  border-bottom: 1px solid #ccc;
-  flex-wrap: wrap;
-}
-
-.tag-info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tag-info-label {
-  font-size: 11px;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.tag-info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-}
-
-.tag-priority {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.tag-priority-normal {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.tag-priority-rush {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.tag-priority-on.hold {
-  background: #fef9c3;
-  color: #ca8a04;
-}
-
-.tag-details-table {
-  padding: 12px 16px;
-  background: white;
-  overflow-y: auto;
-}
-
-.tag-details-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.tag-detail-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #555;
-  padding: 8px 12px;
-  background: #f3f4f6;
-  border: 1px solid #ddd;
-  width: 120px;
-  white-space: nowrap;
-}
-
-.tag-detail-value {
-  font-size: 13px;
-  color: #333;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-}
-
-.tag-checkbox-section {
-  padding: 16px;
-  background: #f9f9f9;
-  border-top: 1px solid #ccc;
-}
-
-.tag-checkbox-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #333;
-  margin: 0 0 12px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.tag-checkbox-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.tag-checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
-}
-
-.tag-checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  accent-color: #2563eb;
-}
-
-.tag-confirm-prompt {
-  margin: 0 16px;
-  padding: 12px 16px;
-  background: #fffbeb;
-  border: 1px solid #f59e0b;
-  border-radius: 4px;
-  font-size: 13px;
-  color: #333;
-}
-
-.tag-confirm-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  justify-content: flex-end;
-}
-
-.tag-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: #e0e0e0;
-  border-top: 1px solid #ccc;
-}
-
-.tag-btn-primary {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 4px;
-  background: #16a34a;
-  color: white;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.tag-btn-primary:hover {
-  background: #15803d;
-}
-
-.tag-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.instrument-container {
-  width: 100%;
-  background: #f5f5f5;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.instrument-header {
-  background: #000;
-  padding: 14px 20px;
-}
-
-.instrument-header h2 {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.instrument-tabs {
-  display: flex;
-  align-items: center;
-  background: #f4f4f4;
-  border-bottom: 1px solid #dcdcdc;
-  padding-left: 10px;
-}
-
-.instrument-tabs button {
-  background: transparent;
-  border: none;
-  padding: 16px 28px;
-  font-size: 16px;
-  cursor: pointer;
-  color: #555;
-  position: relative;
-  transition: 0.2s ease;
-}
-
-.instrument-tabs button:hover {
-  background: #ececec;
-}
-
-.instrument-tabs button.active {
-  background: white;
-  color: black;
-}
-
-.instrument-tabs button.active::after {
-  content: "";
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  background: black;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: white;
-  border-bottom: 1px solid #dcdcdc;
-  flex-wrap: wrap;
-}
-
-.search-bar select,
-.search-bar input {
-  padding: 7px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.search-bar input {
-  flex: 1;
-  min-width: 150px;
-}
-
-.search-bar button {
-  padding: 7px 16px;
-  border: none;
-  border-radius: 4px;
-  background: #2563eb;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.search-bar button:hover {
-  background: #1d4ed8;
-}
-
-.search-results-info {
-  padding: 6px 20px;
-  font-size: 13px;
-  color: #555;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.search-results-info strong {
-  color: #2563eb;
-}
-
-.clear-search-btn {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-size: 12px;
-  color: #666;
-  margin-left: 4px;
-}
-
-.clear-search-btn:hover {
-  background: #f0f0f0;
-}
-
-.table-wrapper {
-  overflow-x: auto;
-  overflow-y: auto;
-  max-height: 65vh;
-  margin: 20px;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-}
-
-.instrument-table {
-  width: 100%;
-  border-collapse: collapse;
-  white-space: nowrap;
-}
-
-.instrument-table th,
-.instrument-table td {
-  border: 1px solid #ddd;
-  padding: 10px 12px;
-  text-align: left;
-  font-size: 14px;
-}
-
-.instrument-table th {
-  background: #f3f4f6;
-  font-weight: 600;
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.clickable-row:hover {
-  background-color: #f0f7ff;
-}
-
-.row-tagged {
-  background-color: #f0fdf4;
-}
-
-.row-tagged:hover {
-  background-color: #dcfce7 !important;
-}
-
-.tag-status-done {
-  color: #16a34a;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.tag-status-pending {
-  color: #f59e0b;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.no-data {
-  text-align: center;
-  padding: 20px;
-  color: #888;
-}
-
-/* TAGGING MODAL */
+/* ================================
+   TAGGING MODAL
+================================ */
 .tag-modal-wrapper {
   display: flex;
   flex-direction: column;
@@ -1050,7 +424,7 @@
   cursor: not-allowed;
 }
 
-/* SHARED BUTTON STYLES needed from jobreceipt.css */
+/* SHARED MODAL/BUTTON STYLES (reused from jobreceipt.css) */
 .jr-modal-header {
   background: #000;
   color: white;

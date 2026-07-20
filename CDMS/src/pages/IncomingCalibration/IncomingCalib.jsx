@@ -1,5 +1,5 @@
 // import React, { useState, useEffect, useMemo } from "react";
-// import "../Ongoinglistcalib.css";
+// import "../OngoingCalibration/Ongoinglistcalib.css";
 // import IncomingCalibDetailsModal from "./IncomingCalibDetailsModal";
 
 // const API = import.meta.env.VITE_API_URL;
@@ -86,6 +86,7 @@
 //                 accreditationLogo: job.accreditationLogo || "with",
 //                 calibrationProcedure: job.calibrationProcedure || "",
 //                 calibrationStandards: job.calibrationStandards || [],
+//                 photoUrl: job.photoUrl || "", // equipment photo captured in JobNumberModal
 //                 // from receipt
 //                 dateRec: receipt.date || "",
 //                 companyName: receipt.companyName || "",
@@ -268,12 +269,13 @@
 //               <th>Serial No</th>
 //               <th>ETA</th>
 //               <th>Remarks</th>
+//               <th>Concern</th>
 //             </tr>
 //           </thead>
 //           <tbody>
 //             {loading ? (
 //               <tr>
-//                 <td colSpan="11" className="no-data">
+//                 <td colSpan="12" className="no-data">
 //                   Loading...
 //                 </td>
 //               </tr>
@@ -295,11 +297,12 @@
 //                   <td>{r.serialNo}</td>
 //                   <td>{r.eta}</td>
 //                   <td>{r.remarks}</td>
+//                   <td>{r.concern}</td>
 //                 </tr>
 //               ))
 //             ) : (
 //               <tr>
-//                 <td colSpan="11" className="no-data">
+//                 <td colSpan="12" className="no-data">
 //                   {activeSearch
 //                     ? `No results found for "${activeSearch}"`
 //                     : `No incoming calibration records for ${selectedYear}`}
@@ -404,7 +407,7 @@ const IncomingCalib = () => {
                 contactCert: job.contactCert || "",
                 frequency: job.frequency || "1 Year",
                 eta: job.eta || "",
-                evalBy: job.evalBy || "",
+                oicBy: job.oicBy || "",
                 priority: job.priority || "Normal",
                 voltage: job.voltage || "-",
                 tagged: job.tagged || false,
@@ -417,6 +420,7 @@ const IncomingCalib = () => {
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
+                photoUrl: job.photoUrl || "", // equipment photo captured in JobNumberModal
                 // from receipt
                 dateRec: receipt.date || "",
                 companyName: receipt.companyName || "",
@@ -619,7 +623,7 @@ const IncomingCalib = () => {
                   <td>{r.jobNumber}</td>
                   <td>{r.dateRec}</td>
                   <td>{r.priority}</td>
-                  <td>{r.evalBy || r.contactName}</td>
+                  <td>{r.oicBy || "Ready"}</td>
                   <td>{r.companyName}</td>
                   <td>{r.description}</td>
                   <td>{r.brand}</td>

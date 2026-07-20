@@ -1,7 +1,8 @@
-// import React from "react";
+// import React, { useState } from "react";
 // import { createPortal } from "react-dom";
 // import "./ForCheckingOICDetailsModal.css";
 // import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
+// import ConfirmDialog from "../../components/ConfirmDialog";
 
 // const STANDARD_COLUMNS = ["item1", "item2"];
 // const STANDARD_ROW_COUNT = 5;
@@ -22,23 +23,99 @@
 //   onClose,
 //   onOpenCamera,
 //   onOpenFolder,
-//   onApproveAndUpdateReport,
-//   onSaveAndAutoBackup,
+//   onCheckAndSignReport,
+//   onUpdate,
+//   onLogForRetyping,
 //   onOpenCalStandardLookup, // (rowIndex, columnKey) => void
 //   onOpenCalProcedureLookup,
+//   isUpdateEnabled = false,
 // }) => {
 //   const calibrationStandards =
 //     jobForm.calibrationStandards?.length === STANDARD_ROW_COUNT
 //       ? jobForm.calibrationStandards
 //       : Array.from({ length: STANDARD_ROW_COUNT }, emptyStandardRow);
 
+//   // ---- Confirm dialog (same pattern as IncomingCalibDetailsModal) ----
+//   const [dialog, setDialog] = useState({
+//     show: false,
+//     title: "",
+//     message: "",
+//     onConfirm: null,
+//     onCancel: null,
+//     confirmLabel: "Confirm",
+//     cancelLabel: "Cancel",
+//     type: "default",
+//   });
+
+//   const hideDialog = () => setDialog((prev) => ({ ...prev, show: false }));
+
+//   const showConfirm = (title, message, onConfirm, type = "default") => {
+//     setDialog({
+//       show: true,
+//       title,
+//       message,
+//       onConfirm,
+//       onCancel: hideDialog,
+//       confirmLabel: "Confirm",
+//       cancelLabel: "Cancel",
+//       type,
+//     });
+//   };
+
+//   const handleCheckAndSignReportClick = () => {
+//     showConfirm(
+//       "Check and Sign Report",
+//       `Are you sure you want to check and sign the report for Job Number ${jobForm.jobNumber}?`,
+//       () => {
+//         hideDialog();
+//         onCheckAndSignReport?.();
+//       },
+//       "default",
+//     );
+//   };
+
+//   const handleUpdateClick = () => {
+//     showConfirm(
+//       "Confirm Update",
+//       `Are you sure you want to update Job Number ${jobForm.jobNumber}?`,
+//       () => {
+//         hideDialog();
+//         onUpdate?.();
+//       },
+//       "default",
+//     );
+//   };
+
+//   const handleLogForRetypingClick = () => {
+//     showConfirm(
+//       "Log for Re-Typing",
+//       `Are you sure you want to send Job Number ${jobForm.jobNumber} back for re-typing? This will return it to the typist.`,
+//       () => {
+//         hideDialog();
+//         onLogForRetyping?.();
+//       },
+//       "danger",
+//     );
+//   };
+
+//   const handleExitClick = () => {
+//     showConfirm(
+//       "Confirm Exit",
+//       "Are you sure you want to exit this report?",
+//       () => {
+//         hideDialog();
+//         onClose();
+//       },
+//     );
+//   };
+
 //   return createPortal(
-//     <div className="foc-modal-overlay" onClick={onClose}>
+//     <div className="foc-modal-overlay" onClick={handleExitClick}>
 //       <div className="foc-modal-wrapper" onClick={(e) => e.stopPropagation()}>
 //         <CdmsModalHeader
 //           title="DRAFT REPORT FOR CHECKING OIC"
 //           subtitleBottom={jobForm.companyName}
-//           onClose={onClose}
+//           onClose={handleExitClick}
 //         />
 
 //         <div className="foc-modal-scroll">
@@ -226,24 +303,45 @@
 
 //           {/* FOOTER ACTIONS */}
 //           <div className="foc-footer">
-//             <button
-//               type="button"
-//               className="foc-primary-btn"
-//               onClick={onApproveAndUpdateReport}
-//             >
-//               Download and Update Report
-//             </button>
-//             <div className="foc-footer-right">
-//               <button type="button" onClick={onSaveAndAutoBackup}>
-//                 Upload and Auto Backup
+//             <div className="foc-footer-row">
+//               <button
+//                 type="button"
+//                 className="foc-primary-btn"
+//                 onClick={handleCheckAndSignReportClick}
+//               >
+//                 Check and Sign Report
 //               </button>
-//               <button type="button" onClick={onClose}>
+//               <button
+//                 type="button"
+//                 onClick={handleUpdateClick}
+//                 disabled={!isUpdateEnabled}
+//               >
+//                 Update
+//               </button>
+//               <button type="button" onClick={handleExitClick}>
 //                 Exit
+//               </button>
+//             </div>
+//             <div className="foc-footer-row foc-footer-row-secondary">
+//               <button type="button" onClick={handleLogForRetypingClick}>
+//                 Log for Re-Typing
 //               </button>
 //             </div>
 //           </div>
 //         </div>
 //       </div>
+
+//       {dialog.show && (
+//         <ConfirmDialog
+//           title={dialog.title}
+//           message={dialog.message}
+//           onConfirm={dialog.onConfirm}
+//           onCancel={dialog.onCancel}
+//           confirmLabel={dialog.confirmLabel}
+//           cancelLabel={dialog.cancelLabel}
+//           type={dialog.type}
+//         />
+//       )}
 //     </div>,
 //     document.body,
 //   );
@@ -424,7 +522,7 @@ const ForCheckingOICDetailsModal = ({
             <div className="foc-col foc-col-mid">
               <div className="foc-inline-field">
                 <label>OIC</label>
-                <input type="text" value={jobForm.evalBy || ""} disabled />
+                <input type="text" value={jobForm.oicBy || ""} disabled />
               </div>
               <div className="foc-inline-field">
                 <label>SIG</label>

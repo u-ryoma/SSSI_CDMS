@@ -1,14 +1,9 @@
-jobreceipt.css .receipt-container {
-  /* width: 100%;
-  height: 100vh;
-  overflow-y: auto;
-  background: #f3f3f3; */
+/* CONTAINER */
+.receipt-container {
   width: 100%;
   height: 100vh;
   background: #f5f5f5;
-  overflow: hidden; /* REMOVE PAGE SCROLL */
-  display: flex;
-  flex-direction: column;
+  overflow-y: auto;
 }
 
 /* HEADER */
@@ -26,153 +21,8 @@ jobreceipt.css .receipt-container {
 .receipt-header h2 {
   font-size: 28px;
   font-weight: bold;
-}
-
-/* TABS */
-.receipt-tabs {
-  display: flex;
-  background: #efefef;
-  border-bottom: 1px solid #ccc;
-}
-
-.receipt-tabs button {
-  border: none;
-  background: transparent;
-  padding: 14px 24px;
-  cursor: pointer;
-  font-size: 15px;
-}
-
-.receipt-tabs button.active {
-  background: white;
-  border-bottom: 3px solid black;
-  font-weight: bold;
-}
-
-/* SEARCH BAR */
-.search-bar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 15px 20px;
-  background: #f9f9f9;
-  border-bottom: 1px solid #ddd;
-}
-
-.search-bar select,
-.search-bar input {
-  padding: 8px;
-  border: 1px solid #ccc;
-}
-
-.search-bar button {
-  padding: 8px 14px;
-  border: 1px solid #ccc;
-  background: white;
-  cursor: pointer;
-}
-
-/* TABLE */
-.table-wrapper {
-  /* overflow-x: auto;
-  padding: 10px 20px 20px; */
-  margin: 20px;
-  background: white;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-
-  overflow-x: auto;
-  overflow-y: auto;
-
-  max-height: 60vh;
-  width: calc(100% - 40px);
-}
-
-.receipt-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-.receipt-table th,
-.receipt-table td {
-  border: 1px solid #dcdcdc;
-  padding: 10px;
-  font-size: 13px;
-  text-align: left;
-}
-
-.receipt-table th {
-  background: #efefef;
-  font-weight: bold;
-}
-
-/* FORM */
-.receipt-card {
-  background: white;
-  margin: 20px;
-  padding: 25px;
-  border-radius: 5px;
-}
-
-/* FORM GROUP */
-.form-group {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 18px;
-  gap: 20px;
-}
-
-.form-group label {
-  width: 180px;
-  font-weight: 600;
-  padding-top: 10px;
-}
-
-.form-group input,
-.form-group textarea {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ccc;
-}
-
-.form-group textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-/* BUTTON */
-.button-wrapper {
-  margin-left: 200px;
-}
-
-.save-btn {
-  padding: 12px 20px;
-  border: none;
-  background: #151515;
-  color: white;
-  cursor: pointer;
-}
-.receipt-container {
-  width: 100%;
-  background: #f5f5f5;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-/* HEADER */
-.receipt-header {
-  background: #000;
-  padding: 14px 20px;
-}
-
-.receipt-header h2 {
   color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 /* TABS */
@@ -294,6 +144,51 @@ jobreceipt.css .receipt-container {
   color: #888;
 }
 
+/* FORM (used elsewhere in receipt card views) */
+.receipt-card {
+  background: white;
+  margin: 20px;
+  padding: 25px;
+  border-radius: 5px;
+}
+
+.form-group {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 18px;
+  gap: 20px;
+}
+
+.form-group label {
+  width: 180px;
+  font-weight: 600;
+  padding-top: 10px;
+}
+
+.form-group input,
+.form-group textarea {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.button-wrapper {
+  margin-left: 200px;
+}
+
+.save-btn {
+  padding: 12px 20px;
+  border: none;
+  background: #151515;
+  color: white;
+  cursor: pointer;
+}
+
 /* ================================
    JOB RECEIPT MODAL
 ================================ */
@@ -321,7 +216,6 @@ jobreceipt.css .receipt-container {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* MODAL HEADER */
 .jr-modal-header {
   background: #000;
   color: white;
@@ -480,10 +374,13 @@ jobreceipt.css .receipt-container {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .jr-field-row label {
   width: 110px;
+  min-width: 110px;
   font-size: 13px;
   font-weight: 600;
   color: #333;
@@ -492,13 +389,16 @@ jobreceipt.css .receipt-container {
 }
 
 .jr-field-row input,
-.jr-field-row textarea {
+.jr-field-row textarea,
+.jr-field-row select {
   flex: 1;
+  min-width: 0;
   padding: 5px 8px;
   border: 1px solid #aaa;
   border-radius: 3px;
   font-size: 13px;
   background: white;
+  box-sizing: border-box;
 }
 
 .jr-field-row textarea {
@@ -506,8 +406,7 @@ jobreceipt.css .receipt-container {
   min-height: 50px;
 }
 
-/* BOTTOM ACTIONS */
-
+/* MODAL WRAPPER (scrollable variant) */
 .jr-modal-wrapper {
   background: #f0f0f0;
   border-radius: 6px;
@@ -519,6 +418,8 @@ jobreceipt.css .receipt-container {
   z-index: 10000;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
+
+/* BOTTOM ACTIONS */
 .jr-modal-actions {
   display: flex;
   justify-content: space-between;
@@ -612,7 +513,7 @@ jobreceipt.css .receipt-container {
   background: #0f0f0f;
 }
 
-/* JOB NUMBER TABLE */
+/* JOB NUMBER TABLE (inside receipt modal) */
 .jr-job-table-wrapper {
   margin: 0 16px 16px 16px;
   border: 1px solid #ccc;
@@ -648,7 +549,7 @@ jobreceipt.css .receipt-container {
   color: #888;
 }
 
-/* MOBILE RESPONSIVE */
+/* MOBILE RESPONSIVE (job receipt modal) */
 @media (max-width: 768px) {
   .jr-form-body {
     flex-direction: column;
@@ -682,8 +583,10 @@ jobreceipt.css .receipt-container {
 
   .jr-field-row label {
     width: 90px;
+    min-width: 90px;
   }
 }
+
 /* CUSTOMER LOOKUP MODAL */
 .lookup-modal-box {
   background: white;
@@ -772,7 +675,7 @@ jobreceipt.css .receipt-container {
   text-align: center;
   color: #888;
 }
-/* JOB NUMBER MODAL BOX */
+
 /* JOB NUMBER MODAL BOX */
 .jn-modal-box {
   background: #f0f0f0;
@@ -786,7 +689,6 @@ jobreceipt.css .receipt-container {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
 }
 
-/* JOB NUMBER TOP ROW */
 .jn-top-row {
   display: flex;
   justify-content: flex-end;
@@ -794,6 +696,7 @@ jobreceipt.css .receipt-container {
   background: #e8e8e8;
   border-bottom: 1px solid #ccc;
 }
+
 .jn-modal-wrapper {
   display: flex;
   flex-direction: column;
@@ -812,6 +715,7 @@ jobreceipt.css .receipt-container {
   overflow-x: hidden;
   flex: 1;
 }
+
 .jn-top-right {
   display: flex;
   flex-direction: column;
@@ -840,7 +744,6 @@ jobreceipt.css .receipt-container {
   width: 160px;
 }
 
-/* JOB NUMBER FORM BODY - single column */
 .jn-form-body {
   display: flex;
   flex-direction: column;
@@ -859,44 +762,6 @@ jobreceipt.css .receipt-container {
   border: none;
 }
 
-/* FIELD ROWS - label left, input right */
-.jr-field-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.jr-field-row label {
-  width: 110px;
-  min-width: 110px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-  padding-top: 6px;
-  white-space: nowrap;
-}
-
-.jr-field-row input,
-.jr-field-row textarea,
-.jr-field-row select {
-  flex: 1;
-  min-width: 0;
-  padding: 5px 8px;
-  border: 1px solid #aaa;
-  border-radius: 3px;
-  font-size: 13px;
-  background: white;
-  box-sizing: border-box;
-}
-
-.jr-field-row textarea {
-  resize: vertical;
-  min-height: 50px;
-}
-
-/* INLINE FIELDS (Frequency+ETA, EvalBy+Priority on same row) */
 .jn-inline-row {
   display: flex;
   align-items: center;
@@ -925,7 +790,6 @@ jobreceipt.css .receipt-container {
   box-sizing: border-box;
 }
 
-/* JOB NUMBER BOTTOM ACTIONS */
 .jn-modal-actions {
   display: flex;
   justify-content: space-between;
@@ -937,7 +801,25 @@ jobreceipt.css .receipt-container {
   gap: 8px;
 }
 
-/* MOBILE */
+.jn-type-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: #e8e8e8;
+  border-bottom: 1px solid #ccc;
+}
+
+.jn-lock-banner {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeeba;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .jn-inline-row {
     flex-wrap: wrap;
@@ -948,6 +830,7 @@ jobreceipt.css .receipt-container {
     min-width: 90px;
   }
 }
+
 /* INSTRUMENT LIST MODAL */
 .il-modal-wrapper {
   display: flex;
@@ -1058,6 +941,65 @@ jobreceipt.css .receipt-container {
   border-top: 1px solid #ccc;
   margin-top: 12px;
 }
+
+.il-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 4px;
+}
+
+.il-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.il-form-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.il-form-full {
+  grid-column: 1 / -1;
+}
+
+.il-form-grid input,
+.il-form-grid select,
+.il-form-grid textarea {
+  border: 1px solid #999;
+  padding: 5px 6px;
+  font-size: 13px;
+}
+
+.il-error {
+  color: #b3261e;
+  font-size: 12px;
+  margin: 0;
+}
+
+.il-confirm-prompt {
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.il-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.il-confirm-btn {
+  background: #4a90d9;
+  color: #fff;
+  border-color: #2c6cb0;
+}
+
 /* RECALL JOB NUMBER MODAL */
 .recall-modal-wrapper {
   display: flex;
@@ -1168,7 +1110,6 @@ jobreceipt.css .receipt-container {
   background: #bfdbfe !important;
 }
 
-/* PREVIEW */
 .recall-preview {
   margin: 12px 16px 0 16px;
   background: white;
@@ -1213,6 +1154,8 @@ jobreceipt.css .receipt-container {
   opacity: 0.5;
   cursor: not-allowed !important;
 }
+
+/* SEARCH RESULTS INFO */
 .search-results-info {
   padding: 6px 20px;
   font-size: 13px;
@@ -1253,14 +1196,7 @@ jobreceipt.css .receipt-container {
 .clickable-row:hover {
   background-color: #f0f7ff;
 }
-.jn-type-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 16px;
-  background: #e8e8e8;
-  border-bottom: 1px solid #ccc;
-}
+
 /* VALIDATION */
 .jr-error {
   color: #ff4d4d;
@@ -1283,63 +1219,8 @@ jobreceipt.css .receipt-container {
   border-radius: 4px;
   margin-bottom: 8px;
 }
-.il-add-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 10px 4px;
-}
 
-.il-form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.il-form-grid label {
-  display: flex;
-  flex-direction: column;
-  font-size: 12px;
-  gap: 4px;
-}
-
-.il-form-full {
-  grid-column: 1 / -1;
-}
-
-.il-form-grid input,
-.il-form-grid select,
-.il-form-grid textarea {
-  border: 1px solid #999;
-  padding: 5px 6px;
-  font-size: 13px;
-}
-
-.il-error {
-  color: #b3261e;
-  font-size: 12px;
-  margin: 0;
-}
-
-.il-confirm-prompt {
-  border: 1px solid #ccc;
-  background: #f7f7f7;
-  padding: 12px;
-  border-radius: 4px;
-}
-
-.il-confirm-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.il-confirm-btn {
-  background: #4a90d9;
-  color: #fff;
-  border-color: #2c6cb0;
-}
+/* ADD CONTACT MODAL */
 .ac-modal-wrapper {
   width: 420px;
   max-width: 92vw;
@@ -1419,13 +1300,4 @@ jobreceipt.css .receipt-container {
   margin-top: 10px;
   border-top: 1px solid #ccc;
   padding-top: 10px;
-}
-.jn-lock-banner {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeeba;
-  padding: 8px 12px;
-  margin-bottom: 10px;
-  border-radius: 4px;
-  font-size: 0.85rem;
 }

@@ -323,3 +323,12 @@
   padding: 16px;
   color: #666;
 }
+.dr-release-row--selected {
+  background-color: #e0edff;
+}
+
+.dr-release-row--added {
+  background-color: #f0f0f0;
+  color: #999;
+  cursor: default;
+}

@@ -1,5 +1,5 @@
 // import React, { useState, useEffect, useMemo } from "react";
-// import "../OnGoingCalibration/Ongoinglistcalib.css";
+// import "../OngoingCalibration/Ongoinglistcalib.css";
 // import ForPrintFinalDetailsModal from "./ForPrintFinalDetailsModal";
 
 // const API = import.meta.env.VITE_API_URL;
@@ -74,6 +74,7 @@
 //                 dateRec: receipt.date || "",
 //                 companyName: receipt.companyName || "",
 //                 contactName: receipt.contactName || "",
+//                 typedBy: job.typedBy || "",
 
 //                 // ---- extra fields needed by ForPrintFinalDetailsModal ----
 //                 sig: job.sig || "",
@@ -141,18 +142,22 @@
 //     setIsPrinted(true);
 //   };
 
-//   // "Update" is what actually persists the move: tag the job as ready
+//   // "Update" is what actually persists the move: stamp the final
+//   // certificate print date and who printed it, tag the job as ready
 //   // for the next stage (Delivery Receipt), then drop it out of this
 //   // table and close.
 //   const handleUpdate = async () => {
 //     if (!selectedJob) return;
 //     try {
+//       const finalCertPrintedBy = sessionStorage.getItem("name") || "";
 //       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
 //         method: "PUT",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({
 //           jobNumber: selectedJob.jobNumber,
 //           forDeliveryTagged: true,
+//           finalCertPrintedAt: new Date().toISOString(),
+//           finalCertPrintedBy,
 //         }),
 //       });
 //       const data = await res.json();
@@ -166,7 +171,6 @@
 //       console.error("Update (move past Print Final) failed:", err);
 //     }
 //   };
-
 //   return (
 //     <div className="calibration-container">
 //       {/* Header */}
@@ -241,6 +245,8 @@
 //               <th>Date Rec</th>
 //               <th>Priority</th>
 //               <th>OIC</th>
+//               <th>SIG</th>
+//               <th>Typist</th>
 //               <th>Company</th>
 //               <th>Description</th>
 //               <th>Brand</th>
@@ -254,7 +260,7 @@
 //           <tbody>
 //             {loading ? (
 //               <tr>
-//                 <td colSpan="12" className="no-data">
+//                 <td colSpan="14" className="no-data">
 //                   Loading...
 //                 </td>
 //               </tr>
@@ -269,6 +275,8 @@
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
 //                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.sig}</td>
+//                   <td>{r.typedBy}</td>
 //                   <td>{r.companyName}</td>
 //                   <td>{r.description}</td>
 //                   <td>{r.brand}</td>
@@ -281,7 +289,7 @@
 //               ))
 //             ) : (
 //               <tr>
-//                 <td colSpan="12" className="no-data">
+//                 <td colSpan="14" className="no-data">
 //                   {activeSearch
 //                     ? `No results found for "${activeSearch}"`
 //                     : "No jobs ready for final certificate"}
@@ -297,17 +305,14 @@
 //           jobForm={selectedJob}
 //           onClose={handleCloseModal}
 //           onOpenCamera={() => {
-//             // TODO: wire up camera capture flow
 //             console.log("Open camera for", selectedJob.jobNumber);
 //           }}
 //           onOpenFolder={() => {
-//             // TODO: wire up folder/file picker flow
 //             console.log("Open folder for", selectedJob.jobNumber);
 //           }}
 //           onPrintFinalCertificate={handlePrintFinalCertificate}
 //           onUpdate={handleUpdate}
 //           onLogForRetyping={() => {
-//             // TODO: PATCH job back to typist stage
 //             console.log("Log for re-typing", selectedJob.jobNumber);
 //           }}
 //           isUpdateEnabled={isPrinted}
@@ -389,7 +394,15 @@ const PrintFinal = () => {
                 remarks: job.remarks || "",
                 concern: job.concern || "",
                 eta: job.eta || "",
+                // "Eval By" (CPGP/SSSI) — set in JobNumberModal, unrelated
+                // to who's processing the job. Kept for completeness but
+                // NOT used for the OIC column below.
                 evalBy: job.evalBy || "",
+                // OIC — the originally assigned OIC from Incoming/On-Going
+                // Calibration (NOT who checked it — that's oicCheckedBy,
+                // a separate audit field carried along below).
+                oicBy: job.oicBy || "",
+                oicCheckedBy: job.oicCheckedBy || "",
                 priority: job.priority || "Normal",
                 dateRec: receipt.date || "",
                 companyName: receipt.companyName || "",
@@ -462,18 +475,22 @@ const PrintFinal = () => {
     setIsPrinted(true);
   };
 
-  // "Update" is what actually persists the move: tag the job as ready
+  // "Update" is what actually persists the move: stamp the final
+  // certificate print date and who printed it, tag the job as ready
   // for the next stage (Delivery Receipt), then drop it out of this
   // table and close.
   const handleUpdate = async () => {
     if (!selectedJob) return;
     try {
+      const finalCertPrintedBy = sessionStorage.getItem("name") || "";
       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobNumber: selectedJob.jobNumber,
           forDeliveryTagged: true,
+          finalCertPrintedAt: new Date().toISOString(),
+          finalCertPrintedBy,
         }),
       });
       const data = await res.json();
@@ -487,7 +504,6 @@ const PrintFinal = () => {
       console.error("Update (move past Print Final) failed:", err);
     }
   };
-
   return (
     <div className="calibration-container">
       {/* Header */}
@@ -591,7 +607,7 @@ const PrintFinal = () => {
                   <td>{r.jobNumber}</td>
                   <td>{r.dateRec}</td>
                   <td>{r.priority}</td>
-                  <td>{r.evalBy || r.contactName}</td>
+                  <td>{r.oicBy || r.contactName}</td>
                   <td>{r.sig}</td>
                   <td>{r.typedBy}</td>
                   <td>{r.companyName}</td>
@@ -622,17 +638,14 @@ const PrintFinal = () => {
           jobForm={selectedJob}
           onClose={handleCloseModal}
           onOpenCamera={() => {
-            // TODO: wire up camera capture flow
             console.log("Open camera for", selectedJob.jobNumber);
           }}
           onOpenFolder={() => {
-            // TODO: wire up folder/file picker flow
             console.log("Open folder for", selectedJob.jobNumber);
           }}
           onPrintFinalCertificate={handlePrintFinalCertificate}
           onUpdate={handleUpdate}
           onLogForRetyping={() => {
-            // TODO: PATCH job back to typist stage
             console.log("Log for re-typing", selectedJob.jobNumber);
           }}
           isUpdateEnabled={isPrinted}

@@ -1,5 +1,5 @@
 // import React, { useState, useEffect, useMemo } from "react";
-// import "../OnGoingCalibration/Ongoinglistcalib.css";
+// import "../OngoingCalibration/Ongoinglistcalib.css";
 // import ForCheckingSigDetailsModal from "./ForCheckingSigDetailsModal";
 
 // const API = import.meta.env.VITE_API_URL;
@@ -77,6 +77,7 @@
 
 //                 // ---- extra fields needed by ForCheckingSigDetailsModal ----
 //                 sig: job.sig || "",
+//                 typedBy: job.typedBy || "",
 //                 frequency: job.frequency || "",
 //                 contactCert: job.contactCert || "",
 //                 uncertainty: job.uncertainty || "",
@@ -143,17 +144,26 @@
 //     setIsSigned(true);
 //   };
 
-//   // "Update" is what actually persists the move: tag the job as ready
-//   // for Print Final, then drop it out of this table and close.
+//   // "Update" is what actually persists the move: stamp the SIG review
+//   // dates, tag the job as ready for Print Final, then drop it out of
+//   // this table and close.
+//   // "Update" is what actually persists the move: stamp the SIG review
+//   // dates and who performed the check, tag the job as ready for Print
+//   // Final, then drop it out of this table and close.
 //   const handleUpdate = async () => {
 //     if (!selectedJob) return;
 //     try {
+//       const now = new Date().toISOString();
+//       const sigCheckedBy = sessionStorage.getItem("name") || "";
 //       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
 //         method: "PUT",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({
 //           jobNumber: selectedJob.jobNumber,
 //           forPrintFinalTagged: true,
+//           draftCheckedSIGAt: now,
+//           certCheckedSIGAt: now,
+//           sigCheckedBy,
 //         }),
 //       });
 //       const data = await res.json();
@@ -238,6 +248,8 @@
 //               <th>Date Rec</th>
 //               <th>Priority</th>
 //               <th>OIC</th>
+//               <th>SIG</th>
+//               <th>Typist</th>
 //               <th>Company</th>
 //               <th>Description</th>
 //               <th>Brand</th>
@@ -251,7 +263,7 @@
 //           <tbody>
 //             {loading ? (
 //               <tr>
-//                 <td colSpan="12" className="no-data">
+//                 <td colSpan="14" className="no-data">
 //                   Loading...
 //                 </td>
 //               </tr>
@@ -266,6 +278,8 @@
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
 //                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.sig}</td>
+//                   <td>{r.typedBy}</td>
 //                   <td>{r.companyName}</td>
 //                   <td>{r.description}</td>
 //                   <td>{r.brand}</td>
@@ -278,7 +292,7 @@
 //               ))
 //             ) : (
 //               <tr>
-//                 <td colSpan="12" className="no-data">
+//                 <td colSpan="14" className="no-data">
 //                   {activeSearch
 //                     ? `No results found for "${activeSearch}"`
 //                     : "No jobs awaiting SIG check"}
@@ -294,25 +308,20 @@
 //           jobForm={selectedJob}
 //           onClose={handleCloseModal}
 //           onOpenCamera={() => {
-//             // TODO: wire up camera capture flow
 //             console.log("Open camera for", selectedJob.jobNumber);
 //           }}
 //           onOpenFolder={() => {
-//             // TODO: wire up folder/file picker flow
 //             console.log("Open folder for", selectedJob.jobNumber);
 //           }}
 //           onCheckAndSignReport={handleCheckAndSignReport}
 //           onUpdate={handleUpdate}
 //           onLogForRetyping={() => {
-//             // TODO: PATCH job back to typist stage
 //             console.log("Log for re-typing", selectedJob.jobNumber);
 //           }}
 //           onOpenCalStandardLookup={(rowIndex, columnKey) => {
-//             // TODO: open calibration standard lookup for this cell
 //             console.log("Cal standard lookup", rowIndex, columnKey);
 //           }}
 //           onOpenCalProcedureLookup={() => {
-//             // TODO: open calibration procedure lookup
 //             console.log("Cal procedure lookup for", selectedJob.jobNumber);
 //           }}
 //           isUpdateEnabled={isSigned}
@@ -394,7 +403,16 @@ const ForCheckingSig = () => {
                 remarks: job.remarks || "",
                 concern: job.concern || "",
                 eta: job.eta || "",
+                // "Eval By" (CPGP/SSSI) — set in JobNumberModal, unrelated
+                // to who's processing the job. Kept for completeness but
+                // NOT used for the OIC column below.
                 evalBy: job.evalBy || "",
+                // OIC — the originally assigned OIC from Incoming/On-Going
+                // Calibration.
+                oicBy: job.oicBy || "",
+                // Audit stamp of who actually performed the OIC check
+                // (separate from oicBy, the originally assigned OIC).
+                oicCheckedBy: job.oicCheckedBy || "",
                 priority: job.priority || "Normal",
                 dateRec: receipt.date || "",
                 companyName: receipt.companyName || "",
@@ -469,17 +487,23 @@ const ForCheckingSig = () => {
     setIsSigned(true);
   };
 
-  // "Update" is what actually persists the move: tag the job as ready
-  // for Print Final, then drop it out of this table and close.
+  // "Update" is what actually persists the move: stamp the SIG review
+  // dates and who performed the check, tag the job as ready for Print
+  // Final, then drop it out of this table and close.
   const handleUpdate = async () => {
     if (!selectedJob) return;
     try {
+      const now = new Date().toISOString();
+      const sigCheckedBy = sessionStorage.getItem("name") || "";
       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           jobNumber: selectedJob.jobNumber,
           forPrintFinalTagged: true,
+          draftCheckedSIGAt: now,
+          certCheckedSIGAt: now,
+          sigCheckedBy,
         }),
       });
       const data = await res.json();
@@ -564,6 +588,7 @@ const ForCheckingSig = () => {
               <th>Date Rec</th>
               <th>Priority</th>
               <th>OIC</th>
+              {/* <th>OIC Checked By</th> */}
               <th>SIG</th>
               <th>Typist</th>
               <th>Company</th>
@@ -579,7 +604,7 @@ const ForCheckingSig = () => {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="14" className="no-data">
+                <td colSpan="15" className="no-data">
                   Loading...
                 </td>
               </tr>
@@ -593,7 +618,8 @@ const ForCheckingSig = () => {
                   <td>{r.jobNumber}</td>
                   <td>{r.dateRec}</td>
                   <td>{r.priority}</td>
-                  <td>{r.evalBy || r.contactName}</td>
+                  <td>{r.oicBy || r.contactName}</td>
+                  {/* <td>{r.oicCheckedBy}</td> */}
                   <td>{r.sig}</td>
                   <td>{r.typedBy}</td>
                   <td>{r.companyName}</td>
@@ -608,7 +634,7 @@ const ForCheckingSig = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="14" className="no-data">
+                <td colSpan="15" className="no-data">
                   {activeSearch
                     ? `No results found for "${activeSearch}"`
                     : "No jobs awaiting SIG check"}
@@ -624,25 +650,20 @@ const ForCheckingSig = () => {
           jobForm={selectedJob}
           onClose={handleCloseModal}
           onOpenCamera={() => {
-            // TODO: wire up camera capture flow
             console.log("Open camera for", selectedJob.jobNumber);
           }}
           onOpenFolder={() => {
-            // TODO: wire up folder/file picker flow
             console.log("Open folder for", selectedJob.jobNumber);
           }}
           onCheckAndSignReport={handleCheckAndSignReport}
           onUpdate={handleUpdate}
           onLogForRetyping={() => {
-            // TODO: PATCH job back to typist stage
             console.log("Log for re-typing", selectedJob.jobNumber);
           }}
           onOpenCalStandardLookup={(rowIndex, columnKey) => {
-            // TODO: open calibration standard lookup for this cell
             console.log("Cal standard lookup", rowIndex, columnKey);
           }}
           onOpenCalProcedureLookup={() => {
-            // TODO: open calibration procedure lookup
             console.log("Cal procedure lookup for", selectedJob.jobNumber);
           }}
           isUpdateEnabled={isSigned}

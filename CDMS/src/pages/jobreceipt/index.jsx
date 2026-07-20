@@ -5,8 +5,17 @@
 // import JobNumberModal from "./JobNumberModal";
 // import InstrumentListModal from "./InstrumentListModal";
 // import RecallJobModal from "./RecallJobModal";
+// import PrintReceiptModal from "./PrintReceiptModal";
 
 // const API = import.meta.env.VITE_API_URL;
+
+// // Default ETA for a new job: one month from today, minus one day.
+// const getDefaultEta = () => {
+//   const d = new Date();
+//   d.setMonth(d.getMonth() + 1);
+//   d.setDate(d.getDate() - 1);
+//   return d.toISOString().split("T")[0];
+// };
 
 // export const emptyForm = {
 //   jrId: "",
@@ -36,10 +45,13 @@
 //   uncertainty: "",
 //   contactCert: "",
 //   frequency: "1 Year",
-//   eta: new Date().toISOString().split("T")[0],
+//   eta: getDefaultEta(),
 //   evalBy: "",
 //   priority: "Normal",
 //   voltage: "-",
+//   onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Set once via the checkbox and unrelated to pipeline stage.
+//   tagged: false, // pipeline-stage flag: becomes true only once the job actually passes Instrument Tagging. Must NOT default to true, or every new job skips straight to Incoming Calibration.
+//   photoUrl: "", // base64 data URL of the equipment photo, captured via camera in JobNumberModal
 // };
 
 // const currentYear = new Date().getFullYear();
@@ -69,6 +81,16 @@
 //   const [editingJobIndex, setEditingJobIndex] = useState(null);
 //   const [reservingNumber, setReservingNumber] = useState(false);
 //   const [contactOptions, setContactOptions] = useState([]);
+
+//   // EDIT MODE — true when the modal was opened by clicking an existing row
+//   const [isEditMode, setIsEditMode] = useState(false);
+//   const [rowLoading, setRowLoading] = useState(false);
+
+//   // PRINT COPY — holds the saved receipt + job numbers snapshot shown in
+//   // PrintReceiptModal. Populated either right after a successful save, or
+//   // on-demand via the "Print" button inside AddReceiptModal.
+//   const [showPrintModal, setShowPrintModal] = useState(false);
+//   const [printData, setPrintData] = useState(null);
 
 //   const [searchBy, setSearchBy] = useState("Company Name");
 //   const [searchInput, setSearchInput] = useState("");
@@ -159,6 +181,14 @@
 //   const handleJobChange = (e) =>
 //     setJobForm({ ...jobForm, [e.target.name]: e.target.value });
 
+//   // ON-SITE TOGGLE CHANGE — sets the mode-of-receipt flag (`onSite`) that
+//   // JobNumber.jsx's getMOR() reads. This is intentionally independent of
+//   // `tagged`, which is a separate pipeline-stage flag set elsewhere (e.g.
+//   // when the job passes through Instrument Tagging).
+//   const handleOnSiteChange = (e) => {
+//     setJobForm((prev) => ({ ...prev, onSite: e.target.checked }));
+//   };
+
 //   // TYPE CHANGE — reserves a real job number from the server for the chosen type
 //   const handleJobTypeChange = async (e) => {
 //     const newType = e.target.value;
@@ -229,28 +259,30 @@
 //       evalBy: job.evalBy || "",
 //       priority: job.priority || "Normal",
 //       voltage: job.voltage || "-",
+//       onSite: job.onSite ?? false,
+//       tagged: job.tagged ?? false,
+//       photoUrl: job.photoUrl || "",
 //     }));
 //     setShowRecall(false);
 //   };
 
-//   // OPEN NEW JOB NUMBER — blank type, blank job number until user picks a type
+//   // OPEN NEW JOB NUMBER — blank type, blank job number until user picks a type.
+//   // eta is left as-is from emptyJobForm, which already defaults to
+//   // getDefaultEta() (one month from today, minus one day).
 //   const handleOpenJobNumber = () => {
 //     setEditingJobIndex(null);
-//     setJobForm({
-//       ...emptyJobForm,
-//       eta: new Date().toISOString().split("T")[0],
-//     });
+//     setJobForm({ ...emptyJobForm });
 //     setShowJobModal(true);
 //   };
 
-//   // OPEN EXISTING JOB NUMBER FOR EDITING
+//   // OPEN EXISTING JOB NUMBER FOR EDITING (within the job-number sub-modal)
 //   const handleEditJobNumber = (index) => {
 //     setEditingJobIndex(index);
 //     setJobForm({ ...jobNumbers[index] });
 //     setShowJobModal(true);
 //   };
 
-//   // SAVE JOB NUMBER - update existing or add new
+//   // SAVE JOB NUMBER - update existing or add new (in local jobNumbers list)
 //   const handleSaveJobNumber = () => {
 //     if (editingJobIndex !== null) {
 //       setJobNumbers((prev) =>
@@ -258,7 +290,8 @@
 //       );
 //       setEditingJobIndex(null);
 //     } else {
-//       setJobNumbers((prev) => [...prev, { ...jobForm }]);
+//       // mark brand-new jobs so handleSave knows to POST instead of PUT
+//       setJobNumbers((prev) => [...prev, { ...jobForm, _isNew: true }]);
 //     }
 //     setShowJobModal(false);
 //   };
@@ -271,7 +304,7 @@
 //     setShowJobModal(false);
 //   };
 
-//   // OPEN ADD RECEIPT MODAL
+//   // OPEN ADD RECEIPT MODAL (brand new receipt)
 //   const handleOpenModal = async () => {
 //     try {
 //       const res = await fetch(`${API}/api/jobreceipts/next-id`);
@@ -294,14 +327,91 @@
 //     setJobNumbers([]);
 //     setEditingJobIndex(null);
 //     setContactOptions([]);
+//     setIsEditMode(false);
 //     setShowModal(true);
 //   };
 
-//   // SAVE RECEIPT + ALL JOB NUMBERS
+//   // OPEN EXISTING RECEIPT (row click) — loads data from the database into the modal
+//   const handleRowClick = async (receipt) => {
+//     setRowLoading(true);
+//     try {
+//       // Prefer a fresh single-record fetch so the modal always shows the
+//       // latest saved data, not just whatever's cached in the list state.
+//       let fullReceipt = receipt;
+//       try {
+//         const res = await fetch(
+//           `${API}/api/jobreceipts/${encodeURIComponent(receipt.jrId)}`,
+//         );
+//         if (res.ok) {
+//           const data = await res.json();
+//           if (data) fullReceipt = data;
+//         }
+//       } catch (err) {
+//         console.warn(
+//           "Falling back to cached row data (single-fetch failed):",
+//           err,
+//         );
+//       }
+
+//       setFormData({ ...emptyForm, ...fullReceipt });
+//       setIsEditMode(true);
+//       setEditingJobIndex(null);
+
+//       // Try to get this receipt's job numbers from a dedicated endpoint first;
+//       // fall back to filtering the already-fetched allJobNumbers list.
+//       let relatedJobs = [];
+//       try {
+//         const jobsRes = await fetch(
+//           `${API}/api/jobnumbers?jobReceiptID=${encodeURIComponent(
+//             fullReceipt.jrId,
+//           )}`,
+//         );
+//         if (jobsRes.ok) {
+//           const jobsData = await jobsRes.json();
+//           relatedJobs = Array.isArray(jobsData) ? jobsData : [];
+//         }
+//       } catch (err) {
+//         console.warn("Job numbers endpoint failed, using cached list:", err);
+//       }
+
+//       // SAFETY NET: enforce the JR ID match client-side regardless of what
+//       // the endpoint returned. This guarantees only job numbers actually
+//       // registered under this JR ID ever show up in the modal, even if the
+//       // backend route ignores the query param or returns stale/extra rows.
+//       relatedJobs = relatedJobs.filter(
+//         (job) => job.jobReceiptID === fullReceipt.jrId,
+//       );
+
+//       if (relatedJobs.length === 0) {
+//         relatedJobs = allJobNumbers.filter(
+//           (job) => job.jobReceiptID === fullReceipt.jrId,
+//         );
+//       }
+//       setJobNumbers(relatedJobs);
+
+//       // Load contact dropdown options for this customer
+//       if (fullReceipt.customerID) {
+//         await fetchContactsByCustomerID(fullReceipt.customerID);
+//       } else {
+//         setContactOptions([]);
+//       }
+
+//       setShowModal(true);
+//     } finally {
+//       setRowLoading(false);
+//     }
+//   };
+
+//   // SAVE RECEIPT + ALL JOB NUMBERS (handles both create and update)
 //   const handleSave = async () => {
 //     try {
-//       const res = await fetch(`${API}/api/jobreceipts`, {
-//         method: "POST",
+//       const url = isEditMode
+//         ? `${API}/api/jobreceipts/${encodeURIComponent(formData.jrId)}`
+//         : `${API}/api/jobreceipts`;
+//       const method = isEditMode ? "PUT" : "POST";
+
+//       const res = await fetch(url, {
+//         method,
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({ ...formData, jobNumbers: [] }),
 //       });
@@ -309,12 +419,20 @@
 //       const data = await res.json();
 
 //       if (data.success) {
-//         const savedJrId = data.jrId;
+//         const savedJrId = data.jrId || formData.jrId;
 //         const savedJobs = [];
 
 //         for (const job of jobNumbers) {
-//           const jobRes = await fetch(`${API}/api/jobnumbers`, {
-//             method: "POST",
+//           // Existing jobs (loaded from DB, not flagged _isNew) get updated;
+//           // newly added jobs in this session get created.
+//           const isExistingJob = Boolean(job._id) && !job._isNew;
+//           const jobUrl = isExistingJob
+//             ? `${API}/api/jobnumbers/${job._id}`
+//             : `${API}/api/jobnumbers`;
+//           const jobMethod = isExistingJob ? "PUT" : "POST";
+
+//           const jobRes = await fetch(jobUrl, {
+//             method: jobMethod,
 //             headers: { "Content-Type": "application/json" },
 //             body: JSON.stringify({
 //               ...job,
@@ -324,20 +442,51 @@
 //           });
 //           const jobData = await jobRes.json();
 //           if (jobData.success) {
-//             savedJobs.push({ ...job, jobNumber: jobData.jobNumber });
+//             const { _isNew, ...cleanJob } = job;
+//             savedJobs.push({
+//               ...cleanJob,
+//               jobNumber: jobData.jobNumber || job.jobNumber,
+//               _id: jobData._id || job._id,
+//             });
 //           }
 //         }
 
-//         setAllJobNumbers((prev) => [...prev, ...savedJobs]);
+//         // Replace any previously-cached jobs for this receipt with the fresh saved set
+//         setAllJobNumbers((prev) => {
+//           const withoutOld = prev.filter((j) => j.jobReceiptID !== savedJrId);
+//           return [...withoutOld, ...savedJobs];
+//         });
+
 //         await fetchReceipts();
+
+//         // PRINT COPY — snapshot the just-saved receipt + its saved job
+//         // numbers (with server-generated job number IDs) and open the
+//         // printable receipt automatically so there's a physical/PDF copy
+//         // on hand right after saving.
+//         setPrintData({
+//           ...formData,
+//           jrId: savedJrId,
+//           jobNumbers: savedJobs,
+//         });
+//         setShowPrintModal(true);
+
 //         setFormData(emptyForm);
 //         setJobNumbers([]);
 //         setContactOptions([]);
+//         setIsEditMode(false);
 //         setShowModal(false);
 //       }
 //     } catch (err) {
 //       console.error("Failed to save receipt and job numbers:", err);
 //     }
+//   };
+
+//   // PRINT PREVIEW ON DEMAND — lets the user open the printable receipt from
+//   // inside AddReceiptModal (via its "Print" button) without saving first.
+//   // Useful for reprinting an already-saved receipt while it's open in edit mode.
+//   const handlePrintPreview = () => {
+//     setPrintData({ ...formData, jobNumbers });
+//     setShowPrintModal(true);
 //   };
 
 //   const handleSearch = () => setActiveSearch(searchInput);
@@ -458,7 +607,11 @@
 //               </tr>
 //             ) : filteredReceipts.length > 0 ? (
 //               filteredReceipts.map((receipt, index) => (
-//                 <tr key={receipt._id || index} className="clickable-row">
+//                 <tr
+//                   key={receipt._id || index}
+//                   className="clickable-row"
+//                   onClick={() => handleRowClick(receipt)}
+//                 >
 //                   <td>{receipt.jrId}</td>
 //                   <td>{receipt.date}</td>
 //                   <td>{receipt.companyName}</td>
@@ -484,10 +637,20 @@
 //         </table>
 //       </div>
 
+//       {rowLoading && (
+//         <div className="jr-row-loading-overlay">
+//           <span>Loading receipt...</span>
+//         </div>
+//       )}
+
 //       {showModal && (
 //         <AddReceiptModal
-//           onClose={() => setShowModal(false)}
+//           onClose={() => {
+//             setShowModal(false);
+//             setIsEditMode(false);
+//           }}
 //           onSave={handleSave}
+//           onPrint={handlePrintPreview}
 //           formData={formData}
 //           onChange={handleChange}
 //           onOpenLookup={() => setShowLookup(true)}
@@ -497,6 +660,13 @@
 //           jobNumbers={jobNumbers}
 //           contactOptions={contactOptions}
 //           onCustomerIDBlur={fetchContactsByCustomerID}
+//           onContactAdded={(newContactName) => {
+//             setContactOptions((prev) =>
+//               prev.includes(newContactName) ? prev : [...prev, newContactName],
+//             );
+//             setFormData((prev) => ({ ...prev, contactName: newContactName }));
+//           }}
+//           isEditMode={isEditMode}
 //         />
 //       )}
 
@@ -517,6 +687,7 @@
 //           onCancel={handleCancelJobNumber}
 //           jobForm={jobForm}
 //           onJobChange={handleJobChange}
+//           onOnSiteChange={handleOnSiteChange}
 //           onJobTypeChange={handleJobTypeChange}
 //           jobReceiptID={formData.jrId}
 //           onOpenInstrumentList={() => setShowInstrumentList(true)}
@@ -540,6 +711,16 @@
 //           savedJobNumbers={allJobNumbers}
 //         />
 //       )}
+
+//       {showPrintModal && printData && (
+//         <PrintReceiptModal
+//           receipt={printData}
+//           onClose={() => {
+//             setShowPrintModal(false);
+//             setPrintData(null);
+//           }}
+//         />
+//       )}
 //     </div>
 //   );
 // };
@@ -552,8 +733,17 @@ import CustomerLookupModal from "./CustomerLookupModal";
 import JobNumberModal from "./JobNumberModal";
 import InstrumentListModal from "./InstrumentListModal";
 import RecallJobModal from "./RecallJobModal";
+import PrintReceiptModal from "./PrintReceiptModal";
 
 const API = import.meta.env.VITE_API_URL;
+
+// Default ETA for a new job: one month from today, minus one day.
+const getDefaultEta = () => {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+};
 
 export const emptyForm = {
   jrId: "",
@@ -583,10 +773,13 @@ export const emptyJobForm = {
   uncertainty: "",
   contactCert: "",
   frequency: "1 Year",
-  eta: new Date().toISOString().split("T")[0],
+  eta: getDefaultEta(),
   evalBy: "",
   priority: "Normal",
   voltage: "-",
+  onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Set once via the checkbox and unrelated to pipeline stage.
+  tagged: false, // pipeline-stage flag: becomes true only once the job actually passes Instrument Tagging. Must NOT default to true, or every new job skips straight to Incoming Calibration.
+  photoUrl: "", // base64 data URL of the equipment photo, captured via camera in JobNumberModal
 };
 
 const currentYear = new Date().getFullYear();
@@ -620,6 +813,12 @@ const JobReceipt = () => {
   // EDIT MODE — true when the modal was opened by clicking an existing row
   const [isEditMode, setIsEditMode] = useState(false);
   const [rowLoading, setRowLoading] = useState(false);
+
+  // PRINT COPY — holds the saved receipt + job numbers snapshot shown in
+  // PrintReceiptModal. Populated either right after a successful save, or
+  // on-demand via the "Print" button inside AddReceiptModal.
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printData, setPrintData] = useState(null);
 
   const [searchBy, setSearchBy] = useState("Company Name");
   const [searchInput, setSearchInput] = useState("");
@@ -710,6 +909,14 @@ const JobReceipt = () => {
   const handleJobChange = (e) =>
     setJobForm({ ...jobForm, [e.target.name]: e.target.value });
 
+  // ON-SITE TOGGLE CHANGE — sets the mode-of-receipt flag (`onSite`) that
+  // JobNumber.jsx's getMOR() reads. This is intentionally independent of
+  // `tagged`, which is a separate pipeline-stage flag set elsewhere (e.g.
+  // when the job passes through Instrument Tagging).
+  const handleOnSiteChange = (e) => {
+    setJobForm((prev) => ({ ...prev, onSite: e.target.checked }));
+  };
+
   // TYPE CHANGE — reserves a real job number from the server for the chosen type
   const handleJobTypeChange = async (e) => {
     const newType = e.target.value;
@@ -780,17 +987,19 @@ const JobReceipt = () => {
       evalBy: job.evalBy || "",
       priority: job.priority || "Normal",
       voltage: job.voltage || "-",
+      onSite: job.onSite ?? false,
+      tagged: job.tagged ?? false,
+      photoUrl: job.photoUrl || "",
     }));
     setShowRecall(false);
   };
 
-  // OPEN NEW JOB NUMBER — blank type, blank job number until user picks a type
+  // OPEN NEW JOB NUMBER — blank type, blank job number until user picks a type.
+  // eta is left as-is from emptyJobForm, which already defaults to
+  // getDefaultEta() (one month from today, minus one day).
   const handleOpenJobNumber = () => {
     setEditingJobIndex(null);
-    setJobForm({
-      ...emptyJobForm,
-      eta: new Date().toISOString().split("T")[0],
-    });
+    setJobForm({ ...emptyJobForm });
     setShowJobModal(true);
   };
 
@@ -977,6 +1186,18 @@ const JobReceipt = () => {
         });
 
         await fetchReceipts();
+
+        // PRINT COPY — snapshot the just-saved receipt + its saved job
+        // numbers (with server-generated job number IDs) and open the
+        // printable receipt automatically so there's a physical/PDF copy
+        // on hand right after saving.
+        setPrintData({
+          ...formData,
+          jrId: savedJrId,
+          jobNumbers: savedJobs,
+        });
+        setShowPrintModal(true);
+
         setFormData(emptyForm);
         setJobNumbers([]);
         setContactOptions([]);
@@ -986,6 +1207,14 @@ const JobReceipt = () => {
     } catch (err) {
       console.error("Failed to save receipt and job numbers:", err);
     }
+  };
+
+  // PRINT PREVIEW ON DEMAND — lets the user open the printable receipt from
+  // inside AddReceiptModal (via its "Print" button) without saving first.
+  // Useful for reprinting an already-saved receipt while it's open in edit mode.
+  const handlePrintPreview = () => {
+    setPrintData({ ...formData, jobNumbers });
+    setShowPrintModal(true);
   };
 
   const handleSearch = () => setActiveSearch(searchInput);
@@ -1000,6 +1229,16 @@ const JobReceipt = () => {
     setSearchBy("Company Name");
     setSelectedYear(currentYear.toString());
     fetchReceipts();
+  };
+
+  // ADD CONTACT (shared) — called from either AddReceiptModal or
+  // JobNumberModal's "Add Contact" flow. Keeps the dropdown list and the
+  // receipt's selected Contact Name in sync no matter which modal added it.
+  const handleContactAdded = (newContactName) => {
+    setContactOptions((prev) =>
+      prev.includes(newContactName) ? prev : [...prev, newContactName],
+    );
+    setFormData((prev) => ({ ...prev, contactName: newContactName }));
   };
 
   return (
@@ -1149,6 +1388,7 @@ const JobReceipt = () => {
             setIsEditMode(false);
           }}
           onSave={handleSave}
+          onPrint={handlePrintPreview}
           formData={formData}
           onChange={handleChange}
           onOpenLookup={() => setShowLookup(true)}
@@ -1158,12 +1398,7 @@ const JobReceipt = () => {
           jobNumbers={jobNumbers}
           contactOptions={contactOptions}
           onCustomerIDBlur={fetchContactsByCustomerID}
-          onContactAdded={(newContactName) => {
-            setContactOptions((prev) =>
-              prev.includes(newContactName) ? prev : [...prev, newContactName],
-            );
-            setFormData((prev) => ({ ...prev, contactName: newContactName }));
-          }}
+          onContactAdded={handleContactAdded}
           isEditMode={isEditMode}
         />
       )}
@@ -1185,12 +1420,16 @@ const JobReceipt = () => {
           onCancel={handleCancelJobNumber}
           jobForm={jobForm}
           onJobChange={handleJobChange}
+          onOnSiteChange={handleOnSiteChange}
           onJobTypeChange={handleJobTypeChange}
           jobReceiptID={formData.jrId}
           onOpenInstrumentList={() => setShowInstrumentList(true)}
           onOpenRecall={() => setShowRecall(true)}
           isEditing={editingJobIndex !== null}
           reservingNumber={reservingNumber}
+          customerID={formData.customerID}
+          contactOptions={contactOptions}
+          onContactAdded={handleContactAdded}
         />
       )}
 
@@ -1206,6 +1445,16 @@ const JobReceipt = () => {
           onClose={() => setShowRecall(false)}
           onUseDetails={handleUseDetails}
           savedJobNumbers={allJobNumbers}
+        />
+      )}
+
+      {showPrintModal && printData && (
+        <PrintReceiptModal
+          receipt={printData}
+          onClose={() => {
+            setShowPrintModal(false);
+            setPrintData(null);
+          }}
         />
       )}
     </div>

@@ -11,13 +11,12 @@
 // /**
 //  * ForTypingDetailsModal
 //  *
-//  * Read-only "draft report" review screen shown when a row is clicked in
-//  * ForTyping.jsx. Unlike IncomingCalibDetailsModal, this is not an edit
-//  * form — it's a snapshot of the job's finalized calibration details for
-//  * review before generating/typing the report, so all fields are
-//  * disabled. Calibration Standard is shown as a compact 2-column list
-//  * (already-assigned codes) instead of the editable sequential-unlock
-//  * grid used earlier in the workflow.
+//  * Read-only "draft report" review screen. Originally built for
+//  * ForTyping.jsx, but reused across other post-calibration report stages
+//  * (e.g. ForCheckingOIC.jsx) via the `title` / button-label props below,
+//  * since the layout (read-only snapshot of a job's calibration details,
+//  * plus Calibration Standard grid) is identical at each stage — only the
+//  * header title and footer action labels change.
 //  */
 // const ForTypingDetailsModal = ({
 //   jobForm,
@@ -26,8 +25,11 @@
 //   onOpenFolder,
 //   onOpenAndUpdateReport,
 //   onSaveAndAutoBackup,
-//   onOpenCalStandardLookup, // (rowIndex, columnKey) => void
+//   onOpenCalStandardLookup,
 //   onOpenCalProcedureLookup,
+//   title = "DRAFT REPORT FOR TYPING",
+//   primaryButtonLabel = "Download and Update Report",
+//   secondaryButtonLabel = "Upload and Auto Backup",
 // }) => {
 //   const calibrationStandards =
 //     jobForm.calibrationStandards?.length === STANDARD_ROW_COUNT
@@ -38,7 +40,7 @@
 //     <div className="ftd-modal-overlay" onClick={onClose}>
 //       <div className="ftd-modal-wrapper" onClick={(e) => e.stopPropagation()}>
 //         <CdmsModalHeader
-//           title="DRAFT REPORT FOR TYPING"
+//           title={title}
 //           subtitleBottom={jobForm.companyName}
 //           onClose={onClose}
 //         />
@@ -150,7 +152,7 @@
 //               </div>
 //             </div>
 
-//             {/* CALIBRATION STANDARD (top-right, instead of an image viewer) */}
+//             {/* CALIBRATION STANDARD */}
 //             <div className="ftd-col ftd-col-standard">
 //               <div className="ftd-box-title">Calibration Standard</div>
 //               <div className="ftd-standard-grid">
@@ -233,11 +235,11 @@
 //               className="ftd-primary-btn"
 //               onClick={onOpenAndUpdateReport}
 //             >
-//               Download and Update Report
+//               {primaryButtonLabel}
 //             </button>
 //             <div className="ftd-footer-right">
 //               <button type="button" onClick={onSaveAndAutoBackup}>
-//                 Upload and Auto Backup
+//                 {secondaryButtonLabel}
 //               </button>
 //               <button type="button" onClick={onClose}>
 //                 Exit
@@ -353,7 +355,7 @@ const ForTypingDetailsModal = ({
             <div className="ftd-col ftd-col-mid">
               <div className="ftd-inline-field">
                 <label>OIC</label>
-                <input type="text" value={jobForm.evalBy || ""} disabled />
+                <input type="text" value={jobForm.oicBy || ""} disabled />
               </div>
               <div className="ftd-inline-field">
                 <label>SIG</label>
