@@ -247,18 +247,10 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
       );
       // -------------------------------------------
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-
-        // --- diagnostics after play() resolves ---
-        console.log(
-          "video dimensions:",
-          videoRef.current.videoWidth,
-          videoRef.current.videoHeight,
-        );
-        // -------------------------------------------
-      }
+      // NOTE: do NOT attach to videoRef here — the <video> element only
+      // renders once mode === "live", so videoRef.current is still null
+      // at this point. Attaching happens in the effect below, which runs
+      // after the video element has actually mounted.
       setMode("live");
     } catch (err) {
       console.warn("Camera unavailable, falling back to file input:", err);
@@ -274,6 +266,24 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
     return () => stopStream();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Attach the stream to the <video> element once it has actually mounted.
+  // The element only renders when mode === "live", so this must happen
+  // in an effect (after render/commit) rather than inline in startCamera.
+  useEffect(() => {
+    if (mode !== "live" || !videoRef.current || !streamRef.current) return;
+
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    video
+      .play()
+      .then(() => {
+        console.log("video dimensions:", video.videoWidth, video.videoHeight);
+      })
+      .catch((err) => {
+        console.warn("video.play() failed:", err);
+      });
+  }, [mode]);
 
   const handleTakePhoto = () => {
     const video = videoRef.current;
