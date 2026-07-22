@@ -503,6 +503,16 @@
 //     fetchReceipts();
 //   };
 
+//   // ADD CONTACT (shared) — called from either AddReceiptModal or
+//   // JobNumberModal's "Add Contact" flow. Keeps the dropdown list and the
+//   // receipt's selected Contact Name in sync no matter which modal added it.
+//   const handleContactAdded = (newContactName) => {
+//     setContactOptions((prev) =>
+//       prev.includes(newContactName) ? prev : [...prev, newContactName],
+//     );
+//     setFormData((prev) => ({ ...prev, contactName: newContactName }));
+//   };
+
 //   return (
 //     <div className="receipt-container">
 //       <div className="receipt-header">
@@ -660,12 +670,7 @@
 //           jobNumbers={jobNumbers}
 //           contactOptions={contactOptions}
 //           onCustomerIDBlur={fetchContactsByCustomerID}
-//           onContactAdded={(newContactName) => {
-//             setContactOptions((prev) =>
-//               prev.includes(newContactName) ? prev : [...prev, newContactName],
-//             );
-//             setFormData((prev) => ({ ...prev, contactName: newContactName }));
-//           }}
+//           onContactAdded={handleContactAdded}
 //           isEditMode={isEditMode}
 //         />
 //       )}
@@ -694,6 +699,9 @@
 //           onOpenRecall={() => setShowRecall(true)}
 //           isEditing={editingJobIndex !== null}
 //           reservingNumber={reservingNumber}
+//           customerID={formData.customerID}
+//           contactOptions={contactOptions}
+//           onContactAdded={handleContactAdded}
 //         />
 //       )}
 
@@ -734,6 +742,7 @@ import JobNumberModal from "./JobNumberModal";
 import InstrumentListModal from "./InstrumentListModal";
 import RecallJobModal from "./RecallJobModal";
 import PrintReceiptModal from "./PrintReceiptModal";
+import PrintReceiptModalOnSite from "./PrintReceiptModalOnSite";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -1448,15 +1457,28 @@ const JobReceipt = () => {
         />
       )}
 
-      {showPrintModal && printData && (
-        <PrintReceiptModal
-          receipt={printData}
-          onClose={() => {
-            setShowPrintModal(false);
-            setPrintData(null);
-          }}
-        />
-      )}
+      {/* PRINT MODAL — swaps between the standard in-house Conditions of
+          Calibration layout and the On-Site layout, based on whether any
+          job number on this receipt has onSite === true. */}
+      {showPrintModal &&
+        printData &&
+        (printData.jobNumbers?.some((j) => j.onSite) ? (
+          <PrintReceiptModalOnSite
+            receipt={printData}
+            onClose={() => {
+              setShowPrintModal(false);
+              setPrintData(null);
+            }}
+          />
+        ) : (
+          <PrintReceiptModal
+            receipt={printData}
+            onClose={() => {
+              setShowPrintModal(false);
+              setPrintData(null);
+            }}
+          />
+        ))}
     </div>
   );
 };

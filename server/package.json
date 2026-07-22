@@ -15,10 +15,12 @@
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
+    "docxtemplater": "^3.69.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "mongodb": "^7.2.0",
     "multer": "^2.2.0",
+    "pizzip": "^3.2.0",
     "streamifier": "^0.1.1"
   }
 }

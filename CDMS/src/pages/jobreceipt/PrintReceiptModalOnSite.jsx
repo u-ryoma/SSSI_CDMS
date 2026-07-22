@@ -1,28 +1,28 @@
 // import React from "react";
 // import { createPortal } from "react-dom";
-// import JobTag, { jobTagStyles } from "./JobTag";
 
 // /**
-//  * PrintReceiptModal
-//  * Read-only, printable view of a saved Job Receipt + its Job Numbers,
-//  * followed by SSS's Conditions of Calibration on a separate printed page.
+//  * PrintReceiptModalOnSite
+//  * Same as PrintReceiptModal, but the "Conditions of Calibration" page uses
+//  * the On-Site version of the form:
+//  *   - DOC ID / ISSUE NO. / REVISION / DATE REV box next to the letterhead
+//  *   - "SiteCalibration Number" + "Company Name" line instead of the boxed
+//  *     Job Receipt Number / Company Name info bar
+//  *   - Condition #1 reworded to "done On-site with the assistance of your
+//  *     company's staff" (bold "On-site" instead of "SSS LAB")
+//  *   - Pickup/delivery clause dropped (not applicable on-site)
+//  *   - New cancellation / re-scheduling clause added
+//  *   - Revised signature block (name directly under the line, "Conforme :"
+//  *     inline with the label)
 //  *
-//  * Reuses the app's existing jr-modal-* classes (from jobreceipt.css) for the
-//  * chrome so it looks consistent with AddReceiptModal / JobNumberModal, and
-//  * defines its own scoped print rules so only the tags/terms/receipt sheets
-//  * are printed (each on its own page).
+//  * Rendered by JobReceipt.jsx instead of PrintReceiptModal whenever at least
+//  * one job number on the receipt has onSite === true.
 //  *
-//  * LOGO: pass `logoUrl` with the path to your logo image (e.g. an asset in
-//  * /public, like "/logo-sss.png"). If omitted, a placeholder circle with the
-//  * company initials is shown instead so the layout still looks right.
-//  *
-//  * Expected `receipt` shape (matches what handleSave in JobReceipt.jsx builds):
+//  * Expected `receipt` shape — identical to PrintReceiptModal:
 //  * {
 //  *   jrId, date, customerID, companyName, companyAddress, contactInfo,
 //  *   vat, reference, contactName, preparedBy, remarks,
-//  *   jobNumbers: [
-//  *     { jobNumber, type, description, brand, model, serialNo, eta, priority, ... }
-//  *   ]
+//  *   jobNumbers: [ { jobNumber, type, description, ..., onSite }, ... ]
 //  * }
 //  */
 
@@ -45,37 +45,33 @@
 //   return "---";
 // };
 
-// // COMPANY LETTERHEAD DETAILS — edit these to match your actual details, or
-// // lift them into props if different receipts ever need different branding.
 // const COMPANY = {
-//   name: "SCIENTIFIC STANDARDS SERVICES",
-//   addressLine: "#9 M. Santos St. Tuktukan Taguig City, Philippines (1637)",
-//   phoneLine: "Tel. Nos: (02) 642-3695  642-3373  628-2410  628-0177",
-//   emailLine: "inquiry@scientificstandards.com.ph  •  stdcalib@yahoo.com",
-//   websiteLine: "stdcalib@scientificstandards.com.ph",
+//   name: "SCIENTIFIC STANDARD SERVICES INC.",
+//   addressLine: "#9 M. Santos St. Tuktukan Taguig City, 1637, PH",
+//   phoneLine: "inquiry@scientificstandards.com.ph / stdcalib@yahoo.com",
+//   emailLine: "02-8642-3695 | 02-8642-3373 | 02-8628-2410",
 //   initials: "SSS",
 // };
 
-// // CONDITIONS OF CALIBRATION — flat numbered list, matching the printed
-// // company document verbatim. Item 1 bolds "SSS LAB"; item 15 has a blank
-// // for the agreed calibration frequency.
-// const CONDITIONS_OF_CALIBRATION = [
+// // ON-SITE CONDITIONS OF CALIBRATION — 18 items, matching the printed
+// // on-site company form (DOC ID: SSS-FRM-001, Issue No. 02, Rev. 01,
+// // Date Rev. 2021 JAN 28).
+// const CONDITIONS_OF_CALIBRATION_ONSITE = [
 //   <>
-//     That the calibration of the items will be done In – House (
-//     <strong>SSS LAB</strong>).
+//     That the calibration of the items will be done <strong>On-site</strong> with
+//     the assistance of your company's staff.
 //   </>,
 //   "That the customer will ensure that the instruments are in good working condition prior to its calibration.",
 //   "That the customer will provide instrument manual and dummy loads if necessary.",
-//   "That the pick up and delivery of instruments for In – House calibration will be shouldered by the customer.",
 //   "That the customer will provide the necessary safety gadgets required in the plant.",
 //   "That the customer will ensure that the site calibration area will be restricted from other personnel while calibration is on-going.",
 //   "The calibration of Scientific Standards Services does not include adjustment or repair of the instrument.",
-//   "The customer will provide the necessary manpower and other means if adjustment is necessary.",
+//   "The customer will provide the necessary information, manpower and other means if adjustment is necessary.",
 //   "That the customer agrees to the calibration procedure and traceability of Scientific Standards Services.",
 //   "When an equipment for calibration has no Serial Number, Scientific Standards Services will inform the customer that a unique Serial Number or Identification will be engraved to their equipment.",
 //   "We at Scientific Standards Services are giving our best to be diligent enough in performing the test and or calibration services but no warranties are given and none may be implied directly or indirectly relating to SSS' test and calibration results and facilities. And no event shall SSS be liable for collateral, special, consequential damage, or damages caused by fortuitous events, any error of judgment, fault or negligence of its officers or employees.",
 //   "Scientific Standards Services shall have the right to sell instrument / equipment which were not claimed within a period of one hundred twenty (120) days to cover cost of storage, calibration fees and related costs.",
-//   "That the calibration certificate will only be given upon full payment of calibration services.",
+//   "Cancellations and/or Re-Scheduling of On-site Calibration should be done at least one (1) week before the scheduled On-Site Calibration. Otherwise, the customer will be charged a minimum fee of Php 3000.00 for the cancellation or Re-Scheduling.",
 //   "The full evaluation of the instrument (UUT) will be done during the scheduled calibration.",
 //   <>
 //     That as agreed the calibration frequency for these instruments is ({" "}
@@ -87,29 +83,64 @@
 //   "That these conditions of calibration shall constitute the agreement in full of services to be rendered by Scientific Standards Services (SSS) and warranties thereof to client and SSS shall not be made to undertake nor perform any additional act or services or give other warranty not included herein, and that client shall accordingly compensate SSS after compliance herewith.",
 // ];
 
-// // LETTERHEAD — logo + company block, reused at the top of the terms page.
-// // Pass `logoUrl` (e.g. "/logo-sss.png") to use your real logo; without it,
-// // a placeholder circle with the company initials is shown instead.
-// const Letterhead = ({ logoUrl }) => (
-//   <div className="pr-letterhead">
-//     <div className="pr-logo-circle">
-//       {logoUrl ? (
-//         <img src={logoUrl} alt={`${COMPANY.name} logo`} />
-//       ) : (
-//         <span className="pr-logo-fallback">{COMPANY.initials}</span>
-//       )}
+// // LETTERHEAD + DOC-ID BOX — the on-site form pairs the logo/company block
+// // with a small bordered "TITLE / DOC ID / ISSUE NO. / REVISION / DATE REV"
+// // box in the top right, instead of the plain centered letterhead used on
+// // the in-house terms page.
+// const LetterheadOnSite = ({ logoUrl }) => (
+//   <div className="prs-page-top">
+//     <div className="prs-letterhead">
+//       <div className="pr-logo-circle">
+//         {logoUrl ? (
+//           <img src={logoUrl} alt={`${COMPANY.name} logo`} />
+//         ) : (
+//           <span className="pr-logo-fallback">{COMPANY.initials}</span>
+//         )}
+//       </div>
+//       <div className="prs-letterhead-text">
+//         <div className="pr-letterhead-name">{COMPANY.name}</div>
+//         <div className="pr-letterhead-line">{COMPANY.addressLine}</div>
+//         <div className="pr-letterhead-line">{COMPANY.phoneLine}</div>
+//         <div className="pr-letterhead-line">{COMPANY.emailLine}</div>
+//       </div>
 //     </div>
-//     <div className="pr-letterhead-text">
-//       <div className="pr-letterhead-name">{COMPANY.name}</div>
-//       <div className="pr-letterhead-line">{COMPANY.addressLine}</div>
-//       <div className="pr-letterhead-line">{COMPANY.phoneLine}</div>
-//       <div className="pr-letterhead-line">{COMPANY.emailLine}</div>
-//       <div className="pr-letterhead-line">{COMPANY.websiteLine}</div>
+
+//     <div className="prs-docbox">
+//       <div className="prs-docbox-title">
+//         <span className="prs-docbox-title-label">TITLE</span>
+//         <span className="prs-docbox-title-value">
+//           CONDITIONS OF
+//           <br />
+//           CALIBRATION
+//         </span>
+//       </div>
+//       <div className="prs-docbox-info">
+//         <div className="prs-docbox-row">
+//           <span>DOC ID</span>
+//           <span>:</span>
+//           <span>SSS-FRM-001</span>
+//         </div>
+//         <div className="prs-docbox-row">
+//           <span>ISSUE NO.</span>
+//           <span>:</span>
+//           <span>02</span>
+//         </div>
+//         <div className="prs-docbox-row">
+//           <span>REVISION</span>
+//           <span>:</span>
+//           <span>01</span>
+//         </div>
+//         <div className="prs-docbox-row">
+//           <span>DATE REV</span>
+//           <span>:</span>
+//           <span>2021 JAN 28</span>
+//         </div>
+//       </div>
 //     </div>
 //   </div>
 // );
 
-// const PrintReceiptModal = ({
+// const PrintReceiptModalOnSite = ({
 //   receipt,
 //   onClose,
 //   logoUrl = "/images/SSSiLogoforFiles.png",
@@ -133,8 +164,12 @@
 
 //   const handlePrint = () => window.print();
 
-//   // Pad the table to a minimum row count so the printed slip looks consistent
-//   // even on receipts with just one or two job numbers.
+//   // "SiteCalibration Number" — use the first on-site job's own job number
+//   // (e.g. an SC/#### number) if one exists, otherwise fall back to the
+//   // Job Receipt ID so the field is never blank.
+//   const siteCalibrationNumber =
+//     jobNumbers.find((j) => j.onSite)?.jobNumber || jrId;
+
 //   const MIN_ROWS = 5;
 //   const rows = [...jobNumbers];
 //   while (rows.length < MIN_ROWS) {
@@ -143,7 +178,7 @@
 
 //   return createPortal(
 //     <div className="jr-modal-overlay" onClick={onClose}>
-//       <style>{printStyles}</style>
+//       <style>{printStylesOnSite}</style>
 
 //       <div
 //         className="jr-modal-wrapper pr-no-print-bounds"
@@ -158,7 +193,7 @@
 //                 CALIBRATION DATABASE AND MONITORING SYSTEM
 //               </span>
 //               <span className="jr-modal-title-main">
-//                 JOB RECEIPT — PRINT COPY
+//                 JOB RECEIPT — PRINT COPY (ON-SITE)
 //               </span>
 //               <span className="jr-modal-title-sub">
 //                 SCIENTIFIC STANDARDS SERVICES
@@ -173,51 +208,28 @@
 //         {/* PRINTABLE AREA */}
 //         <div className="pr-scroll">
 //           <div id="pr-print-area">
-//             {/* PAGE 1 — EQUIPMENT TAGS (one per Job Number) */}
-//             {jobNumbers.length > 0 && (
-//               <div className="pr-sheet pr-tags-page">
-//                 <div className="pr-terms-header">
-//                   <div>
-//                     <div className="pr-company-name">Equipment Tags</div>
-//                     <div className="pr-terms-title">
-//                       One tag per Job Number — attach to equipment
-//                     </div>
-//                   </div>
-//                   <div className="pr-header-right">
-//                     <div className="pr-doc-title">JOB RECEIPT</div>
-//                     <div className="pr-jr-id">{val(jrId)}</div>
-//                   </div>
-//                 </div>
-
-//                 <div className="pr-divider" />
-
-//                 <div className="jt-tags-grid">
-//                   {jobNumbers.map((job, index) => (
-//                     <JobTag
-//                       key={job._id || job.jobNumber || index}
-//                       job={job}
-//                       receiptDate={date}
-//                       logoUrl={logoUrl}
-//                     />
-//                   ))}
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* PAGE 2 — CONDITIONS OF CALIBRATION (letterhead) */}
+//             {/* PAGE 1 — CONDITIONS OF CALIBRATION (on-site version).
+//                 No Equipment Tags page here: on-site jobs skip Instrument
+//                 Tagging entirely, so there's nothing to tag. */}
 //             <div className="pr-sheet pr-terms-page">
-//               <Letterhead logoUrl={logoUrl} />
+//               <LetterheadOnSite logoUrl={logoUrl} />
 
 //               <div className="pr-letterhead-divider" />
 
-//               <div className="pr-info-bar">
-//                 <div className="pr-info-row">
-//                   <span className="pr-info-label">Job Receipt Number</span>
-//                   <span className="pr-info-value">{val(jrId)}</span>
+//               <div className="prs-siteinfo">
+//                 <div className="prs-siteinfo-row">
+//                   <span className="prs-siteinfo-label">
+//                     SiteCalibration Number
+//                   </span>
+//                   <span>:</span>
+//                   <span className="prs-siteinfo-value">
+//                     {val(siteCalibrationNumber)}
+//                   </span>
 //                 </div>
-//                 <div className="pr-info-row">
-//                   <span className="pr-info-label">Company Name</span>
-//                   <span className="pr-info-value">{val(companyName)}</span>
+//                 <div className="prs-siteinfo-row">
+//                   <span className="prs-siteinfo-label">Company Name</span>
+//                   <span>:</span>
+//                   <span className="prs-siteinfo-value">{val(companyName)}</span>
 //                 </div>
 //               </div>
 
@@ -225,29 +237,39 @@
 //                 CONDITIONS OF CALIBRATION
 //               </div>
 //               <div className="pr-conditions-subtitle">
-//                 *The customer agrees whenever applicable*
+//                 *The customer agrees wherever applicable*
 //               </div>
 
 //               <ol className="pr-conditions-list">
-//                 {CONDITIONS_OF_CALIBRATION.map((item, i) => (
+//                 {CONDITIONS_OF_CALIBRATION_ONSITE.map((item, i) => (
 //                   <li key={i}>{item}</li>
 //                 ))}
 //               </ol>
 
 //               <p className="pr-thank-you">Thank you.</p>
 
-//               <div className="pr-conforme-row">
-//                 <div className="pr-conforme-block">
+//               <div className="prs-conforme-row">
+//                 <div className="prs-conforme-block">
 //                   <div className="pr-signature-line" />
-//                   <div className="pr-conforme-caption">Prepared by:</div>
-//                   <div className="pr-conforme-name">{val(preparedBy)}</div>
+//                   <div className="prs-conforme-name">{val(preparedBy)}</div>
+//                   <div className="prs-conforme-caption">
+//                     Scientific Standard Services Inc.
+//                   </div>
 //                 </div>
-//                 <div className="pr-conforme-block">
+//                 <div className="prs-conforme-block">
+//                   <div className="prs-conforme-inline-label">Conforme :</div>
 //                   <div className="pr-signature-line" />
-//                   <div className="pr-conforme-caption">CONFORME</div>
-//                   <div className="pr-conforme-name">
+//                   <div className="prs-conforme-name">
 //                     {contactName ? contactName.toUpperCase() : "---"}
 //                   </div>
+//                   <div className="prs-conforme-caption">
+//                     Signature over Printed Name
+//                   </div>
+//                   <div
+//                     className="pr-signature-line"
+//                     style={{ marginTop: 18 }}
+//                   />
+//                   <div className="prs-conforme-caption">Date</div>
 //                 </div>
 //               </div>
 //             </div>
@@ -400,9 +422,9 @@
 //   );
 // };
 
-// export default PrintReceiptModal;
+// export default PrintReceiptModalOnSite;
 
-// const printStyles = `
+// const printStylesOnSite = `
 //   .pr-scroll {
 //     max-height: 70vh;
 //     overflow-y: auto;
@@ -555,34 +577,16 @@
 //     padding-top: 10px;
 //   }
 
-//   /* TAGS PAGE (reuses pr-terms-header/pr-divider from above) */
-//   .pr-terms-header {
-//     display: flex;
-//     justify-content: space-between;
-//     align-items: flex-start;
-//   }
-//   .pr-terms-title {
-//     font-size: 13px;
-//     font-weight: 700;
-//     margin-top: 4px;
-//     color: #33404d;
-//   }
-
 //   /* ===================================================================
-//      CONDITIONS OF CALIBRATION PAGE — letterhead, info bar, numbered list
+//      ON-SITE CONDITIONS OF CALIBRATION PAGE
 //      =================================================================== */
 //   .pr-terms-page {
 //     margin-top: 0;
 //   }
 
-//   .pr-letterhead {
-//     display: flex;
-//     align-items: flex-start;
-//     gap: 22px;
-//   }
 //   .pr-logo-circle {
-//     width: 92px;
-//     height: 92px;
+//     width: 78px;
+//     height: 78px;
 //     border-radius: 50%;
 //     border: 3px solid #17375e;
 //     display: flex;
@@ -598,51 +602,103 @@
 //     object-fit: contain;
 //   }
 //   .pr-logo-fallback {
-//     font-size: 15px;
+//     font-size: 13px;
 //     font-weight: 800;
 //     letter-spacing: 1px;
 //     color: #17375e;
 //   }
-//   .pr-letterhead-text {
-//     flex: 1;
-//     text-align: center;
-//   }
 //   .pr-letterhead-name {
-//     font-size: 22px;
+//     font-size: 18px;
 //     font-weight: 800;
-//     letter-spacing: 0.5px;
+//     letter-spacing: 0.3px;
 //     color: #17375e;
 //   }
 //   .pr-letterhead-line {
-//     font-size: 11.5px;
+//     font-size: 10.5px;
 //     color: #33404d;
 //     margin-top: 2px;
 //   }
 //   .pr-letterhead-divider {
 //     height: 2px;
 //     background: #17375e;
-//     margin: 16px 0 14px;
+//     margin: 14px 0 14px;
 //   }
 
-//   .pr-info-bar {
-//     background: #eceef1;
-//     border: 1px solid #d7dce2;
-//     border-radius: 3px;
-//     padding: 8px 14px;
-//     margin-bottom: 18px;
-//   }
-//   .pr-info-row {
+//   /* top row: letterhead (left) + doc-id box (right) */
+//   .prs-page-top {
 //     display: flex;
-//     font-size: 12.5px;
-//     padding: 3px 0;
+//     justify-content: space-between;
+//     align-items: flex-start;
+//     gap: 16px;
 //   }
-//   .pr-info-label {
-//     width: 180px;
+//   .prs-letterhead {
+//     display: flex;
+//     align-items: flex-start;
+//     gap: 14px;
+//     flex: 1;
+//   }
+//   .prs-letterhead-text {
+//     padding-top: 2px;
+//   }
+
+//   .prs-docbox {
+//     display: flex;
 //     flex-shrink: 0;
+//     border: 1px solid #1c2530;
+//     font-size: 9.5px;
+//   }
+//   .prs-docbox-title {
+//     display: flex;
+//     flex-direction: column;
+//     justify-content: center;
+//     align-items: center;
+//     text-align: center;
+//     padding: 4px 8px;
+//     border-right: 1px solid #1c2530;
+//     width: 90px;
+//   }
+//   .prs-docbox-title-label {
+//     font-size: 8px;
+//     color: #5b6672;
+//     letter-spacing: 0.5px;
+//   }
+//   .prs-docbox-title-value {
+//     font-weight: 700;
+//     margin-top: 3px;
+//     line-height: 1.25;
+//   }
+//   .prs-docbox-info {
+//     display: flex;
+//     flex-direction: column;
+//     justify-content: center;
+//     padding: 4px 8px;
+//     gap: 2px;
+//   }
+//   .prs-docbox-row {
+//     display: flex;
+//     gap: 5px;
+//     white-space: nowrap;
+//   }
+//   .prs-docbox-row span:first-child {
+//     font-weight: 700;
+//     min-width: 52px;
+//   }
+
+//   /* SiteCalibration Number / Company Name line (plain, not boxed) */
+//   .prs-siteinfo {
+//     margin-bottom: 16px;
+//   }
+//   .prs-siteinfo-row {
+//     display: flex;
+//     gap: 6px;
+//     font-size: 12.5px;
+//     padding: 2px 0;
+//   }
+//   .prs-siteinfo-label {
 //     font-weight: 700;
 //     color: #1c2530;
 //   }
-//   .pr-info-value {
+//   .prs-siteinfo-value {
 //     font-weight: 600;
 //     color: #1c2530;
 //   }
@@ -679,37 +735,39 @@
 
 //   .pr-thank-you {
 //     font-size: 12px;
-//     margin: 16px 0 34px;
+//     margin: 16px 0 28px;
 //   }
 
-//   .pr-conforme-row {
+//   /* on-site signature block */
+//   .prs-conforme-row {
 //     display: flex;
 //     justify-content: space-between;
 //     gap: 40px;
 //   }
-//   .pr-conforme-block {
+//   .prs-conforme-block {
 //     flex: 1;
 //     text-align: center;
 //   }
-//   .pr-conforme-caption {
-//     font-size: 11.5px;
+//   .prs-conforme-inline-label {
+//     text-align: left;
+//     font-size: 12px;
+//     font-weight: 700;
+//     font-style: italic;
+//     margin-bottom: 4px;
+//   }
+//   .prs-conforme-name {
+//     font-size: 12px;
 //     font-weight: 700;
 //     color: #1c2530;
 //     margin-top: 6px;
 //   }
-//   .pr-conforme-name {
-//     font-size: 11.5px;
-//     color: #33404d;
+//   .prs-conforme-caption {
+//     font-size: 10.5px;
+//     color: #5b6672;
 //     margin-top: 2px;
 //   }
 
 //   @media print {
-//     /* The modal system (jr-modal-overlay / jr-modal-wrapper) is built for an
-//        on-screen popup: fixed/absolute positioning, capped heights, and
-//        overflow:auto scroll areas. Left alone, those ancestors clip the
-//        print output to whatever fits in the visible scroll box. Strip all of
-//        that out for print so the browser can lay out and paginate the full
-//        content instead of just what was scrolled into view. */
 //     html, body {
 //       height: auto !important;
 //       overflow: visible !important;
@@ -755,11 +813,6 @@
 //       padding: 0 !important;
 //       margin: 0 !important;
 //     }
-//     .pr-terms-page {
-//       page-break-before: always;
-//       break-before: page;
-//       padding-top: 0 !important;
-//     }
 //     .pr-receipt-page {
 //       page-break-before: always;
 //       break-before: page;
@@ -770,75 +823,64 @@
 //       margin: 12mm;
 //     }
 //   }
-
-//   ${jobTagStyles}
 // `;
 import React from "react";
 import { createPortal } from "react-dom";
-import JobTag, { jobTagStyles } from "./JobTag";
 
 /**
- * PrintReceiptModal
- * Read-only, printable view of a saved Job Receipt + its Job Numbers:
- *   PAGE 1 — Equipment Tags (one per Job Number)
- *   PAGE 2 — Conditions of Calibration (letterhead + doc-id box + terms)
+ * PrintReceiptModalOnSite
+ * Same as PrintReceiptModal, but the "Conditions of Calibration" page uses
+ * the On-Site version of the form:
+ *   - DOC ID / ISSUE NO. / REVISION / DATE REV box next to the letterhead
+ *   - "SiteCalibration Number" + "Company Name" line instead of the boxed
+ *     Job Receipt Number / Company Name info bar
+ *   - Condition #1 reworded to "done On-site with the assistance of your
+ *     company's staff" (bold "On-site" instead of "SSS LAB")
+ *   - Pickup/delivery clause dropped (not applicable on-site)
+ *   - New cancellation / re-scheduling clause added
+ *   - Revised signature block (name directly under the line, "Conforme :"
+ *     inline with the label)
  *
- * The old "PAGE 3 — Receipt" (Job Numbers table, customer info, signatures)
- * has been removed per request; this modal now only prints the tags and
- * the Conditions of Calibration sheet.
+ * Rendered by JobReceipt.jsx instead of PrintReceiptModal whenever at least
+ * one job number on the receipt has onSite === true.
  *
- * Reuses the app's existing jr-modal-* classes (from jobreceipt.css) for the
- * chrome so it looks consistent with AddReceiptModal / JobNumberModal, and
- * defines its own scoped print rules so only the tags/terms sheets are
- * printed (each on its own page).
- *
- * LOGO: pass `logoUrl` with the path to your logo image (e.g. an asset in
- * /public, like "/logo-sss.png"). If omitted, a placeholder circle with the
- * company initials is shown instead so the layout still looks right.
- *
- * Expected `receipt` shape (matches what handleSave in JobReceipt.jsx builds):
+ * Expected `receipt` shape — identical to PrintReceiptModal:
  * {
  *   jrId, date, customerID, companyName, companyAddress, contactInfo,
  *   vat, reference, contactName, preparedBy, remarks,
- *   jobNumbers: [
- *     { jobNumber, type, description, brand, model, serialNo, eta, priority, ... }
- *   ]
+ *   jobNumbers: [ { jobNumber, type, description, ..., onSite }, ... ]
  * }
  */
 
 const val = (v) => (v === null || v === undefined || v === "" ? "---" : v);
 
-// COMPANY LETTERHEAD DETAILS — edit these to match your actual details, or
-// lift them into props if different receipts ever need different branding.
 const COMPANY = {
-  name: "SCIENTIFIC STANDARDS SERVICES",
-  addressLine: "#9 M. Santos St. Tuktukan Taguig City, Philippines (1637)",
-  phoneLine: "Tel. Nos: (02) 642-3695  642-3373  628-2410  628-0177",
-  emailLine: "inquiry@scientificstandards.com.ph  •  stdcalib@yahoo.com",
-  websiteLine: "stdcalib@scientificstandards.com.ph",
+  name: "SCIENTIFIC STANDARD SERVICES INC.",
+  addressLine: "#9 M. Santos St. Tuktukan Taguig City, 1637, PH",
+  phoneLine: "inquiry@scientificstandards.com.ph / stdcalib@yahoo.com",
+  emailLine: "02-8642-3695 | 02-8642-3373 | 02-8628-2410",
   initials: "SSS",
 };
 
-// CONDITIONS OF CALIBRATION — flat numbered list, matching the printed
-// company document verbatim. Item 1 bolds "SSS LAB"; item 15 has a blank
-// for the agreed calibration frequency.
-const CONDITIONS_OF_CALIBRATION = [
+// ON-SITE CONDITIONS OF CALIBRATION — 18 items, matching the printed
+// on-site company form (DOC ID: SSS-FRM-001, Issue No. 02, Rev. 01,
+// Date Rev. 2021 JAN 28).
+const CONDITIONS_OF_CALIBRATION_ONSITE = [
   <>
-    That the calibration of the items will be done In – House (
-    <strong>SSS LAB</strong>).
+    That the calibration of the items will be done <strong>On-site</strong> with
+    the assistance of your company's staff.
   </>,
   "That the customer will ensure that the instruments are in good working condition prior to its calibration.",
   "That the customer will provide instrument manual and dummy loads if necessary.",
-  "That the pick up and delivery of instruments for In – House calibration will be shouldered by the customer.",
   "That the customer will provide the necessary safety gadgets required in the plant.",
   "That the customer will ensure that the site calibration area will be restricted from other personnel while calibration is on-going.",
   "The calibration of Scientific Standards Services does not include adjustment or repair of the instrument.",
-  "The customer will provide the necessary manpower and other means if adjustment is necessary.",
+  "The customer will provide the necessary information, manpower and other means if adjustment is necessary.",
   "That the customer agrees to the calibration procedure and traceability of Scientific Standards Services.",
   "When an equipment for calibration has no Serial Number, Scientific Standards Services will inform the customer that a unique Serial Number or Identification will be engraved to their equipment.",
   "We at Scientific Standards Services are giving our best to be diligent enough in performing the test and or calibration services but no warranties are given and none may be implied directly or indirectly relating to SSS' test and calibration results and facilities. And no event shall SSS be liable for collateral, special, consequential damage, or damages caused by fortuitous events, any error of judgment, fault or negligence of its officers or employees.",
   "Scientific Standards Services shall have the right to sell instrument / equipment which were not claimed within a period of one hundred twenty (120) days to cover cost of storage, calibration fees and related costs.",
-  "That the calibration certificate will only be given upon full payment of calibration services.",
+  "Cancellations and/or Re-Scheduling of On-site Calibration should be done at least one (1) week before the scheduled On-Site Calibration. Otherwise, the customer will be charged a minimum fee of Php 3000.00 for the cancellation or Re-Scheduling.",
   "The full evaluation of the instrument (UUT) will be done during the scheduled calibration.",
   <>
     That as agreed the calibration frequency for these instruments is ({" "}
@@ -850,11 +892,11 @@ const CONDITIONS_OF_CALIBRATION = [
   "That these conditions of calibration shall constitute the agreement in full of services to be rendered by Scientific Standards Services (SSS) and warranties thereof to client and SSS shall not be made to undertake nor perform any additional act or services or give other warranty not included herein, and that client shall accordingly compensate SSS after compliance herewith.",
 ];
 
-// LETTERHEAD + DOC-ID BOX — logo/company block on the left, paired with a
-// bordered "TITLE / DOC ID / ISSUE NO. / REVISION / DATE REV" box on the
-// right (same document-control box used on the On-Site version of the
-// form).
-const Letterhead = ({ logoUrl }) => (
+// LETTERHEAD + DOC-ID BOX — the on-site form pairs the logo/company block
+// with a small bordered "TITLE / DOC ID / ISSUE NO. / REVISION / DATE REV"
+// box in the top right, instead of the plain centered letterhead used on
+// the in-house terms page.
+const LetterheadOnSite = ({ logoUrl }) => (
   <div className="prs-page-top">
     <div className="prs-letterhead">
       <div className="pr-logo-circle">
@@ -869,7 +911,6 @@ const Letterhead = ({ logoUrl }) => (
         <div className="pr-letterhead-line">{COMPANY.addressLine}</div>
         <div className="pr-letterhead-line">{COMPANY.phoneLine}</div>
         <div className="pr-letterhead-line">{COMPANY.emailLine}</div>
-        <div className="pr-letterhead-line">{COMPANY.websiteLine}</div>
       </div>
     </div>
 
@@ -908,7 +949,7 @@ const Letterhead = ({ logoUrl }) => (
   </div>
 );
 
-const PrintReceiptModal = ({
+const PrintReceiptModalOnSite = ({
   receipt,
   onClose,
   logoUrl = "/images/SSSiLogoforFiles.png",
@@ -925,9 +966,15 @@ const PrintReceiptModal = ({
 
   const handlePrint = () => window.print();
 
+  // "SiteCalibration Number" — use the first on-site job's own job number
+  // (e.g. an SC/#### number) if one exists, otherwise fall back to the
+  // Job Receipt ID so the field is never blank.
+  const siteCalibrationNumber =
+    jobNumbers.find((j) => j.onSite)?.jobNumber || jrId;
+
   return createPortal(
     <div className="jr-modal-overlay" onClick={onClose}>
-      <style>{printStyles}</style>
+      <style>{printStylesOnSite}</style>
 
       <div
         className="jr-modal-wrapper pr-no-print-bounds"
@@ -942,7 +989,7 @@ const PrintReceiptModal = ({
                 CALIBRATION DATABASE AND MONITORING SYSTEM
               </span>
               <span className="jr-modal-title-main">
-                JOB RECEIPT — PRINT COPY
+                JOB RECEIPT — PRINT COPY (ON-SITE)
               </span>
               <span className="jr-modal-title-sub">
                 SCIENTIFIC STANDARDS SERVICES
@@ -957,51 +1004,28 @@ const PrintReceiptModal = ({
         {/* PRINTABLE AREA */}
         <div className="pr-scroll">
           <div id="pr-print-area">
-            {/* PAGE 1 — EQUIPMENT TAGS (one per Job Number) */}
-            {jobNumbers.length > 0 && (
-              <div className="pr-sheet pr-tags-page">
-                <div className="pr-terms-header">
-                  <div>
-                    <div className="pr-company-name">Equipment Tags</div>
-                    <div className="pr-terms-title">
-                      One tag per Job Number — attach to equipment
-                    </div>
-                  </div>
-                  <div className="pr-header-right">
-                    <div className="pr-doc-title">JOB RECEIPT</div>
-                    <div className="pr-jr-id">{val(jrId)}</div>
-                  </div>
-                </div>
-
-                <div className="pr-divider" />
-
-                <div className="jt-tags-grid">
-                  {jobNumbers.map((job, index) => (
-                    <JobTag
-                      key={job._id || job.jobNumber || index}
-                      job={job}
-                      receiptDate={receipt.date}
-                      logoUrl={logoUrl}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* PAGE 2 — CONDITIONS OF CALIBRATION (letterhead + doc-id box) */}
+            {/* PAGE 1 — CONDITIONS OF CALIBRATION (on-site version).
+                No Equipment Tags page here: on-site jobs skip Instrument
+                Tagging entirely, so there's nothing to tag. */}
             <div className="pr-sheet pr-terms-page">
-              <Letterhead logoUrl={logoUrl} />
+              <LetterheadOnSite logoUrl={logoUrl} />
 
               <div className="pr-letterhead-divider" />
 
-              <div className="pr-info-bar">
-                <div className="pr-info-row">
-                  <span className="pr-info-label">Job Receipt Number</span>
-                  <span className="pr-info-value">{val(jrId)}</span>
+              <div className="prs-siteinfo">
+                <div className="prs-siteinfo-row">
+                  <span className="prs-siteinfo-label">
+                    SiteCalibration Number
+                  </span>
+                  <span>:</span>
+                  <span className="prs-siteinfo-value">
+                    {val(siteCalibrationNumber)}
+                  </span>
                 </div>
-                <div className="pr-info-row">
-                  <span className="pr-info-label">Company Name</span>
-                  <span className="pr-info-value">{val(companyName)}</span>
+                <div className="prs-siteinfo-row">
+                  <span className="prs-siteinfo-label">Company Name</span>
+                  <span>:</span>
+                  <span className="prs-siteinfo-value">{val(companyName)}</span>
                 </div>
               </div>
 
@@ -1009,29 +1033,39 @@ const PrintReceiptModal = ({
                 CONDITIONS OF CALIBRATION
               </div>
               <div className="pr-conditions-subtitle">
-                *The customer agrees whenever applicable*
+                *The customer agrees wherever applicable*
               </div>
 
               <ol className="pr-conditions-list">
-                {CONDITIONS_OF_CALIBRATION.map((item, i) => (
+                {CONDITIONS_OF_CALIBRATION_ONSITE.map((item, i) => (
                   <li key={i}>{item}</li>
                 ))}
               </ol>
 
               <p className="pr-thank-you">Thank you.</p>
 
-              <div className="pr-conforme-row pr-no-split">
-                <div className="pr-conforme-block">
+              <div className="prs-conforme-row prs-no-split">
+                <div className="prs-conforme-block">
                   <div className="pr-signature-line" />
-                  <div className="pr-conforme-caption">Prepared by:</div>
-                  <div className="pr-conforme-name">{val(preparedBy)}</div>
+                  <div className="prs-conforme-name">{val(preparedBy)}</div>
+                  <div className="prs-conforme-caption">
+                    Scientific Standard Services Inc.
+                  </div>
                 </div>
-                <div className="pr-conforme-block">
+                <div className="prs-conforme-block">
+                  <div className="prs-conforme-inline-label">Conforme :</div>
                   <div className="pr-signature-line" />
-                  <div className="pr-conforme-caption">CONFORME</div>
-                  <div className="pr-conforme-name">
+                  <div className="prs-conforme-name">
                     {contactName ? contactName.toUpperCase() : "---"}
                   </div>
+                  <div className="prs-conforme-caption">
+                    Signature over Printed Name
+                  </div>
+                  <div
+                    className="pr-signature-line"
+                    style={{ marginTop: 18 }}
+                  />
+                  <div className="prs-conforme-caption">Date</div>
                 </div>
               </div>
             </div>
@@ -1056,9 +1090,9 @@ const PrintReceiptModal = ({
   );
 };
 
-export default PrintReceiptModal;
+export default PrintReceiptModalOnSite;
 
-const printStyles = `
+const printStylesOnSite = `
   .pr-scroll {
     max-height: 70vh;
     overflow-y: auto;
@@ -1073,6 +1107,20 @@ const printStyles = `
     box-shadow: 0 1px 4px rgba(0,0,0,0.15);
     color: #1c2530;
     font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  .pr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .pr-company-name {
+    font-size: 19px;
+    font-weight: 700;
+  }
+  .pr-company-sub {
+    font-size: 12.5px;
+    color: #5b6672;
+    margin-top: 2px;
   }
   .pr-header-right {
     text-align: right;
@@ -1094,35 +1142,119 @@ const printStyles = `
     background: #1c2530;
     margin: 16px 0 18px;
   }
-
-  /* TAGS PAGE */
-  .pr-terms-header {
+  .pr-meta-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 22px;
+  }
+  .pr-meta-col {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pr-meta-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #8892a0;
+  }
+  .pr-meta-value {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .pr-section-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #1f6feb;
+    border-bottom: 1px solid #dde2e8;
+    padding-bottom: 5px;
+    margin-top: 22px;
+    margin-bottom: 10px;
+  }
+  .pr-customer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pr-customer-row {
+    display: flex;
+    font-size: 13px;
+  }
+  .pr-field-label {
+    width: 150px;
+    flex-shrink: 0;
+    color: #5b6672;
+  }
+  .pr-field-value {
+    font-weight: 600;
+    color: #1c2530;
+  }
+  .pr-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .pr-table th {
+    text-align: left;
+    padding: 6px 6px;
+    background: #f2f4f7;
+    border: 1px solid #d7dce2;
+    font-weight: 700;
+    color: #33404d;
+  }
+  .pr-table td {
+    padding: 8px 6px;
+    border: 1px solid #d7dce2;
+    height: 14px;
+  }
+  .pr-remarks-box {
+    font-size: 13px;
+    min-height: 40px;
+    border: 1px solid #d7dce2;
+    border-radius: 4px;
+    padding: 10px 12px;
+    color: #33404d;
+  }
+  .pr-signature-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    margin-top: 48px;
+    gap: 20px;
   }
-  .pr-company-name {
-    font-size: 19px;
-    font-weight: 700;
+  .pr-signature-block {
+    flex: 1;
+    text-align: center;
   }
-  .pr-terms-title {
-    font-size: 13px;
-    font-weight: 700;
-    margin-top: 4px;
-    color: #33404d;
+  .pr-signature-line {
+    border-bottom: 1px solid #1c2530;
+    height: 36px;
+  }
+  .pr-signature-label {
+    font-size: 11.5px;
+    color: #5b6672;
+    margin-top: 6px;
+  }
+  .pr-footer {
+    margin-top: 30px;
+    font-size: 10.5px;
+    color: #8892a0;
+    text-align: center;
+    border-top: 1px solid #eef0f3;
+    padding-top: 10px;
   }
 
   /* ===================================================================
-     CONDITIONS OF CALIBRATION PAGE — letterhead + doc-id box, info bar,
-     numbered list
+     ON-SITE CONDITIONS OF CALIBRATION PAGE
      =================================================================== */
   .pr-terms-page {
     margin-top: 0;
   }
 
   .pr-logo-circle {
-    width: 92px;
-    height: 92px;
+    width: 78px;
+    height: 78px;
     border-radius: 50%;
     border: 3px solid #17375e;
     display: flex;
@@ -1138,26 +1270,26 @@ const printStyles = `
     object-fit: contain;
   }
   .pr-logo-fallback {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: 1px;
     color: #17375e;
   }
   .pr-letterhead-name {
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     color: #17375e;
   }
   .pr-letterhead-line {
-    font-size: 11.5px;
+    font-size: 10.5px;
     color: #33404d;
     margin-top: 2px;
   }
   .pr-letterhead-divider {
     height: 2px;
     background: #17375e;
-    margin: 16px 0 14px;
+    margin: 14px 0 14px;
   }
 
   /* top row: letterhead (left) + doc-id box (right) */
@@ -1170,12 +1302,11 @@ const printStyles = `
   .prs-letterhead {
     display: flex;
     align-items: flex-start;
-    gap: 22px;
+    gap: 14px;
     flex: 1;
   }
   .prs-letterhead-text {
-    flex: 1;
-    text-align: center;
+    padding-top: 2px;
   }
 
   .prs-docbox {
@@ -1221,25 +1352,21 @@ const printStyles = `
     min-width: 52px;
   }
 
-  .pr-info-bar {
-    background: #eceef1;
-    border: 1px solid #d7dce2;
-    border-radius: 3px;
-    padding: 8px 14px;
-    margin-bottom: 18px;
+  /* SiteCalibration Number / Company Name line (plain, not boxed) */
+  .prs-siteinfo {
+    margin-bottom: 16px;
   }
-  .pr-info-row {
+  .prs-siteinfo-row {
     display: flex;
+    gap: 6px;
     font-size: 12.5px;
-    padding: 3px 0;
+    padding: 2px 0;
   }
-  .pr-info-label {
-    width: 180px;
-    flex-shrink: 0;
+  .prs-siteinfo-label {
     font-weight: 700;
     color: #1c2530;
   }
-  .pr-info-value {
+  .prs-siteinfo-value {
     font-weight: 600;
     color: #1c2530;
   }
@@ -1267,8 +1394,6 @@ const printStyles = `
     line-height: 1.55;
     color: #1c2530;
     margin-bottom: 7px;
-    page-break-inside: avoid;
-    break-inside: avoid;
   }
   .pr-fillblank {
     display: inline-block;
@@ -1278,49 +1403,51 @@ const printStyles = `
 
   .pr-thank-you {
     font-size: 12px;
-    margin: 16px 0 34px;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    margin: 16px 0 28px;
   }
 
-  .pr-conforme-row {
+  /* on-site signature block */
+  .prs-conforme-row {
     display: flex;
     justify-content: space-between;
     gap: 40px;
   }
-  /* Keep the signature block together so it never splits across a print
-     page break on its own. */
-  .pr-no-split {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-  .pr-conforme-block {
+  .prs-conforme-block {
     flex: 1;
     text-align: center;
   }
-  .pr-signature-line {
-    border-bottom: 1px solid #1c2530;
-    height: 36px;
+  .prs-conforme-inline-label {
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: italic;
+    margin-bottom: 4px;
   }
-  .pr-conforme-caption {
-    font-size: 11.5px;
+  .prs-conforme-name {
+    font-size: 12px;
     font-weight: 700;
     color: #1c2530;
     margin-top: 6px;
   }
-  .pr-conforme-name {
-    font-size: 11.5px;
-    color: #33404d;
+  .prs-conforme-caption {
+    font-size: 10.5px;
+    color: #5b6672;
     margin-top: 2px;
   }
 
+  /* Keep the signature block (name, line, "Date") together so it never
+     splits across a print page break on its own. */
+  .prs-no-split {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .pr-thank-you,
+  .pr-conditions-list li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
   @media print {
-    /* The modal system (jr-modal-overlay / jr-modal-wrapper) is built for an
-       on-screen popup: fixed/absolute positioning, capped heights, and
-       overflow:auto scroll areas. Left alone, those ancestors clip the
-       print output to whatever fits in the visible scroll box. Strip all of
-       that out for print so the browser can lay out and paginate the full
-       content instead of just what was scrolled into view. */
     html, body {
       height: auto !important;
       overflow: visible !important;
@@ -1366,16 +1493,9 @@ const printStyles = `
       padding: 0 !important;
       margin: 0 !important;
     }
-    .pr-terms-page {
-      page-break-before: always;
-      break-before: page;
-      padding-top: 0 !important;
-    }
     @page {
       size: A4;
       margin: 12mm;
     }
   }
-
-  ${jobTagStyles}
 `;

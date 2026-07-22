@@ -73,7 +73,7 @@
 //                 contactCert: job.contactCert || "",
 //                 frequency: job.frequency || "1 Year",
 //                 eta: job.eta || "",
-//                 evalBy: job.evalBy || "",
+//                 oicBy: job.oicBy || "",
 //                 priority: job.priority || "Normal",
 //                 voltage: job.voltage || "-",
 //                 tagged: job.tagged || false,
@@ -289,7 +289,7 @@
 //                   <td>{r.jobNumber}</td>
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
-//                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.oicBy || "Ready"}</td>
 //                   <td>{r.companyName}</td>
 //                   <td>{r.description}</td>
 //                   <td>{r.brand}</td>
@@ -335,6 +335,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import "../OngoingCalibration/Ongoinglistcalib.css";
 import IncomingCalibDetailsModal from "./IncomingCalibDetailsModal";
+import CameraCaptureModal from "../jobreceipt/CameraCaptureModal";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -359,6 +360,14 @@ const IncomingCalib = () => {
   const [activeSearch, setActiveSearch] = useState("");
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [rowsPerPage, setRowsPerPage] = useState(25);
+
+  // EQUIPMENT PHOTO (captured from IncomingCalibDetailsModal) — mirrors the
+  // pattern already used in JobNumberModal: CameraCaptureModal reports a
+  // base64 dataURL via onCapture, we upload it to Cloudinary through the
+  // backend, then resolve the Promise that IncomingCalibDetailsModal's
+  // onOpenCamera() is awaiting with the returned secure_url.
+  const [showCamera, setShowCamera] = useState(false);
+  const [cameraResolver, setCameraResolver] = useState(null);
 
   useEffect(() => {
     fetchRecords();
@@ -458,6 +467,7 @@ const IncomingCalib = () => {
   }, [records, selectedYear, activeSearch, searchBy, rowsPerPage]);
 
   const handleRowClick = (record) => {
+    console.log("clicked record photoUrl:", record.jobNumber, record.photoUrl); // temp debug
     setSelectedRecord(record);
     setShowModal(true);
   };
@@ -487,6 +497,53 @@ const IncomingCalib = () => {
     } catch (err) {
       console.error("Update failed:", err);
     }
+  };
+
+  // CAMERA FLOW — called by IncomingCalibDetailsModal as onOpenCamera().
+  // Returns a Promise that resolves with the Cloudinary secure_url once
+  // the user captures+uploads a photo, or resolves to undefined if they
+  // cancel out of the camera modal.
+  const openCameraForCapture = () => {
+    return new Promise((resolve) => {
+      setCameraResolver(() => resolve);
+      setShowCamera(true);
+    });
+  };
+
+  const handlePhotoCapture = async (dataUrl) => {
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+
+      const formData = new FormData();
+      formData.append("photo", blob, "equipment.jpg");
+
+      const folderKey = selectedRecord?.jobNumber || `pending_${Date.now()}`;
+
+      const res = await fetch(
+        `${API}/api/uploads/equipment-photo/${encodeURIComponent(folderKey)}`,
+        { method: "POST", body: formData },
+      );
+      const data = await res.json();
+
+      if (data.success) {
+        cameraResolver?.(data.url);
+      } else {
+        console.error("Photo upload failed:", data.message);
+        cameraResolver?.(undefined);
+      }
+    } catch (err) {
+      console.error("Photo upload error:", err);
+      cameraResolver?.(undefined);
+    } finally {
+      setShowCamera(false);
+      setCameraResolver(null);
+    }
+  };
+
+  const handleCameraClose = () => {
+    setShowCamera(false);
+    cameraResolver?.(undefined); // user cancelled — resolve with nothing so the awaiting modal doesn't hang
+    setCameraResolver(null);
   };
 
   const handleSearch = () => setActiveSearch(searchInput);
@@ -653,12 +710,22 @@ const IncomingCalib = () => {
           jobForm={selectedRecord}
           onClose={() => setShowModal(false)}
           onUpdate={handleUpdate}
-          onOpenCamera={() => {}} // TODO: return an image URL/dataURL from your camera flow
-          onOpenFolder={() => {}} // TODO: return an image URL/dataURL from your file picker
+          onOpenCamera={openCameraForCapture}
+          onOpenFolder={() => {}} // TODO: same Promise pattern if you want a file-picker path
           onLoadTemplate={() => {}}
           onLoadAndConnect={() => {}}
           onOpenCalProcedureLookup={() => {}}
           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
+        />
+      )}
+
+      {/* CAMERA MODAL — captures a dataURL, we upload it to Cloudinary in
+          handlePhotoCapture, then resolve the Promise IncomingCalibDetailsModal
+          is awaiting with the returned secure_url. */}
+      {showCamera && (
+        <CameraCaptureModal
+          onClose={handleCameraClose}
+          onCapture={handlePhotoCapture}
         />
       )}
     </div>

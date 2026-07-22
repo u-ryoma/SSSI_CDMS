@@ -674,6 +674,12 @@ const JobNumberModal = ({
   // field name IncomingCalibDetailsModal already reads from), so it just
   // shows up there automatically once the job reaches Incoming/On-Going
   // Calibration. This modal only needs to trigger the capture + upload.
+  //
+  // IMPORTANT: Save is disabled while uploadingPhoto is true (see the Save
+  // button below). Without this, clicking Save while the upload is still
+  // in flight snapshots jobForm BEFORE onJobChange sets photoUrl, so the
+  // saved job silently ends up with photoUrl: "" even though the image
+  // uploaded successfully to Cloudinary.
   const [showCamera, setShowCamera] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
@@ -759,6 +765,11 @@ const JobNumberModal = ({
   };
 
   const handleSaveClick = () => {
+    // Guard against saving while a photo upload is still in flight — the
+    // button is also disabled below, but this blocks any other path that
+    // might still call handleSaveClick (e.g. a stray keyboard submit).
+    if (uploadingPhoto) return;
+
     if (!validate()) {
       showSuccess(
         "Incomplete Form",
@@ -1231,6 +1242,15 @@ const JobNumberModal = ({
             </div>
           )}
 
+          {uploadingPhoto && (
+            <div
+              className="jr-modal-hint"
+              style={{ padding: "0 16px", color: "#555" }}
+            >
+              Uploading equipment photo... Save is disabled until this finishes.
+            </div>
+          )}
+
           <div className="jn-modal-actions">
             <div className="jr-modal-actions-left">
               <button
@@ -1260,8 +1280,20 @@ const JobNumberModal = ({
               >
                 Cancel Job Number
               </button>
-              <button className="jr-save-btn" onClick={handleSaveClick}>
-                Save
+              <button
+                className="jr-save-btn"
+                onClick={handleSaveClick}
+                disabled={uploadingPhoto}
+                title={
+                  uploadingPhoto
+                    ? "Please wait for the photo upload to finish"
+                    : undefined
+                }
+                style={
+                  uploadingPhoto ? { opacity: 0.5, cursor: "not-allowed" } : {}
+                }
+              >
+                {uploadingPhoto ? "Uploading Photo..." : "Save"}
               </button>
               <button className="jr-action-btn" onClick={handleExitClick}>
                 Exit

@@ -91,3 +91,15 @@
   background: #efefef;
   font-weight: bold;
 }
+.qtn-row-creating td {
+  color: #475569;
+}
+.qtn-row-checking td {
+  color: #854d0e;
+}
+.qtn-row-sending td {
+  color: #1e40af;
+}
+.qtn-row-sent td {
+  color: #166534;
+}

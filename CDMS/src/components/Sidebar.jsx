@@ -33,19 +33,6 @@
 //   useEffect(() => {
 //     if (!sessionStorage.getItem("activeUser")) return;
 
-//     // async function sendHeartbeat() {
-//     //   try {
-//     //     await fetch(`${import.meta.env.VITE_API_URL}/api/heartbeat`, {
-//     //       method: "POST",
-//     //       headers: { "Content-Type": "application/json" },
-//     //       body: JSON.stringify({
-//     //         username: sessionStorage.getItem("activeUser"),
-//     //       }),
-//     //     });
-//     //   } catch (err) {
-//     //     console.error("Heartbeat error:", err);
-//     //   }
-//     // }
 //     async function sendHeartbeat() {
 //       try {
 //         await fetch(`${import.meta.env.VITE_API_URL}/api/heartbeat`, {
@@ -53,8 +40,8 @@
 //           headers: { "Content-Type": "application/json" },
 //           body: JSON.stringify({
 //             username: sessionStorage.getItem("activeUser"),
-//             name: sessionStorage.getItem("activeName"), // ← add
-//             role: sessionStorage.getItem("userRole"), // ← add
+//             name: sessionStorage.getItem("activeName"),
+//             role: sessionStorage.getItem("userRole"),
 //           }),
 //         });
 //       } catch (err) {
@@ -254,7 +241,6 @@
 //             Instrument Tag
 //           </Link>
 //         )}
-//         {/* <p className="nav-label">Calibration</p> */}
 //         {(role === "admin" || role === "technician") && (
 //           <Link
 //             className="nav-link"
@@ -334,6 +320,11 @@
 //           </Link>
 //         )}
 //         {(role === "admin" || role === "clerk") && (
+//           <Link className="nav-link" to="/admin/recallsys" onClick={onClose}>
+//             Recall System
+//           </Link>
+//         )}
+//         {(role === "admin" || role === "clerk") && (
 //           <Link
 //             className="nav-link"
 //             to="/admin/assetmonitoring"
@@ -349,7 +340,6 @@
 //         >
 //           Standard For Calibration
 //         </Link>
-//         {/* <p className="nav-label">Standards</p> */}
 //         <Link
 //           className="nav-link"
 //           to="/admin/stdforcertification"
@@ -360,10 +350,6 @@
 //         <Link className="nav-link" to="/admin/stdforupdate" onClick={onClose}>
 //           Standard For Update
 //         </Link>
-//         {/* <Link className="nav-link" to="/admin/recallsys" onClick={onClose}>
-//           Recall System
-//         </Link> */}
-//         {/* <p className="nav-label">Quotation</p> */}
 //         {(role === "admin" || role === "clerk") && (
 //           <Link className="nav-link" to="/admin/qtnlist" onClick={onClose}>
 //             Quotation List
@@ -391,11 +377,6 @@
 //             Quotation For Send
 //           </Link>
 //         )}
-//         {/* <p className="nav-label">Documents</p> */}
-//         {/* <Link className="nav-link" to="/admin/printagreement" onClick={onClose}>
-//           Print Agreement
-//         </Link> */}
-//         {/* <p className="nav-label">Checking</p> */}
 //         <Link className="nav-link" to="/admin/schedmonitor" onClick={onClose}>
 //           Schedule Monitor
 //         </Link>
@@ -413,21 +394,40 @@
 //             System Activity
 //           </Link>
 //         )}
-//         {/* <Link className="nav-link" to="/admin/monitoring" onClick={onClose}>
-//           Monitoring
-//         </Link>
-//         <Link className="nav-link" to="/admin/onholdlist" onClick={onClose}>
-//           On Hold List
-//         </Link> */}
 //       </nav>
 
 //       <div className="sidebar-footer">
 //         <div
 //           className="user-display"
-//           style={{ color: "white", fontWeight: "bold" }}
+//           style={{
+//             color: "white",
+//             fontWeight: "bold",
+//             display: "flex",
+//             alignItems: "center",
+//             gap: "10px",
+//           }}
 //         >
-//           <i className="fas fa-user-circle"></i>
-//           <span>{sessionStorage.getItem("activeName") || "User"}</span>
+//           <i className="fas fa-user-circle" style={{ fontSize: "1.4rem" }}></i>
+//           <div
+//             style={{
+//               display: "flex",
+//               flexDirection: "column",
+//               lineHeight: 1.3,
+//             }}
+//           >
+//             <span>{sessionStorage.getItem("activeName") || "User"}</span>
+//             <span
+//               style={{
+//                 fontSize: "0.72rem",
+//                 fontWeight: "600",
+//                 color: "#facc15",
+//                 textTransform: "uppercase",
+//                 letterSpacing: "0.03em",
+//               }}
+//             >
+//               {sessionStorage.getItem("userRole") || "—"}
+//             </span>
+//           </div>
 //         </div>
 //         <a className="nav-link logout" onClick={() => setShowConfirm(true)}>
 //           <i className="fas fa-sign-out-alt"></i>
@@ -444,6 +444,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const role = sessionStorage.getItem("role");
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showAutoLogoutModal, setShowAutoLogoutModal] = useState(false); // ← new
 
   // ==========================
   // SAVE LOG HELPER
@@ -472,23 +473,35 @@ export default function Sidebar({ isOpen, onClose }) {
   useEffect(() => {
     if (!sessionStorage.getItem("activeUser")) return;
 
+    let heartbeat; // ← declared here so it can be cleared from inside sendHeartbeat
+
     async function sendHeartbeat() {
       try {
-        await fetch(`${import.meta.env.VITE_API_URL}/api/heartbeat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: sessionStorage.getItem("activeUser"),
-            name: sessionStorage.getItem("activeName"),
-            role: sessionStorage.getItem("userRole"),
-          }),
-        });
+        const res = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/heartbeat`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: sessionStorage.getItem("activeUser"),
+              name: sessionStorage.getItem("activeName"),
+              role: sessionStorage.getItem("userRole"),
+            }),
+          },
+        );
+        const data = await res.json();
+
+        if (data.loggedOut) {
+          clearInterval(heartbeat); // stop pinging, session is already dead server-side
+          setShowAutoLogoutModal(true); // ← trigger the popup
+        }
       } catch (err) {
         console.error("Heartbeat error:", err);
       }
     }
+
     sendHeartbeat();
-    const heartbeat = setInterval(sendHeartbeat, 30000);
+    heartbeat = setInterval(sendHeartbeat, 30000);
     return () => clearInterval(heartbeat);
   }, []);
 
@@ -574,6 +587,17 @@ export default function Sidebar({ isOpen, onClose }) {
     }
   }
 
+  // ==========================
+  // AUTO-LOGOUT CONFIRM (OK button on the popup)
+  // ==========================
+  function handleAutoLogoutConfirm() {
+    sessionStorage.clear();
+    localStorage.removeItem("name");
+    localStorage.removeItem("username");
+    setShowAutoLogoutModal(false);
+    navigate("/", { replace: true });
+  }
+
   return (
     <aside className={`sidebar ${isOpen ? "active" : ""}`}>
       {/* CONFIRM LOGOUT MODAL */}
@@ -649,6 +673,62 @@ export default function Sidebar({ isOpen, onClose }) {
                 Logout
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* AUTO-LOGOUT MODAL */}
+      {showAutoLogoutModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "12px",
+              padding: "28px",
+              width: "320px",
+              textAlign: "center",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 8px", color: "#18181b" }}>
+              Session Expired
+            </h3>
+            <p
+              style={{
+                color: "#71717a",
+                fontSize: "0.875rem",
+                margin: "0 0 20px",
+              }}
+            >
+              You have been logged out due to inactivity.
+            </p>
+            <button
+              onClick={handleAutoLogoutConfirm}
+              style={{
+                padding: "9px 24px",
+                background: "#18181b",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                color: "white",
+                fontWeight: "500",
+              }}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}

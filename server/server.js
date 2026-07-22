@@ -1190,6 +1190,8 @@ const { MongoClient, ObjectId } = require("mongodb");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const uploadRoutes = require("./routes/uploadRoutes");
+const upload = require("./middleware/upload");
+const { uploadBufferToCloudinary } = require("./utils/cloudinaryUpload");
 
 const SALT_ROUNDS = 10;
 const app = express();
@@ -1248,15 +1250,71 @@ app.get("/api/health", async (req, res) => {
 // ==========================
 // HEARTBEAT SYSTEM
 // ==========================
+// const heartbeats = {};
+// const userInfo = {}; // ← store user info for logging
+
+// app.post("/api/heartbeat", (req, res) => {
+//   const { username, name, role } = req.body;
+//   heartbeats[username] = Date.now();
+//   // ← store user info
+//   if (name) userInfo[username] = { name, role };
+//   res.json({ success: true });
+// });
+
+// app.get("/api/active-users", (req, res) => {
+//   const now = Date.now();
+//   const activeUsers = Object.entries(heartbeats)
+//     .filter(([_, lastSeen]) => now - lastSeen < 60000)
+//     .map(([username]) => username);
+//   res.json(activeUsers);
+// });
+
+// // ← Add this - checks every 30 seconds for expired heartbeats
+// setInterval(async () => {
+//   const now = Date.now();
+//   for (const [username, lastSeen] of Object.entries(heartbeats)) {
+//     if (now - lastSeen >= 60000) {
+//       // user has been inactive for 60 seconds - log them out
+//       try {
+//         await db.collection("logs").insertOne({
+//           username,
+//           name: userInfo[username]?.name || username,
+//           role: userInfo[username]?.role || "unknown",
+//           action: "logged out",
+//           timestamp: new Date().toISOString(),
+//         });
+//         console.log(`Auto logged out: ${username}`);
+//       } catch (err) {
+//         console.error("Auto logout log error:", err);
+//       }
+//       // remove from heartbeats
+//       delete heartbeats[username];
+//       delete userInfo[username];
+//     }
+//   }
+// }, 30000);
+
+// app.post("/api/logout", (req, res) => {
+//   const { username } = req.body;
+//   delete heartbeats[username];
+//   res.json({ success: true });
+// });
 const heartbeats = {};
-const userInfo = {}; // ← store user info for logging
+const userInfo = {};
+const forceLogout = new Set(); // ← track who got auto logged out
 
 app.post("/api/heartbeat", (req, res) => {
   const { username, name, role } = req.body;
+
+  // If this user was force-logged-out, tell the frontend and don't revive them
+  if (forceLogout.has(username)) {
+    forceLogout.delete(username); // clear it so a fresh login later isn't blocked
+    return res.json({ success: true, loggedOut: true });
+  }
+
   heartbeats[username] = Date.now();
-  // ← store user info
   if (name) userInfo[username] = { name, role };
-  res.json({ success: true });
+  res.json({ success: true, loggedOut: false });
 });
 
 app.get("/api/active-users", (req, res) => {
@@ -1267,12 +1325,10 @@ app.get("/api/active-users", (req, res) => {
   res.json(activeUsers);
 });
 
-// ← Add this - checks every 30 seconds for expired heartbeats
 setInterval(async () => {
   const now = Date.now();
   for (const [username, lastSeen] of Object.entries(heartbeats)) {
     if (now - lastSeen >= 60000) {
-      // user has been inactive for 60 seconds - log them out
       try {
         await db.collection("logs").insertOne({
           username,
@@ -1285,7 +1341,7 @@ setInterval(async () => {
       } catch (err) {
         console.error("Auto logout log error:", err);
       }
-      // remove from heartbeats
+      forceLogout.add(username); // ← mark so next heartbeat/check tells the frontend
       delete heartbeats[username];
       delete userInfo[username];
     }
@@ -1295,6 +1351,7 @@ setInterval(async () => {
 app.post("/api/logout", (req, res) => {
   const { username } = req.body;
   delete heartbeats[username];
+  forceLogout.delete(username);
   res.json({ success: true });
 });
 
@@ -1756,6 +1813,296 @@ app.put("/api/jobreceipts/:jrId", async (req, res) => {
         .json({ success: false, message: "Job receipt not found" });
     }
     res.json({ success: true, jrId: targetJrId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+// ==========================
+// QUOTATIONS
+// ==========================
+
+// GET next Quotation ID preview
+// NOTE: must stay registered before "/:quotationId" below, or Express will
+// try to match "next-id" as a quotationId value.
+app.get("/api/quotations/next-id", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOne({ _id: "quotationID" });
+    const nextSeq = (counter?.seq || 0) + 1;
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const nextQuotationId = `QTN/${String(nextSeq).padStart(4, "0")}/${yr}`;
+    res.json({ nextQuotationId });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+// GET all quotations
+app.get("/api/quotations", async (req, res) => {
+  try {
+    const quotations = await db
+      .collection("quotations")
+      .find()
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json(quotations);
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// POST save quotation — quotationId is generated atomically here, same
+// counter pattern as job receipts, so it's never a stale client-side value.
+app.post("/api/quotations", async (req, res) => {
+  try {
+    const counter = await db
+      .collection("counters")
+      .findOneAndUpdate(
+        { _id: "quotationID" },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: "after" },
+      );
+    const yr = new Date().getFullYear().toString().slice(-2);
+    const quotationId = `QTN/${String(counter.seq).padStart(4, "0")}/${yr}`;
+
+    // Ignore whatever quotationId the client sent (it was only a preview) —
+    // the server-generated one is the source of truth.
+    const { quotationId: _clientId, ...rest } = req.body;
+
+    const newQuotation = {
+      ...rest,
+      quotationId,
+      status: "Creating",
+      createdAt: new Date().toISOString(),
+    };
+
+    await db.collection("quotations").insertOne(newQuotation);
+    res.status(201).json({ success: true, quotationId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// GET a single quotation by quotationId
+app.get("/api/quotations/:quotationId", async (req, res) => {
+  try {
+    const quotation = await db
+      .collection("quotations")
+      .findOne({ quotationId: decodeURIComponent(req.params.quotationId) });
+
+    if (!quotation) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Quotation not found" });
+    }
+    res.json(quotation);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+const PizZip = require("pizzip");
+const Docxtemplater = require("docxtemplater");
+const fs = require("fs");
+const path = require("path");
+
+app.get("/api/quotations/:quotationId/download-template", async (req, res) => {
+  try {
+    const quotationId = decodeURIComponent(req.params.quotationId);
+    const quotation = await db
+      .collection("quotations")
+      .findOne({ quotationId });
+    if (!quotation) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Quotation not found" });
+    }
+
+    const templatePath = path.join(
+      __dirname,
+      "templates/quotation_template_master.docx",
+    );
+    const content = fs.readFileSync(templatePath, "binary");
+    const zip = new PizZip(content);
+    const doc = new Docxtemplater(zip, {
+      paragraphLoop: true,
+      linebreaks: true,
+    });
+
+    doc.render({
+      quotationId: quotation.quotationId,
+      date: quotation.date,
+      companyName: quotation.companyName,
+      companyAddress: quotation.address,
+      contactName: quotation.contactName,
+      reference: quotation.reference,
+      preparedBy: quotation.preparedBy || "",
+      approvedBy: quotation.checkedBy || "",
+    });
+    const buf = doc.getZip().generate({ type: "nodebuffer" });
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${quotation.quotationId.replace(/\//g, "-")}.docx"`,
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    res.send(buf);
+  } catch (err) {
+    console.error("Template generation failed:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// PUT update an existing quotation by quotationId
+app.put("/api/quotations/:quotationId", async (req, res) => {
+  try {
+    const { quotationId, ...updateData } = req.body;
+    const targetQuotationId = decodeURIComponent(req.params.quotationId);
+
+    const result = await db
+      .collection("quotations")
+      .updateOne({ quotationId: targetQuotationId }, { $set: updateData });
+
+    if (result.matchedCount === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Quotation not found" });
+    }
+    res.json({ success: true, quotationId: targetQuotationId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+// PUT staff uploads their filled-in template -> "For Checking"
+
+app.put(
+  "/api/quotations/:quotationId/upload-template",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "No file received" });
+      }
+      const quotationId = decodeURIComponent(req.params.quotationId);
+
+      // Preserve the original file's extension so Cloudinary's raw
+      // delivery URL — and therefore the downloaded file — actually
+      // carries a usable extension (.docx, .pdf, etc).
+      const ext = path.extname(req.file.originalname || "");
+      const publicId = `staff_${Date.now()}${ext}`;
+
+      const result = await uploadBufferToCloudinary(req.file.buffer, {
+        resourceType: "raw",
+        folder: `cdms/quotations/${quotationId}`,
+        publicId,
+      });
+
+      const updated = await db.collection("quotations").findOneAndUpdate(
+        { quotationId },
+        {
+          $set: {
+            status: "For Checking",
+            staffFileUrl: result.secure_url,
+            staffFileName: req.file.originalname, // keep for a nice download filename
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        { returnDocument: "after" },
+      );
+
+      if (!updated) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Quotation not found" });
+      }
+      res.json({ success: true, quotation: updated });
+    } catch (err) {
+      console.error("Template upload failed:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  },
+);
+
+// PUT checker uploads the signed file -> "For Sending"
+app.put(
+  "/api/quotations/:quotationId/upload-signed",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (!["admin", "clerk"].includes(req.headers["x-user-role"])) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Checker role required" });
+      }
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, message: "No file received" });
+      }
+      const quotationId = decodeURIComponent(req.params.quotationId);
+
+      const result = await uploadBufferToCloudinary(req.file.buffer, {
+        resourceType: "raw",
+        folder: `cdms/quotations/${quotationId}`,
+        publicId: `signed_${Date.now()}`,
+      });
+
+      const updated = await db.collection("quotations").findOneAndUpdate(
+        { quotationId },
+        {
+          $set: {
+            status: "For Sending",
+            signedFileUrl: result.secure_url,
+            checkedBy: req.headers["x-user-name"] || "",
+            updatedAt: new Date().toISOString(),
+          },
+        },
+        { returnDocument: "after" },
+      );
+
+      if (!updated) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Quotation not found" });
+      }
+      res.json({ success: true, quotation: updated });
+    } catch (err) {
+      console.error("Signed file upload failed:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  },
+);
+
+// PUT mark quotation as sent to client
+app.put("/api/quotations/:quotationId/mark-sent", async (req, res) => {
+  try {
+    const quotationId = decodeURIComponent(req.params.quotationId);
+    const updated = await db.collection("quotations").findOneAndUpdate(
+      { quotationId },
+      {
+        $set: {
+          status: "Sent",
+          sentBy: req.body.sentBy || "",
+          sentAt: new Date().toISOString(),
+        },
+      },
+      { returnDocument: "after" },
+    );
+    if (!updated) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Quotation not found" });
+    }
+    res.json({ success: true, quotation: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -2267,6 +2614,7 @@ app.get("/api/stats/analytics", async (req, res) => {
 app.put("/api/jobnumbers/update-details", async (req, res) => {
   try {
     const { jobNumber, ...updateData } = req.body;
+    console.log("updateData.photoUrl:", updateData.photoUrl); // temp check
     const result = await db
       .collection("jobnumbers")
       .updateOne({ jobNumber }, { $set: updateData });
@@ -2373,6 +2721,7 @@ app.post("/api/deliveryreceipts", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 // ✅ FIXED PORT - Works on Vercel
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

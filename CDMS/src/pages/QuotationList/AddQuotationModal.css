@@ -1,0 +1,234 @@
+.cdms-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+.cdms-modal {
+  width: 760px;
+  max-width: 96vw;
+  background: #ffffff;
+  border: 1px solid #16324a;
+  box-shadow: 4px 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.cdms-modal-body {
+  padding: 20px 24px;
+  background: #eef1f4;
+}
+
+/* ---- Top row: Quotation ID / Date / Customer ID ---- */
+.cdms-top-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.cdms-top-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cdms-top-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #223349;
+}
+
+.cdms-top-field-id input,
+.cdms-top-field-date input {
+  width: 140px;
+}
+
+.cdms-top-field-customer {
+  flex: 1;
+  min-width: 220px;
+}
+
+.cdms-search-row {
+  display: flex;
+  gap: 6px;
+}
+
+.cdms-search-row input {
+  flex: 1;
+}
+
+.cdms-search-btn {
+  width: 38px;
+  flex-shrink: 0;
+  border: 1px solid #c7ccd1;
+  background: #f4f5f6;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 3px;
+}
+
+.cdms-search-btn:hover {
+  background: #e6e9eb;
+}
+
+.cdms-select-row {
+  display: flex;
+  gap: 6px;
+}
+
+.cdms-select-row select {
+  flex: 1;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid #c7ccd1;
+  border-radius: 3px;
+  background: #fff;
+  color: #223349;
+}
+
+.cdms-select-row select:disabled {
+  background: #e6e8ea;
+  color: #8a939c;
+}
+
+.cdms-add-btn {
+  width: 38px;
+  flex-shrink: 0;
+  border: 1px solid #c7ccd1;
+  background: #f4f5f6;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 3px;
+  color: #223349;
+}
+
+.cdms-add-btn:hover:not(:disabled) {
+  background: #e6e9eb;
+}
+
+.cdms-add-btn:disabled {
+  color: #b6bcc2;
+  cursor: not-allowed;
+}
+
+/* ---- Two-column field grid ---- */
+.cdms-form-columns {
+  display: flex;
+  gap: 24px;
+}
+
+.cdms-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.cdms-column-divider {
+  width: 1px;
+  background: #d6dbe0;
+  align-self: stretch;
+}
+
+.cdms-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cdms-field label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #223349;
+}
+
+.cdms-field input,
+.cdms-field textarea,
+.cdms-top-field input {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+  border: 1px solid #c7ccd1;
+  border-radius: 3px;
+  background: #fff;
+  color: #223349;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cdms-field textarea {
+  resize: vertical;
+}
+
+.cdms-field input:focus,
+.cdms-field textarea:focus,
+.cdms-top-field input:focus,
+.cdms-search-row input:focus {
+  outline: none;
+  border-color: #6d9bc3;
+  box-shadow: 0 0 0 2px rgba(109, 155, 195, 0.25);
+}
+
+.cdms-readonly {
+  background: #e6e8ea !important;
+  color: #55606a !important;
+  cursor: default;
+}
+
+/* ---- Footer ---- */
+.cdms-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: #f4f6f8;
+  border-top: 1px solid #dde5ec;
+}
+
+.cdms-footer-left,
+.cdms-footer-right {
+  display: flex;
+  gap: 6px;
+}
+
+.cdms-btn {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 7px 16px;
+  border: 1px solid #7b8a94;
+  background: linear-gradient(#f5f7fa, #d9e2ec);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.cdms-btn:hover {
+  background: linear-gradient(#eef3f8, #c6d3e0);
+}
+
+.cdms-btn-primary {
+  background: linear-gradient(#2f7bc4, #1c5a94);
+  color: #fff;
+  border-color: #124372;
+  font-weight: bold;
+}
+
+.cdms-btn-primary:hover {
+  background: linear-gradient(#3f8ad2, #2469a4);
+}
+
+@media (max-width: 640px) {
+  .cdms-form-columns {
+    flex-direction: column;
+  }
+  .cdms-column-divider {
+    display: none;
+  }
+}
