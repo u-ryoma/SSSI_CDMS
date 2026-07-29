@@ -976,7 +976,7 @@ import { createPortal } from "react-dom";
 import "./IncomingCalibDetailsModal.css";
 import CdmsModalHeader from "./CdmsModalHeader";
 import CalibrationStandardLookupModal from "./CalibrationStandardLookUpModal";
-import CalibrationProcedureLookupModal from "./CalibrationProcedureLookuPModal";
+import CalibrationProcedureLookupModal from "./CalibrationProcedureLookUpModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import JobFilesModal from "./JobFilesModal";
 
