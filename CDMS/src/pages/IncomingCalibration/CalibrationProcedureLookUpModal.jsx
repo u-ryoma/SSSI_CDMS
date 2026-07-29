@@ -105,7 +105,7 @@
 // export default CalibrationProcedureLookupModal;
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import "./CalibrationProcedureLookupModal.css";
+import "./CalibrationProcedureLookUpModal.css";
 import CdmsModalHeader from "./CdmsModalHeader";
 
 /**
