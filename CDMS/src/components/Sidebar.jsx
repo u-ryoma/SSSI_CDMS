@@ -879,7 +879,7 @@ export default function Sidebar({ isOpen, onClose }) {
             Quotation For Check
           </Link>
         )}
-        <Link className="nav-link" to="/admin/qtnforfile" onClick={onClose}>
+        {/* <Link className="nav-link" to="/admin/qtnforfile" onClick={onClose}>
           Quotation For File
         </Link>
         {(role === "admin" || role === "clerk") && (
@@ -890,7 +890,7 @@ export default function Sidebar({ isOpen, onClose }) {
           >
             Quotation For Follow Up
           </Link>
-        )}
+        )} */}
         {(role === "admin" || role === "clerk") && (
           <Link className="nav-link" to="/admin/qtnforsend" onClick={onClose}>
             Quotation For Send

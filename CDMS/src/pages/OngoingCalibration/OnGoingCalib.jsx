@@ -69,7 +69,7 @@
 //                 contactCert: job.contactCert || "",
 //                 frequency: job.frequency || "1 Year",
 //                 eta: job.eta || "",
-//                 evalBy: job.evalBy || "",
+//                 oicBy: job.oicBy || "",
 //                 priority: job.priority || "Normal",
 //                 voltage: job.voltage || "-",
 //                 ongoingTagged: job.ongoingTagged || false,
@@ -281,7 +281,7 @@
 //                   <td>{r.jobNumber}</td>
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
-//                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.oicBy || "Ready"}</td>
 //                   <td>{r.companyName}</td>
 //                   <td>{r.description}</td>
 //                   <td>{r.brand}</td>
@@ -406,10 +406,22 @@ const OnGoingCalib = () => {
                 dateDue: job.dateDue || "",
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
+                // Full template record (publicId, code, format, version,
+                // etc.) selected/re-uploaded back in Incoming Calibration.
+                // Without carrying this over, the Download button in this
+                // stage's modal has no publicId to build a filled-template
+                // download from, even though calibrationProcedure (the
+                // display text) looks populated.
+                calibrationProcedureTemplate:
+                  job.calibrationProcedureTemplate || null,
                 calibrationStandards: job.calibrationStandards || [],
                 photoUrl: job.photoUrl || "",
                 dateRec: receipt.date || "",
                 companyName: receipt.companyName || "",
+                // Lives on the job receipt record, not the job number
+                // record — needed so the filled-template download can
+                // stamp the CDMS sheet's COMPANY ADDRESS cell with it.
+                companyAddress: receipt.companyAddress || "",
                 contactName: receipt.contactName || "",
               };
             })
@@ -630,11 +642,16 @@ const OnGoingCalib = () => {
         </table>
       </div>
 
-      {/* Reuses the same details modal as Incoming Calibration, retitled */}
+      {/* Reuses the same details modal as Incoming Calibration, retitled.
+          downloadLabel="On-Going Calib" is appended to the downloaded
+          filled-template filename (e.g. "SSS-0001-26 - On-Going Calib.xlsx")
+          so downloads from this stage are distinguishable from Incoming
+          Calibration's. */}
       {showModal && selectedRecord && (
         <IncomingCalibDetailsModal
           jobForm={selectedRecord}
           title="ON-GOING CALIBRATION DETAILS"
+          downloadLabel="On-Going Calib"
           onClose={() => setShowModal(false)}
           onUpdate={handleUpdate}
           onOpenCamera={() => {}}

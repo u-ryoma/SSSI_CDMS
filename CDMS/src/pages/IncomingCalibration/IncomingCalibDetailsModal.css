@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999999;
+  z-index: 9999;
 }
 
 .icd-modal-wrapper {
@@ -176,6 +176,12 @@
   padding: 0 8px;
 }
 
+.icd-lookup-btn:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
 .icd-mid-section {
   display: grid;
   grid-template-columns: 1fr 2fr;
@@ -204,18 +210,180 @@
   margin-bottom: 4px;
 }
 
-.icd-procedure-actions {
+/* Calibration Procedure row: input grows to fill the space, while the
+   lookup and download buttons stack in a fixed-width column on the
+   right so Download sits directly beneath the lookup button. */
+.icd-procedure-row {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 8px;
+  align-items: stretch;
+  gap: 4px;
 }
 
-.icd-procedure-actions button {
+.icd-procedure-input {
+  flex: 1;
+}
+
+.icd-procedure-btn-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.icd-procedure-btn-col .icd-lookup-btn {
+  width: 100%;
+}
+
+.icd-download-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
   padding: 4px 10px;
   border: 1px solid #999;
+  border-radius: 4px;
   background: #e8e8e8;
+  color: #333;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.icd-download-btn:hover {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.icd-reupload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 10px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #e8e8e8;
+  color: #333;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.icd-reupload-btn:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+.icd-reupload-btn:disabled {
+  background: #eee;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.icd-hidden-file-input {
+  display: none;
+}
+
+/* View Files modal */
+.icd-viewfiles-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.icd-viewfiles-box {
+  background: #fff;
+  width: 480px;
+  max-width: 92vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid #999;
+  border-radius: 4px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  padding: 14px 16px;
+}
+
+.icd-viewfiles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.icd-viewfiles-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.icd-viewfiles-header .icd-modal-close {
+  color: #333;
+}
+
+.icd-viewfiles-section {
+  margin-bottom: 16px;
+}
+
+.icd-viewfiles-empty {
+  font-size: 12px;
+  color: #999;
+}
+
+.icd-viewfiles-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.icd-viewfiles-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.icd-viewfiles-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.icd-viewfiles-version {
+  font-weight: 700;
+}
+
+.icd-viewfiles-download {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid #999;
+  border-radius: 4px;
+  background: #e8e8e8;
+  color: #333;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.icd-viewfiles-download:hover {
+  background: #000;
+  border-color: #000;
+  color: #fff;
 }
 
 .icd-primary-btn {
@@ -223,6 +391,11 @@
   color: #fff;
   border-color: #256428 !important;
   font-weight: 600;
+}
+
+.icd-primary-btn:hover {
+  background: #000 !important;
+  border-color: #000 !important;
 }
 
 .icd-standard-section {
@@ -261,6 +434,12 @@
   cursor: not-allowed;
 }
 
+.icd-standard-cell button:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
 .icd-footer {
   display: flex;
   justify-content: space-between;
@@ -276,6 +455,12 @@
   margin-left: 8px;
 }
 
+.icd-footer button:hover {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
 .icd-footer-left button {
   margin-left: 0;
   margin-right: 8px;
@@ -286,4 +471,9 @@
   color: #fff;
   border-color: #1d4fbb !important;
   font-weight: 600;
+}
+
+.icd-update-btn:hover {
+  background: #000 !important;
+  border-color: #000 !important;
 }

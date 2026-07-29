@@ -7,7 +7,7 @@
   justify-content: center;
   overflow-y: auto;
   padding: 24px 0;
-  z-index: 999999;
+  z-index: 9999;
 }
 
 .foc-modal-wrapper {

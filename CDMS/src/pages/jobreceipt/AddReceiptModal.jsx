@@ -724,6 +724,7 @@ import { createPortal } from "react-dom";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import AdminPasswordModal from "./AdminPasswordModal";
 import AddContactSubModal from "./AddContactSubModal";
+import ReceiptFolderModal from "./ReceiptFolderModal";
 
 // =====================
 // MAIN ADD / EDIT RECEIPT MODAL
@@ -746,6 +747,13 @@ const AddReceiptModal = ({
 }) => {
   const [errors, setErrors] = useState({});
   const [showAddContact, setShowAddContact] = useState(false);
+
+  // OPEN FOLDER — shows every file (equipment photos + documents) stored
+  // under each job number attached to this receipt, grouped by job
+  // number. Reuses the same /api/uploads/job-folder/:jobNumber/files
+  // route that JobNumberModal's per-job "Open Folder" already calls —
+  // this just loops it across every job number in `jobNumbers`.
+  const [showReceiptFolder, setShowReceiptFolder] = useState(false);
 
   // FIELD LOCK — existing receipts (isEditMode) open locked; a correct admin
   // password unlocks the receipt detail fields for the rest of this modal
@@ -1147,7 +1155,30 @@ const AddReceiptModal = ({
                   Modification History
                 </button>
                 {/* <button className="jr-action-btn">Open Camera</button> */}
-                <button className="jr-action-btn">Open Folder</button>
+
+                {/* OPEN FOLDER — shows every file (equipment photos +
+                    documents) uploaded under every job number attached to
+                    this receipt, grouped by job number. Disabled until at
+                    least one job number has been added, since there's
+                    nothing to show otherwise. */}
+                <button
+                  className="jr-action-btn"
+                  onClick={() => setShowReceiptFolder(true)}
+                  disabled={jobNumbers.length === 0}
+                  title={
+                    jobNumbers.length === 0
+                      ? "Add at least one Job Number first"
+                      : "View files for all job numbers on this receipt"
+                  }
+                  style={
+                    jobNumbers.length === 0
+                      ? { opacity: 0.5, cursor: "not-allowed" }
+                      : {}
+                  }
+                >
+                  Open Folder
+                </button>
+
                 <button
                   className="jr-action-btn"
                   onClick={handlePrintClick}
@@ -1255,6 +1286,15 @@ const AddReceiptModal = ({
           onContactAdded={(newContact) => {
             onContactAdded(newContact.contactName);
           }}
+        />
+      )}
+
+      {/* RECEIPT FOLDER MODAL — shows files for every job number on this
+          receipt, grouped by job number */}
+      {showReceiptFolder && (
+        <ReceiptFolderModal
+          jobNumbers={jobNumbers}
+          onClose={() => setShowReceiptFolder(false)}
         />
       )}
     </>

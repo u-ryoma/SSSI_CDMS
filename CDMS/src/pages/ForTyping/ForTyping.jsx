@@ -77,7 +77,7 @@
 //                 contactCert: job.contactCert || "",
 //                 frequency: job.frequency || "1 Year",
 //                 eta: job.eta || "",
-//                 evalBy: job.evalBy || "",
+//                 oicBy: job.oicBy || "",
 //                 priority: job.priority || "Normal",
 //                 sig: job.sig || "",
 //                 dateCal: job.dateCal || "",
@@ -143,7 +143,9 @@
 //     if (!selectedRecord) return;
 //     setUploading(true);
 //     try {
-//       const typedBy = sessionStorage.getItem("name") || "";
+//       // Typist identity is stored under "username" in sessionStorage,
+//       // not "name" — matches how oicCheckedBy is read in ForCheckingOIC.
+//       const typedBy = sessionStorage.getItem("username") || "";
 
 //       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
 //         method: "PUT",
@@ -301,7 +303,7 @@
 //                   <td>{r.jobNumber}</td>
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
-//                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.oicBy || "Ready"}</td>
 //                   <td>{r.companyName}</td>
 //                   <td>{r.description}</td>
 //                   <td>{r.brand}</td>
@@ -441,6 +443,10 @@ const ForTyping = () => {
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
+                // Carried over so ForTypingDetailsModal's download check
+                // (template?.publicId) actually has something to read.
+                calibrationProcedureTemplate:
+                  job.calibrationProcedureTemplate || null,
                 dateRec: receipt.date || "",
                 companyName: receipt.companyName || "",
                 contactName: receipt.contactName || "",
@@ -693,6 +699,7 @@ const ForTyping = () => {
           onSaveAndAutoBackup={requestUploadAndAutoBackup}
           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
           onOpenCalProcedureLookup={() => {}}
+          downloadLabel="FOR TYPING"
         />
       )}
 

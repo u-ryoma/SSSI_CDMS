@@ -633,12 +633,13 @@
 // };
 
 // export default JobNumberModal;
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import AdminPasswordModal from "./AdminPasswordModal";
 import CameraCaptureModal from "./CameraCaptureModal";
 import AddContactSubModal from "./AddContactSubModal";
+import JobFolderModal from "./JobFolderModal";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -683,6 +684,18 @@ const JobNumberModal = ({
   const [showCamera, setShowCamera] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
+
+  // EQUIPMENT DOCUMENTS (PDFs, etc.) — uploaded via a hidden file input
+  // triggered by the "Upload PDF" button. Not previewed or tracked on
+  // jobForm the way photoUrl is; the file goes straight to Cloudinary
+  // under this job number's folder and is viewed later via Open Folder.
+  const fileInputRef = useRef(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docError, setDocError] = useState("");
+
+  // OPEN FOLDER — shows every file (photos + documents) stored under this
+  // job number's Cloudinary folder, fetched fresh each time it's opened.
+  const [showFolder, setShowFolder] = useState(false);
 
   // ADD CONTACT — Contact Cert reuses the same contact list (and Add
   // Contact modal) as AddReceiptModal's Contact Name field, keyed off the
@@ -765,10 +778,11 @@ const JobNumberModal = ({
   };
 
   const handleSaveClick = () => {
-    // Guard against saving while a photo upload is still in flight — the
-    // button is also disabled below, but this blocks any other path that
-    // might still call handleSaveClick (e.g. a stray keyboard submit).
-    if (uploadingPhoto) return;
+    // Guard against saving while a photo or document upload is still in
+    // flight — the button is also disabled below, but this blocks any
+    // other path that might still call handleSaveClick (e.g. a stray
+    // keyboard submit).
+    if (uploadingPhoto || uploadingDoc) return;
 
     if (!validate()) {
       showSuccess(
@@ -854,6 +868,49 @@ const JobNumberModal = ({
       setPhotoError("Photo upload failed. Please try again.");
     } finally {
       setUploadingPhoto(false);
+    }
+  };
+
+  // DOCUMENT UPLOAD (PDF, etc.) — triggered by the hidden file input
+  // below, itself triggered by the visible "Upload PDF" button. Uses the
+  // same folder-key convention as photo capture (real job number once
+  // reserved, or "pending_<timestamp>" as a fallback), though in practice
+  // the button is disabled until a job number exists (see the button
+  // below) so the pending fallback shouldn't normally get hit here.
+  //
+  // Unlike photoUrl, the uploaded document's URL is NOT written back onto
+  // jobForm — documents aren't tracked on the job record itself, only
+  // viewable afterward via Open Folder (JobFolderModal), which lists
+  // everything Cloudinary actually has for this job number.
+  const handleDocumentSelect = async (e) => {
+    const file = e.target.files?.[0];
+    // Reset the input so selecting the same file again still fires onChange
+    e.target.value = "";
+    if (!file) return;
+
+    setDocError("");
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+
+      const folderKey = jobForm.jobNumber || `pending_${Date.now()}`;
+
+      const res = await fetch(
+        `${API}/api/uploads/job-document/${encodeURIComponent(folderKey)}`,
+        { method: "POST", body: formData },
+      );
+      const data = await res.json();
+
+      if (!data.success) {
+        console.error("Document upload failed:", data.message);
+        setDocError(data.message || "Document upload failed.");
+      }
+    } catch (err) {
+      console.error("Document upload error:", err);
+      setDocError("Document upload failed. Please try again.");
+    } finally {
+      setUploadingDoc(false);
     }
   };
 
@@ -1242,6 +1299,12 @@ const JobNumberModal = ({
             </div>
           )}
 
+          {docError && (
+            <div className="jr-error" style={{ padding: "0 16px" }}>
+              {docError}
+            </div>
+          )}
+
           {uploadingPhoto && (
             <div
               className="jr-modal-hint"
@@ -1251,12 +1314,21 @@ const JobNumberModal = ({
             </div>
           )}
 
+          {uploadingDoc && (
+            <div
+              className="jr-modal-hint"
+              style={{ padding: "0 16px", color: "#555" }}
+            >
+              Uploading document... Save is disabled until this finishes.
+            </div>
+          )}
+
           <div className="jn-modal-actions">
             <div className="jr-modal-actions-left">
               <button
                 className="jr-action-btn"
                 onClick={() => setShowCamera(true)}
-                disabled={uploadingPhoto}
+                disabled={uploadingPhoto || uploadingDoc}
               >
                 {uploadingPhoto
                   ? "Uploading..."
@@ -1264,7 +1336,59 @@ const JobNumberModal = ({
                     ? "Retake Photo"
                     : "Open Camera"}
               </button>
-              <button className="jr-action-btn">Open Folder</button>
+
+              {/* UPLOAD PDF — hidden file input triggered by this button,
+                  using the same folder-key convention as equipment photos.
+                  Disabled until a job number has been reserved (picking
+                  Mechanical/Electrical first), since uploading before that
+                  would create an orphaned "pending_..." Cloudinary folder
+                  disconnected from the job's real folder created on Save. */}
+              <button
+                className="jr-action-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto || uploadingDoc || !jobForm.jobNumber}
+                title={
+                  !jobForm.jobNumber
+                    ? "Select Mechanical or Electrical first to assign a job number"
+                    : undefined
+                }
+                style={
+                  !jobForm.jobNumber
+                    ? { opacity: 0.5, cursor: "not-allowed" }
+                    : {}
+                }
+              >
+                {uploadingDoc ? "Uploading..." : "Upload PDF"}
+              </button>
+              <input
+                type="file"
+                accept="application/pdf"
+                ref={fileInputRef}
+                onChange={handleDocumentSelect}
+                style={{ display: "none" }}
+              />
+
+              {/* OPEN FOLDER — lists every file already stored under this
+                  job number's Cloudinary folder (photos + documents).
+                  Disabled until a job number exists, for the same reason
+                  as Upload PDF above. */}
+              <button
+                className="jr-action-btn"
+                onClick={() => setShowFolder(true)}
+                disabled={!jobForm.jobNumber}
+                title={
+                  !jobForm.jobNumber
+                    ? "Select Mechanical or Electrical first to assign a job number"
+                    : undefined
+                }
+                style={
+                  !jobForm.jobNumber
+                    ? { opacity: 0.5, cursor: "not-allowed" }
+                    : {}
+                }
+              >
+                Open Folder
+              </button>
             </div>
             <div className="jr-modal-actions-right">
               <button className="jr-action-btn" onClick={onOpenRecall}>
@@ -1283,17 +1407,25 @@ const JobNumberModal = ({
               <button
                 className="jr-save-btn"
                 onClick={handleSaveClick}
-                disabled={uploadingPhoto}
+                disabled={uploadingPhoto || uploadingDoc}
                 title={
                   uploadingPhoto
                     ? "Please wait for the photo upload to finish"
-                    : undefined
+                    : uploadingDoc
+                      ? "Please wait for the document upload to finish"
+                      : undefined
                 }
                 style={
-                  uploadingPhoto ? { opacity: 0.5, cursor: "not-allowed" } : {}
+                  uploadingPhoto || uploadingDoc
+                    ? { opacity: 0.5, cursor: "not-allowed" }
+                    : {}
                 }
               >
-                {uploadingPhoto ? "Uploading Photo..." : "Save"}
+                {uploadingPhoto
+                  ? "Uploading Photo..."
+                  : uploadingDoc
+                    ? "Uploading Document..."
+                    : "Save"}
               </button>
               <button className="jr-action-btn" onClick={handleExitClick}>
                 Exit
@@ -1346,6 +1478,15 @@ const JobNumberModal = ({
               target: { name: "contactCert", value: newContact.contactName },
             });
           }}
+        />
+      )}
+
+      {/* JOB FOLDER MODAL — lists every file Cloudinary has for this job
+          number (equipment photos + documents), fetched fresh on open. */}
+      {showFolder && jobForm.jobNumber && (
+        <JobFolderModal
+          jobNumber={jobForm.jobNumber}
+          onClose={() => setShowFolder(false)}
         />
       )}
     </div>,

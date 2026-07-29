@@ -1,0 +1,425 @@
+@keyframes cdmsModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: 24px !important;
+}
+
+.cdms-modal {
+  width: 980px !important;
+  max-width: 100% !important;
+  max-height: 92vh !important;
+  overflow-y: auto !important;
+  background: #ffffff !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 10px !important;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif !important;
+  color: #1a1a1a !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  animation: cdmsModalIn 0.22s ease-out !important;
+}
+
+.cdms-modal *,
+.cdms-modal *::before,
+.cdms-modal *::after {
+  box-sizing: border-box !important;
+}
+
+/* ---------- BODY ---------- */
+.cdms-modal-body {
+  padding: 24px 32px 20px !important;
+}
+
+.cdms-form-grid {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 260px) !important;
+  column-gap: 56px !important;
+  row-gap: 0 !important;
+  align-items: start !important;
+}
+
+.cdms-form-column {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 28px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+}
+
+.cdms-form-column:not(:last-child)::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 4px !important;
+  right: -28px !important;
+  bottom: 4px !important;
+  width: 1px !important;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    #d5d5d3 15%,
+    #d5d5d3 85%,
+    transparent
+  ) !important;
+}
+
+.cdms-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #1a1a1a !important;
+  margin: 0 0 6px 0 !important;
+  padding: 0 0 10px 0 !important;
+  border-bottom: 2px solid #1a1a1a !important;
+}
+
+.cdms-section-title::before {
+  content: "" !important;
+  display: inline-block !important;
+  width: 6px !important;
+  height: 6px !important;
+  background: #1a1a1a !important;
+  border-radius: 50% !important;
+}
+
+/* ---------- FIELDS ---------- */
+.cdms-field {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  column-gap: 12px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+.cdms-field-inline {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-end !important;
+  column-gap: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.cdms-field-grow {
+  flex: 1 1 auto !important;
+}
+
+.cdms-field-spacer {
+  height: 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.cdms-field-label {
+  display: inline-block !important;
+  flex: 0 0 84px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #2b2b2b !important;
+  margin: 0 !important;
+  padding: 0 0 4px 0 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.01em !important;
+}
+
+input.cdms-underline-input,
+select.cdms-underline-input {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: solid !important;
+  border-bottom: 1px solid #b3b3b3 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  margin: 0 !important;
+  padding: 2px 2px 6px 2px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  color: #1a1a1a !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none !important;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease !important;
+}
+
+input.cdms-underline-input:hover,
+select.cdms-underline-input:hover {
+  border-bottom: 1px solid #1a1a1a !important;
+}
+
+input.cdms-underline-input:focus,
+select.cdms-underline-input:focus {
+  border-bottom: 2px solid #000000 !important;
+  box-shadow: 0 1px 0 0 #000000 !important;
+  background-color: #fafafa !important;
+  padding-bottom: 5px !important;
+}
+
+select.cdms-underline-input {
+  appearance: none !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #444444 50%),
+    linear-gradient(135deg, #444444 50%, transparent 50%) !important;
+  background-position:
+    calc(100% - 12px) 4px,
+    calc(100% - 7px) 4px !important;
+  background-size:
+    5px 5px,
+    5px 5px !important;
+  background-repeat: no-repeat !important;
+  padding-right: 20px !important;
+  cursor: pointer !important;
+}
+
+/* ---------- FOR CALIBRATION BUTTON ---------- */
+button.btn-for-calibration {
+  flex: 0 0 auto !important;
+  display: inline-block !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 7px 16px !important;
+  margin: 0 !important;
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease !important;
+}
+
+/* Stacked beneath the Calib Status select so the select's full text is
+   visible instead of being squeezed by an inline button next to it */
+button.btn-for-calibration-stacked {
+  align-self: flex-start !important;
+  margin-top: -14px !important;
+}
+
+button.btn-for-calibration:hover {
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+}
+
+button.btn-for-calibration:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+/* ---------- IMAGE VIEWER ---------- */
+.cdms-image-viewer {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.cdms-image-frame {
+  width: 100% !important;
+  height: 230px !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 6px !important;
+  background: #f0f0ee !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow:
+    inset 0 0 0 4px #ffffff,
+    inset 0 0 0 5px #d5d5d3 !important;
+}
+
+.cdms-image-frame img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  transition: transform 0.25s ease !important;
+}
+
+.cdms-image-frame:hover img {
+  transform: scale(1.04) !important;
+}
+
+.cdms-image-placeholder {
+  font-size: 12px !important;
+  color: #8a8a8a !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+/* ---------- FOOTER LINK BUTTONS ---------- */
+/* These now live inline inside .cdms-bottom-actions alongside the
+   outline buttons, so they're sized to their content rather than
+   stretching to 100% width as they did when stacked vertically. */
+button.btn-link {
+  display: inline-block !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 9px 20px !important;
+  margin: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease !important;
+}
+
+button.btn-link:hover {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+}
+
+button.btn-link:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+/* ---------- BOTTOM ACTIONS (footer) ---------- */
+.cdms-bottom-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 32px 0 0 0 !important;
+  padding: 20px 0 0 0 !important;
+  border-top: 1px solid #e5e5e3 !important;
+}
+
+/* Push the Update / Exit pair (and everything after the two outline
+   buttons) to the right side of the footer row */
+.cdms-bottom-actions button.btn-link:first-of-type {
+  margin-left: auto !important;
+}
+
+button.btn-outline {
+  display: inline-block !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 9px 20px !important;
+  margin: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 20px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  cursor: pointer !important;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease !important;
+}
+
+button.btn-outline:hover {
+  background: #1a1a1a !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+}
+
+button.btn-outline:active {
+  transform: translateY(0) !important;
+  box-shadow: none !important;
+}
+
+/* ---------- RESPONSIVE ---------- */
+@media (max-width: 800px) {
+  .cdms-form-grid {
+    grid-template-columns: 1fr 1fr !important;
+    row-gap: 24px !important;
+  }
+
+  .cdms-image-viewer {
+    grid-column: 1 / -1 !important;
+  }
+
+  .cdms-bottom-actions button.btn-link:first-of-type {
+    margin-left: 0 !important;
+  }
+}
+/* Add this to AddAssetModal.css — styles the Code field's show/hide toggle */
+
+.cdms-input-with-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cdms-input-with-toggle .cdms-underline-input {
+  flex: 1;
+}
+
+.cdms-toggle-visibility-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+  line-height: 1;
+}

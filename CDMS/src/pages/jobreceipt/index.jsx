@@ -6,6 +6,7 @@
 // import InstrumentListModal from "./InstrumentListModal";
 // import RecallJobModal from "./RecallJobModal";
 // import PrintReceiptModal from "./PrintReceiptModal";
+// import PrintReceiptModalOnSite from "./PrintReceiptModalOnSite";
 
 // const API = import.meta.env.VITE_API_URL;
 
@@ -49,8 +50,8 @@
 //   evalBy: "",
 //   priority: "Normal",
 //   voltage: "-",
-//   onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Set once via the checkbox and unrelated to pipeline stage.
-//   tagged: false, // pipeline-stage flag: becomes true only once the job actually passes Instrument Tagging. Must NOT default to true, or every new job skips straight to Incoming Calibration.
+//   onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Checking On-Site also auto-sets `tagged` (see handleOnSiteChange), since on-site jobs skip Instrument Tagging.
+//   tagged: false, // pipeline-stage flag: true once the job is ready for Incoming Calibration — either it passed Instrument Tagging, or it's an On-Site job (which skips tagging). Must default to false, or every new job skips straight to Incoming Calibration.
 //   photoUrl: "", // base64 data URL of the equipment photo, captured via camera in JobNumberModal
 // };
 
@@ -182,11 +183,22 @@
 //     setJobForm({ ...jobForm, [e.target.name]: e.target.value });
 
 //   // ON-SITE TOGGLE CHANGE — sets the mode-of-receipt flag (`onSite`) that
-//   // JobNumber.jsx's getMOR() reads. This is intentionally independent of
-//   // `tagged`, which is a separate pipeline-stage flag set elsewhere (e.g.
-//   // when the job passes through Instrument Tagging).
+//   // JobNumber.jsx's getMOR() reads.
+//   //
+//   // On-Site jobs skip Instrument Tagging entirely and go straight to
+//   // Incoming Calibration (IncomingCalib.jsx only lists jobs where
+//   // `tagged === true`), so checking this box also flips `tagged` to true
+//   // immediately instead of waiting for the separate tagging step.
+//   // Unchecking it puts the job back on the normal in-house path, where
+//   // `tagged` must be set later via Instrument Tagging — so we flip it
+//   // back to false here too, rather than leaving a stale true behind.
 //   const handleOnSiteChange = (e) => {
-//     setJobForm((prev) => ({ ...prev, onSite: e.target.checked }));
+//     const checked = e.target.checked;
+//     setJobForm((prev) => ({
+//       ...prev,
+//       onSite: checked,
+//       tagged: checked,
+//     }));
 //   };
 
 //   // TYPE CHANGE — reserves a real job number from the server for the chosen type
@@ -720,15 +732,28 @@
 //         />
 //       )}
 
-//       {showPrintModal && printData && (
-//         <PrintReceiptModal
-//           receipt={printData}
-//           onClose={() => {
-//             setShowPrintModal(false);
-//             setPrintData(null);
-//           }}
-//         />
-//       )}
+//       {/* PRINT MODAL — swaps between the standard in-house Conditions of
+//           Calibration layout and the On-Site layout, based on whether any
+//           job number on this receipt has onSite === true. */}
+//       {showPrintModal &&
+//         printData &&
+//         (printData.jobNumbers?.some((j) => j.onSite) ? (
+//           <PrintReceiptModalOnSite
+//             receipt={printData}
+//             onClose={() => {
+//               setShowPrintModal(false);
+//               setPrintData(null);
+//             }}
+//           />
+//         ) : (
+//           <PrintReceiptModal
+//             receipt={printData}
+//             onClose={() => {
+//               setShowPrintModal(false);
+//               setPrintData(null);
+//             }}
+//           />
+//         ))}
 //     </div>
 //   );
 // };
@@ -786,8 +811,8 @@ export const emptyJobForm = {
   evalBy: "",
   priority: "Normal",
   voltage: "-",
-  onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Set once via the checkbox and unrelated to pipeline stage.
-  tagged: false, // pipeline-stage flag: becomes true only once the job actually passes Instrument Tagging. Must NOT default to true, or every new job skips straight to Incoming Calibration.
+  onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Checking On-Site also auto-sets `tagged` (see handleOnSiteChange), since on-site jobs skip Instrument Tagging.
+  tagged: false, // pipeline-stage flag: true once the job is ready for Incoming Calibration — either it passed Instrument Tagging, or it's an On-Site job (which skips tagging). Must default to false, or every new job skips straight to Incoming Calibration.
   photoUrl: "", // base64 data URL of the equipment photo, captured via camera in JobNumberModal
 };
 
@@ -919,11 +944,22 @@ const JobReceipt = () => {
     setJobForm({ ...jobForm, [e.target.name]: e.target.value });
 
   // ON-SITE TOGGLE CHANGE — sets the mode-of-receipt flag (`onSite`) that
-  // JobNumber.jsx's getMOR() reads. This is intentionally independent of
-  // `tagged`, which is a separate pipeline-stage flag set elsewhere (e.g.
-  // when the job passes through Instrument Tagging).
+  // JobNumber.jsx's getMOR() reads.
+  //
+  // On-Site jobs skip Instrument Tagging entirely and go straight to
+  // Incoming Calibration (IncomingCalib.jsx only lists jobs where
+  // `tagged === true`), so checking this box also flips `tagged` to true
+  // immediately instead of waiting for the separate tagging step.
+  // Unchecking it puts the job back on the normal in-house path, where
+  // `tagged` must be set later via Instrument Tagging — so we flip it
+  // back to false here too, rather than leaving a stale true behind.
   const handleOnSiteChange = (e) => {
-    setJobForm((prev) => ({ ...prev, onSite: e.target.checked }));
+    const checked = e.target.checked;
+    setJobForm((prev) => ({
+      ...prev,
+      onSite: checked,
+      tagged: checked,
+    }));
   };
 
   // TYPE CHANGE — reserves a real job number from the server for the chosen type
@@ -1180,11 +1216,33 @@ const JobReceipt = () => {
           const jobData = await jobRes.json();
           if (jobData.success) {
             const { _isNew, ...cleanJob } = job;
+            const finalJobNumber = jobData.jobNumber || job.jobNumber;
+
             savedJobs.push({
               ...cleanJob,
-              jobNumber: jobData.jobNumber || job.jobNumber,
+              jobNumber: finalJobNumber,
               _id: jobData._id || job._id,
             });
+
+            // CLOUDINARY FOLDER — only for brand-new job numbers. Existing
+            // ones already got a folder the first time they were saved, so
+            // there's no reason to re-call this on every Update. Fired
+            // fire-and-forget (not awaited) so a slow or unreachable
+            // Cloudinary never stalls or fails the receipt save itself —
+            // worst case, the folder simply gets created implicitly later,
+            // the first time an equipment photo is uploaded into it via
+            // /api/uploads/equipment-photo/:jobNumber.
+            if (!isExistingJob) {
+              fetch(
+                `${API}/api/uploads/job-folder/${encodeURIComponent(finalJobNumber)}`,
+                { method: "POST" },
+              ).catch((err) =>
+                console.warn(
+                  `Failed to pre-create Cloudinary folder for ${finalJobNumber}:`,
+                  err,
+                ),
+              );
+            }
           }
         }
 

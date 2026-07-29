@@ -10,7 +10,7 @@
 }
 
 .cdms-modal {
-  width: 760px;
+  width: 1040px;
   max-width: 96vw;
   background: #ffffff;
   border: 1px solid #16324a;
@@ -121,14 +121,14 @@
 /* ---- Two-column field grid ---- */
 .cdms-form-columns {
   display: flex;
-  gap: 24px;
+  gap: 32px;
 }
 
 .cdms-column {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -138,6 +138,7 @@
   align-self: stretch;
 }
 
+/* Base field wrapper */
 .cdms-field {
   display: flex;
   flex-direction: column;
@@ -148,6 +149,32 @@
   font-size: 13px;
   font-weight: 600;
   color: #223349;
+}
+
+/* Label-left layout, scoped to the actual form grid so every input
+   (both columns) starts at the exact same x position. */
+.cdms-form-columns .cdms-field {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.cdms-form-columns .cdms-field > label {
+  flex: 0 0 120px;
+  width: 120px;
+  padding-top: 9px;
+  line-height: 1.3;
+}
+
+.cdms-form-columns .cdms-field > input,
+.cdms-form-columns .cdms-field > textarea,
+.cdms-form-columns .cdms-field > .cdms-select-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.cdms-form-columns .cdms-field > .cdms-select-row {
+  gap: 6px;
 }
 
 .cdms-field input,
@@ -183,45 +210,71 @@
   cursor: default;
 }
 
-/* ---- Footer ---- */
+/* ---- Footer: everything on one line ---- */
 .cdms-modal-footer {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: nowrap;
   align-items: center;
-  padding: 12px 24px;
+  gap: 8px;
+  padding: 14px 20px;
   background: #f4f6f8;
   border-top: 1px solid #dde5ec;
+  overflow-x: auto;
 }
 
+/* Unwrap these container divs so every button becomes a direct item
+   in the same single-row flex flow. */
 .cdms-footer-left,
-.cdms-footer-right {
-  display: flex;
-  gap: 6px;
+.cdms-footer-right,
+.cdms-footer-left > .cdms-field,
+.cdms-footer-left > .cdms-field .cdms-select-row {
+  display: contents;
+}
+
+/* Hides the upload/status text (e.g. "Template uploaded") next to the
+   upload buttons. Note: this is one shared class used for all such
+   status messages, so CSS alone hides all of them the same way. */
+.cdms-upload-status {
+  display: none;
 }
 
 .cdms-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
   font-family: inherit;
   font-size: 13px;
-  padding: 7px 16px;
-  border: 1px solid #7b8a94;
-  background: linear-gradient(#f5f7fa, #d9e2ec);
-  border-radius: 3px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border: 1.5px solid #1a1a1a;
+  background: #ffffff;
+  color: #1a1a1a;
+  border-radius: 999px;
   cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
-.cdms-btn:hover {
-  background: linear-gradient(#eef3f8, #c6d3e0);
+.cdms-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+}
+
+.cdms-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .cdms-btn-primary {
-  background: linear-gradient(#2f7bc4, #1c5a94);
-  color: #fff;
-  border-color: #124372;
-  font-weight: bold;
+  background: #1a1a1a;
+  color: #ffffff;
+  border-color: #1a1a1a;
 }
 
-.cdms-btn-primary:hover {
-  background: linear-gradient(#3f8ad2, #2469a4);
+.cdms-btn-primary:hover:not(:disabled) {
+  background: #333333;
 }
 
 @media (max-width: 640px) {
@@ -230,5 +283,15 @@
   }
   .cdms-column-divider {
     display: none;
+  }
+
+  .cdms-form-columns .cdms-field {
+    flex-direction: column;
+  }
+
+  .cdms-form-columns .cdms-field > label {
+    width: auto;
+    flex: none;
+    padding-top: 0;
   }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import "./QuotationList.css";
-import QuotationDetailsModal from "./QuotationForChecking/QuotationDetailsModal"; // adjust path to match your actual folder structure
+import "../QuotationList.css";
+import QuotationDetailsModal from "../QuotationForChecking/QuotationDetailsModal"; // adjust path to match your actual folder structure
 
 const API = import.meta.env.VITE_API_URL;
 
