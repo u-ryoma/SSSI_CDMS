@@ -1,3 +1,23 @@
+/* BANNER */
+.as-banner {
+  background: #000;
+  width: 100%;
+  padding: 15px 20px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.as-banner h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-shadow:
+    2px 0 0 rgba(255, 0, 60, 0.7),
+    -2px 0 0 rgba(0, 200, 255, 0.7);
+}
+
 /* Make the root fill whatever height the parent gives it */
 .account-settings {
   width: 100%;
@@ -5,7 +25,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0; /* ← add this */
+  min-height: 0;
 }
 
 /* TOP NAV */
@@ -47,7 +67,7 @@
 .tab-content {
   padding: 24px;
   flex: 1;
-  min-height: 0; /* ← critical for flex scroll to work */
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -80,7 +100,7 @@
 
 .form-group {
   display: flex;
-  align-items: center; /* ← label and input side by side */
+  align-items: center;
   gap: 12px;
 }
 
@@ -88,14 +108,14 @@
   font-size: 0.825rem;
   font-weight: 500;
   color: #3f3f46;
-  width: 90px; /* ← fixed width so inputs align */
+  width: 90px;
   flex-shrink: 0;
-  text-align: right; /* ← label text aligns right */
+  text-align: right;
 }
 
 .form-group input,
 .form-group select {
-  flex: 1; /* ← takes remaining space */
+  flex: 1;
   padding: 10px 12px;
   border: 1px solid #e4e4e7;
   border-radius: 8px;
@@ -162,9 +182,9 @@
 .accounts-table-wrapper {
   border-radius: 12px;
   border: 1px solid #e4e4e7;
-  overflow-y: auto; /* ← change from overflow:hidden to overflow-y:auto */
+  overflow-y: auto;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  max-height: 480px; /* ← add this — adjust value to taste */
+  max-height: 480px;
   width: 100%;
 }
 .accounts-table {

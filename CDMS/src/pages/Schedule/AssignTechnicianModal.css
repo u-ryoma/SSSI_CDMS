@@ -1,0 +1,239 @@
+/* Shares the black & white tokens with SchedMonitor.css by convention
+   (kept local here so this component has no cross-file dependency). */
+
+.atm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.atm-content {
+  width: 100%;
+  max-width: 440px;
+  background: #ffffff;
+  border: 1px solid #1a1a1a;
+  border-radius: 6px;
+  box-shadow: 0 20px 48px rgba(10, 10, 10, 0.22);
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: #0a0a0a;
+  overflow: hidden;
+}
+
+.atm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.atm-header h2 {
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.atm-close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #9a9a9a;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.atm-close:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.atm-body {
+  padding: 20px 24px 24px;
+}
+
+.atm-body h3 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5c5c5c;
+  margin: 0 0 12px;
+}
+
+.atm-empty {
+  font-size: 13px;
+  color: #9a9a9a;
+  margin: 0;
+}
+
+.atm-assigned-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.atm-assigned-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.atm-assigned-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.atm-tech-name {
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+.atm-location {
+  color: #333333;
+  font-size: 12px;
+}
+
+.atm-notes {
+  color: #5c5c5c;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atm-remove-btn {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0a0a0a;
+  background: transparent;
+  border: 1px solid #1a1a1a;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 4px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.atm-remove-btn:hover {
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+.atm-divider {
+  height: 1px;
+  background: #1a1a1a;
+  margin: 20px 0;
+}
+
+.atm-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5c5c5c;
+  margin-bottom: 6px;
+}
+
+.atm-select,
+.atm-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  color: #0a0a0a;
+  background: #ffffff;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  padding: 9px 10px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.atm-select {
+  cursor: pointer;
+}
+
+.atm-select:focus-visible,
+.atm-input:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 1px;
+}
+
+.atm-textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  color: #0a0a0a;
+  background: #ffffff;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  padding: 9px 10px;
+  resize: vertical;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.atm-textarea:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 1px;
+}
+
+.atm-error {
+  font-size: 12px;
+  color: #0a0a0a;
+  background: #f2f2f2;
+  border: 1px solid #1a1a1a;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 0 0 10px;
+}
+
+.atm-assign-btn {
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  background: #0a0a0a;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.atm-assign-btn:hover {
+  background: #333333;
+}
+
+.atm-assign-btn:disabled {
+  background: #9a9a9a;
+  cursor: not-allowed;
+}

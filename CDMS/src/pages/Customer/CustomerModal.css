@@ -1,0 +1,252 @@
+.cm-box {
+  background: #fff;
+  border-radius: 6px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Wraps everything below the CdmsModalHeader (form + jobs table). Holds
+   the padding that used to live on .cm-box, now that .cm-box itself has
+   no padding so the header can span edge-to-edge with no white gap
+   around it. */
+.cm-content {
+  padding: 24px 28px;
+}
+
+.cm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+}
+
+.cm-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cm-field-grow {
+  flex: 1;
+}
+
+.cm-field label {
+  font-weight: 700;
+  font-size: 13px;
+  color: #222;
+}
+
+.cm-field input[type="text"],
+.cm-field input[type="email"],
+.cm-field textarea,
+.cm-field select {
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #222;
+  font-family: inherit;
+}
+
+.cm-field textarea {
+  resize: vertical;
+  min-height: 56px;
+}
+
+.cm-remarks-textarea {
+  min-height: 110px;
+}
+
+.cm-contact-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cm-contact-row select {
+  flex: 1;
+}
+
+.cm-manage-contacts-btn {
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  border-radius: 4px;
+  width: 36px;
+  cursor: pointer;
+  color: #d9534f;
+  font-size: 14px;
+}
+
+.cm-contact-editor {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cm-contact-editor-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cm-contact-editor-row input {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.cm-remove-contact-btn {
+  border: none;
+  background: none;
+  color: #d9534f;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.cm-add-contact-btn {
+  align-self: flex-start;
+  border: 1px dashed #aaa;
+  background: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #444;
+}
+
+.cm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.cm-delete-btn {
+  border: 1px solid #d9534f;
+  background: #fff;
+  color: #d9534f;
+  border-radius: 4px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cm-update-btn {
+  border: none;
+  background: #111;
+  color: #fff;
+  border-radius: 4px;
+  padding: 8px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cm-update-btn:hover {
+  background: #000;
+}
+
+/* JOBS TABLE */
+.cm-jobs-section {
+  margin-top: 16px;
+}
+
+.cm-jobs-table-wrapper {
+  overflow-x: auto;
+}
+
+.cm-jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.cm-jobs-table th {
+  text-align: left;
+  background: #f0f0f0;
+  padding: 10px 12px;
+  font-weight: 700;
+  color: #222;
+  border-bottom: 1px solid #ddd;
+}
+
+.cm-jobs-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.cm-jobs-loading,
+.cm-jobs-empty {
+  color: #777;
+  font-size: 13px;
+  padding: 10px 0;
+}
+
+.cm-stage-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #eee;
+  color: #333;
+}
+
+.cm-stage-completed {
+  background: #e3f5e6;
+  color: #1e7d32;
+}
+
+.cm-stage-on-going-calibration {
+  background: #e5f0ff;
+  color: #1554b3;
+}
+
+.cm-stage-incoming-calibration {
+  background: #fff4d6;
+  color: #a3720a;
+}
+
+.cm-stage-for-typing-&-beyond {
+  background: #eee5ff;
+  color: #5a2ba3;
+}
+
+.cm-stage-concern {
+  background: #ffe5e5;
+  color: #b3261e;
+}
+
+.cm-stage-pending-tagging {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.cm-stage-returned-without-calibration {
+  background: #f5e5d6;
+  color: #8a4b0a;
+}
+
+@media (max-width: 700px) {
+  .cm-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}

@@ -85,9 +85,17 @@
 //                 accreditationLogo: job.accreditationLogo || "with",
 //                 calibrationProcedure: job.calibrationProcedure || "",
 //                 calibrationStandards: job.calibrationStandards || [],
-//                 dateRec: receipt.date || "",
-//                 companyName: receipt.companyName || "",
-//                 contactName: receipt.contactName || "",
+//                 // Carried over so ForTypingDetailsModal's download check
+//                 // (template?.publicId) actually has something to read.
+//                 calibrationProcedureTemplate:
+//                   job.calibrationProcedureTemplate || null,
+//                 // from receipt — falls back to the job's own date/companyName
+//                 // for jobs that have no jobReceiptID (e.g. jobs added from
+//                 // Site Calibration, which don't go through Job Receipt but
+//                 // carry date/companyName directly on the job record).
+//                 dateRec: receipt.date || job.date || "",
+//                 companyName: receipt.companyName || job.companyName || "",
+//                 contactName: receipt.contactName || job.contactName || "",
 //               };
 //             })
 //         : [];
@@ -337,6 +345,7 @@
 //           onSaveAndAutoBackup={requestUploadAndAutoBackup}
 //           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
 //           onOpenCalProcedureLookup={() => {}}
+//           downloadLabel="FOR TYPING"
 //         />
 //       )}
 
@@ -373,6 +382,30 @@ const searchKeyMap = {
   "Contact Name": "contactName",
   "JR ID": "jobReceiptID",
 };
+
+// Fields editable in ForTypingDetailsModal when the job originated from
+// Site Calibration (see isSiteCalibrationJob there). Kept as a single
+// list so both the local-edit handler and the save-to-backend payload
+// stay in sync — add a new editable field there, add it here too.
+const SITE_CALIB_EDITABLE_FIELDS = [
+  "description",
+  "brand",
+  "model",
+  "serialNo",
+  "remarks",
+  "oicBy",
+  "sig",
+  "frequency",
+  "contactCert",
+  "uncertainty",
+  "range",
+  "concern",
+  "dateCal",
+  "dateDue",
+  "priority",
+  "accreditationLogo",
+  "calibrationStandards",
+];
 
 const ForTyping = () => {
   const [records, setRecords] = useState([]);
@@ -424,6 +457,13 @@ const ForTyping = () => {
               return {
                 jobNumber: job.jobNumber,
                 jobReceiptID: job.jobReceiptID,
+                // Carried through so ForTypingDetailsModal can detect a
+                // Site Calibration job (isSiteCalibrationJob = Boolean(scId))
+                // and make its fields editable accordingly.
+                scId: job.scId || null,
+                // Needed by ForTypingDetailsModal's Con Cert dropdown to
+                // fetch this company's contacts (GET /api/customers/:id/contacts/full).
+                customerId: job.customerId || null,
                 description: job.description || "",
                 brand: job.brand || "",
                 model: job.model || "",
@@ -447,9 +487,13 @@ const ForTyping = () => {
                 // (template?.publicId) actually has something to read.
                 calibrationProcedureTemplate:
                   job.calibrationProcedureTemplate || null,
-                dateRec: receipt.date || "",
-                companyName: receipt.companyName || "",
-                contactName: receipt.contactName || "",
+                // from receipt — falls back to the job's own date/companyName
+                // for jobs that have no jobReceiptID (e.g. jobs added from
+                // Site Calibration, which don't go through Job Receipt but
+                // carry date/companyName directly on the job record).
+                dateRec: receipt.date || job.date || "",
+                companyName: receipt.companyName || job.companyName || "",
+                contactName: receipt.contactName || job.contactName || "",
               };
             })
         : [];
@@ -494,6 +538,14 @@ const ForTyping = () => {
     fetchRecords();
   };
 
+  // Edits made directly inside ForTypingDetailsModal (only possible for
+  // Site Calibration jobs — see isSiteCalibrationJob there). Kept purely
+  // in local state until the user confirms "Upload and Auto Backup";
+  // nothing is persisted to the backend until that PUT fires below.
+  const handleModalFieldChange = (field, value) => {
+    setSelectedRecord((prev) => (prev ? { ...prev, [field]: value } : prev));
+  };
+
   // Step 1: "Upload and Auto Backup" clicked in the details modal -> ask for confirmation
   const requestUploadAndAutoBackup = () => {
     setConfirmUpload(true);
@@ -509,6 +561,17 @@ const ForTyping = () => {
       // not "name" — matches how oicCheckedBy is read in ForCheckingOIC.
       const typedBy = sessionStorage.getItem("username") || "";
 
+      // For Site Calibration jobs, any edits made in the details modal
+      // (description, brand, model, etc. — see SITE_CALIB_EDITABLE_FIELDS)
+      // need to ride along in this same PUT, since this is the only save
+      // point in the whole For Typing flow.
+      const editedFields = selectedRecord.scId
+        ? SITE_CALIB_EDITABLE_FIELDS.reduce((acc, field) => {
+            acc[field] = selectedRecord[field];
+            return acc;
+          }, {})
+        : {};
+
       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -517,6 +580,7 @@ const ForTyping = () => {
           forCheckingOICTagged: true,
           typedBy,
           draftReportTypedAt: new Date().toISOString(),
+          ...editedFields,
         }),
       });
 
@@ -699,6 +763,7 @@ const ForTyping = () => {
           onSaveAndAutoBackup={requestUploadAndAutoBackup}
           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
           onOpenCalProcedureLookup={() => {}}
+          onFieldChange={handleModalFieldChange}
           downloadLabel="FOR TYPING"
         />
       )}

@@ -2,17 +2,32 @@
 // import { createPortal } from "react-dom";
 
 // // Camera capture modal — tries getUserMedia first (works in desktop and
-// // mobile browsers, gives a live preview + retake). If that's unavailable
-// // or denied, falls back to a plain file input with capture="environment",
+// // mobile browsers, gives a live preview). If that's unavailable or
+// // denied, falls back to a plain file input with capture="environment",
 // // which most mobile browsers turn into a direct "open camera app" action.
+// //
+// // MULTI-PHOTO: captures accumulate in `photos` as the user clicks
+// // "Capture Photo" repeatedly (the live stream stays open between shots —
+// // no more single capture -> preview -> done). Each shot lands as a
+// // thumbnail in the strip below the video, removable individually.
+// // Clicking "Done" hands the whole batch back at once.
+// //
+// // CONTRACT CHANGE: onCapture now receives an ARRAY of dataURLs
+// // (`onCapture(photos)`) instead of a single dataURL string — update any
+// // existing onCapture handler to loop over the array, e.g.:
+// //   const handlePhotoCapture = async (dataUrls) => {
+// //     for (const dataUrl of dataUrls) { /* upload each one */ }
+// //   };
+// // onCapture is not called at all if the user backs out with zero photos
+// // taken (Cancel / close).
 // const CameraCaptureModal = ({ onClose, onCapture }) => {
 //   const videoRef = useRef(null);
 //   const canvasRef = useRef(null);
 //   const streamRef = useRef(null);
 //   const fileInputRef = useRef(null);
 
-//   const [mode, setMode] = useState("loading"); // loading | live | preview | fallback
-//   const [snapshot, setSnapshot] = useState(null);
+//   const [mode, setMode] = useState("loading"); // loading | live | fallback
+//   const [photos, setPhotos] = useState([]); // dataURLs captured this session
 //   const [errorMsg, setErrorMsg] = useState("");
 
 //   const stopStream = useCallback(() => {
@@ -23,6 +38,7 @@
 //   const startCamera = useCallback(async () => {
 //     setMode("loading");
 //     setErrorMsg("");
+
 //     try {
 //       if (!navigator.mediaDevices?.getUserMedia) {
 //         throw new Error("getUserMedia not supported");
@@ -32,10 +48,11 @@
 //         audio: false,
 //       });
 //       streamRef.current = stream;
-//       if (videoRef.current) {
-//         videoRef.current.srcObject = stream;
-//         await videoRef.current.play();
-//       }
+
+//       // NOTE: do NOT attach to videoRef here — the <video> element only
+//       // renders once mode === "live", so videoRef.current is still null
+//       // at this point. Attaching happens in the effect below, which runs
+//       // after the video element has actually mounted.
 //       setMode("live");
 //     } catch (err) {
 //       console.warn("Camera unavailable, falling back to file input:", err);
@@ -52,6 +69,19 @@
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, []);
 
+//   // Attach the stream to the <video> element once it has actually mounted.
+//   useEffect(() => {
+//     if (mode !== "live" || !videoRef.current || !streamRef.current) return;
+
+//     const video = videoRef.current;
+//     video.srcObject = streamRef.current;
+//     video.play().catch((err) => {
+//       console.warn("video.play() failed:", err);
+//     });
+//   }, [mode]);
+
+//   // Capture a frame and add it to the batch — stream stays open so the
+//   // user can immediately take another shot.
 //   const handleTakePhoto = () => {
 //     const video = videoRef.current;
 //     const canvas = canvasRef.current;
@@ -63,30 +93,41 @@
 //     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
 //     const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-//     setSnapshot(dataUrl);
+//     setPhotos((prev) => [...prev, dataUrl]);
+//   };
+
+//   const handleRemovePhoto = (index) => {
+//     setPhotos((prev) => prev.filter((_, i) => i !== index));
+//   };
+
+//   // Fallback file input — supports picking several images at once from
+//   // the gallery (`multiple`), and can also be clicked again afterward to
+//   // add more, since with capture="environment" most mobile browsers only
+//   // let one photo through per invocation.
+//   const handleFallbackFiles = (e) => {
+//     const files = Array.from(e.target.files || []);
+//     e.target.value = ""; // allow re-selecting/re-capturing next time
+//     if (files.length === 0) return;
+
+//     Promise.all(
+//       files.map(
+//         (file) =>
+//           new Promise((resolve, reject) => {
+//             const reader = new FileReader();
+//             reader.onload = () => resolve(reader.result);
+//             reader.onerror = reject;
+//             reader.readAsDataURL(file);
+//           }),
+//       ),
+//     )
+//       .then((dataUrls) => setPhotos((prev) => [...prev, ...dataUrls]))
+//       .catch((err) => console.error("Failed to read captured photo(s):", err));
+//   };
+
+//   const handleDone = () => {
 //     stopStream();
-//     setMode("preview");
-//   };
-
-//   const handleRetake = () => {
-//     setSnapshot(null);
-//     startCamera();
-//   };
-
-//   const handleUsePhoto = () => {
-//     if (snapshot) onCapture(snapshot);
+//     if (photos.length > 0) onCapture?.(photos);
 //     onClose();
-//   };
-
-//   const handleFallbackFile = (e) => {
-//     const file = e.target.files?.[0];
-//     if (!file) return;
-//     const reader = new FileReader();
-//     reader.onload = () => {
-//       setSnapshot(reader.result);
-//       setMode("preview");
-//     };
-//     reader.readAsDataURL(file);
 //   };
 
 //   const handleClose = () => {
@@ -126,14 +167,6 @@
 //             />
 //           )}
 
-//           {mode === "preview" && snapshot && (
-//             <img
-//               src={snapshot}
-//               alt="Captured equipment"
-//               style={{ width: "100%", borderRadius: 6 }}
-//             />
-//           )}
-
 //           {mode === "fallback" && (
 //             <div>
 //               {errorMsg && <p className="ac-error">{errorMsg}</p>}
@@ -141,20 +174,81 @@
 //                 className="jr-save-btn"
 //                 onClick={() => fileInputRef.current?.click()}
 //               >
-//                 Open Camera / Choose Photo
+//                 {photos.length === 0
+//                   ? "Open Camera / Choose Photo"
+//                   : "Add Another Photo"}
 //               </button>
 //               <input
 //                 ref={fileInputRef}
 //                 type="file"
 //                 accept="image/*"
 //                 capture="environment"
+//                 multiple
 //                 style={{ display: "none" }}
-//                 onChange={handleFallbackFile}
+//                 onChange={handleFallbackFiles}
 //               />
 //             </div>
 //           )}
 
 //           <canvas ref={canvasRef} style={{ display: "none" }} />
+
+//           {/* THUMBNAIL STRIP — every shot taken this session so far */}
+//           {photos.length > 0 && (
+//             <div
+//               className="ac-thumb-strip"
+//               style={{
+//                 display: "flex",
+//                 gap: 8,
+//                 overflowX: "auto",
+//                 marginTop: 12,
+//                 padding: "4px 0",
+//               }}
+//             >
+//               {photos.map((photo, index) => (
+//                 <div
+//                   key={index}
+//                   style={{
+//                     position: "relative",
+//                     flex: "0 0 auto",
+//                     width: 64,
+//                     height: 64,
+//                   }}
+//                 >
+//                   <img
+//                     src={photo}
+//                     alt={`Captured ${index + 1}`}
+//                     style={{
+//                       width: "100%",
+//                       height: "100%",
+//                       objectFit: "cover",
+//                       borderRadius: 4,
+//                       border: "1px solid #ccc",
+//                     }}
+//                   />
+//                   <button
+//                     type="button"
+//                     onClick={() => handleRemovePhoto(index)}
+//                     title="Remove this photo"
+//                     style={{
+//                       position: "absolute",
+//                       top: -6,
+//                       right: -6,
+//                       width: 20,
+//                       height: 20,
+//                       borderRadius: "50%",
+//                       border: "1px solid #999",
+//                       background: "#fff",
+//                       lineHeight: 1,
+//                       cursor: "pointer",
+//                       fontSize: 12,
+//                     }}
+//                   >
+//                     ✕
+//                   </button>
+//                 </div>
+//               ))}
+//             </div>
+//           )}
 
 //           <div className="ac-footer" style={{ marginTop: 12 }}>
 //             {mode === "live" && (
@@ -162,16 +256,11 @@
 //                 Capture Photo
 //               </button>
 //             )}
-//             {mode === "preview" && (
-//               <>
-//                 <button className="jr-save-btn" onClick={handleUsePhoto}>
-//                   Use Photo
-//                 </button>
-//                 <button className="jr-action-btn" onClick={handleRetake}>
-//                   Retake
-//                 </button>
-//               </>
-//             )}
+//             <button className="jr-save-btn" onClick={handleDone}>
+//               {photos.length > 0
+//                 ? `Done (${photos.length} photo${photos.length === 1 ? "" : "s"})`
+//                 : "Done"}
+//             </button>
 //             <button className="jr-action-btn" onClick={handleClose}>
 //               Cancel
 //             </button>
@@ -188,17 +277,39 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
 // Camera capture modal — tries getUserMedia first (works in desktop and
-// mobile browsers, gives a live preview + retake). If that's unavailable
-// or denied, falls back to a plain file input with capture="environment",
+// mobile browsers, gives a live preview). If that's unavailable or
+// denied, falls back to a plain file input with capture="environment",
 // which most mobile browsers turn into a direct "open camera app" action.
-const CameraCaptureModal = ({ onClose, onCapture }) => {
+//
+// MULTI-PHOTO: captures accumulate in `photos` as the user clicks
+// "Capture Photo" repeatedly (the live stream stays open between shots —
+// no more single capture -> preview -> done). Each shot lands as a
+// thumbnail in the strip below the video, removable individually.
+// Clicking "Done" hands the whole batch back at once.
+//
+// CONTRACT CHANGE: onCapture now receives an ARRAY of dataURLs
+// (`onCapture(photos)`) instead of a single dataURL string — update any
+// existing onCapture handler to loop over the array, e.g.:
+//   const handlePhotoCapture = async (dataUrls) => {
+//     for (const dataUrl of dataUrls) { /* upload each one */ }
+//   };
+// onCapture is not called at all if the user backs out with zero photos
+// taken (Cancel / close).
+//
+// contextLabel (optional): a short caller-supplied string shown as a
+// subtitle above "EQUIPMENT PHOTO" (e.g. "DELIVERY RECEIPT (UNIT) #DR-0001").
+// Lets a caller make it obvious *why* the camera was opened / which flow
+// the photos will be attached to, without this component knowing anything
+// about who's calling it. Omit it and the header renders exactly as
+// before.
+const CameraCaptureModal = ({ onClose, onCapture, contextLabel }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const [mode, setMode] = useState("loading"); // loading | live | preview | fallback
-  const [snapshot, setSnapshot] = useState(null);
+  const [mode, setMode] = useState("loading"); // loading | live | fallback
+  const [photos, setPhotos] = useState([]); // dataURLs captured this session
   const [errorMsg, setErrorMsg] = useState("");
 
   const stopStream = useCallback(() => {
@@ -210,21 +321,6 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
     setMode("loading");
     setErrorMsg("");
 
-    // --- diagnostics, remove once issue is found ---
-    console.log("secure context?", window.isSecureContext);
-    console.log("mediaDevices?", !!navigator.mediaDevices);
-    console.log("getUserMedia?", !!navigator.mediaDevices?.getUserMedia);
-    try {
-      const devices = await navigator.mediaDevices?.enumerateDevices?.();
-      console.log(
-        "video input devices:",
-        devices?.filter((d) => d.kind === "videoinput"),
-      );
-    } catch (e) {
-      console.log("enumerateDevices failed:", e);
-    }
-    // -------------------------------------------------
-
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error("getUserMedia not supported");
@@ -234,18 +330,6 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
         audio: false,
       });
       streamRef.current = stream;
-
-      // --- diagnostics on the returned stream ---
-      console.log(
-        "stream tracks:",
-        stream.getVideoTracks().map((t) => ({
-          label: t.label,
-          readyState: t.readyState,
-          muted: t.muted,
-          settings: t.getSettings(),
-        })),
-      );
-      // -------------------------------------------
 
       // NOTE: do NOT attach to videoRef here — the <video> element only
       // renders once mode === "live", so videoRef.current is still null
@@ -268,23 +352,18 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
   }, []);
 
   // Attach the stream to the <video> element once it has actually mounted.
-  // The element only renders when mode === "live", so this must happen
-  // in an effect (after render/commit) rather than inline in startCamera.
   useEffect(() => {
     if (mode !== "live" || !videoRef.current || !streamRef.current) return;
 
     const video = videoRef.current;
     video.srcObject = streamRef.current;
-    video
-      .play()
-      .then(() => {
-        console.log("video dimensions:", video.videoWidth, video.videoHeight);
-      })
-      .catch((err) => {
-        console.warn("video.play() failed:", err);
-      });
+    video.play().catch((err) => {
+      console.warn("video.play() failed:", err);
+    });
   }, [mode]);
 
+  // Capture a frame and add it to the batch — stream stays open so the
+  // user can immediately take another shot.
   const handleTakePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -296,30 +375,41 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
-    setSnapshot(dataUrl);
+    setPhotos((prev) => [...prev, dataUrl]);
+  };
+
+  const handleRemovePhoto = (index) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Fallback file input — supports picking several images at once from
+  // the gallery (`multiple`), and can also be clicked again afterward to
+  // add more, since with capture="environment" most mobile browsers only
+  // let one photo through per invocation.
+  const handleFallbackFiles = (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ""; // allow re-selecting/re-capturing next time
+    if (files.length === 0) return;
+
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          }),
+      ),
+    )
+      .then((dataUrls) => setPhotos((prev) => [...prev, ...dataUrls]))
+      .catch((err) => console.error("Failed to read captured photo(s):", err));
+  };
+
+  const handleDone = () => {
     stopStream();
-    setMode("preview");
-  };
-
-  const handleRetake = () => {
-    setSnapshot(null);
-    startCamera();
-  };
-
-  const handleUsePhoto = () => {
-    if (snapshot) onCapture(snapshot);
+    if (photos.length > 0) onCapture?.(photos);
     onClose();
-  };
-
-  const handleFallbackFile = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSnapshot(reader.result);
-      setMode("preview");
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleClose = () => {
@@ -338,6 +428,9 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
           <div className="jr-modal-header-left">
             <div className="jr-cdms-logo">CDMS</div>
             <div className="jr-modal-title">
+              {contextLabel && (
+                <span className="jr-modal-title-sub">{contextLabel}</span>
+              )}
               <span className="jr-modal-title-main">EQUIPMENT PHOTO</span>
             </div>
           </div>
@@ -359,14 +452,6 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
             />
           )}
 
-          {mode === "preview" && snapshot && (
-            <img
-              src={snapshot}
-              alt="Captured equipment"
-              style={{ width: "100%", borderRadius: 6 }}
-            />
-          )}
-
           {mode === "fallback" && (
             <div>
               {errorMsg && <p className="ac-error">{errorMsg}</p>}
@@ -374,20 +459,81 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
                 className="jr-save-btn"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Open Camera / Choose Photo
+                {photos.length === 0
+                  ? "Open Camera / Choose Photo"
+                  : "Add Another Photo"}
               </button>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
                 capture="environment"
+                multiple
                 style={{ display: "none" }}
-                onChange={handleFallbackFile}
+                onChange={handleFallbackFiles}
               />
             </div>
           )}
 
           <canvas ref={canvasRef} style={{ display: "none" }} />
+
+          {/* THUMBNAIL STRIP — every shot taken this session so far */}
+          {photos.length > 0 && (
+            <div
+              className="ac-thumb-strip"
+              style={{
+                display: "flex",
+                gap: 8,
+                overflowX: "auto",
+                marginTop: 12,
+                padding: "4px 0",
+              }}
+            >
+              {photos.map((photo, index) => (
+                <div
+                  key={index}
+                  style={{
+                    position: "relative",
+                    flex: "0 0 auto",
+                    width: 64,
+                    height: 64,
+                  }}
+                >
+                  <img
+                    src={photo}
+                    alt={`Captured ${index + 1}`}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: 4,
+                      border: "1px solid #ccc",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleRemovePhoto(index)}
+                    title="Remove this photo"
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -6,
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      border: "1px solid #999",
+                      background: "#fff",
+                      lineHeight: 1,
+                      cursor: "pointer",
+                      fontSize: 12,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="ac-footer" style={{ marginTop: 12 }}>
             {mode === "live" && (
@@ -395,16 +541,11 @@ const CameraCaptureModal = ({ onClose, onCapture }) => {
                 Capture Photo
               </button>
             )}
-            {mode === "preview" && (
-              <>
-                <button className="jr-save-btn" onClick={handleUsePhoto}>
-                  Use Photo
-                </button>
-                <button className="jr-action-btn" onClick={handleRetake}>
-                  Retake
-                </button>
-              </>
-            )}
+            <button className="jr-save-btn" onClick={handleDone}>
+              {photos.length > 0
+                ? `Done (${photos.length} photo${photos.length === 1 ? "" : "s"})`
+                : "Done"}
+            </button>
             <button className="jr-action-btn" onClick={handleClose}>
               Cancel
             </button>

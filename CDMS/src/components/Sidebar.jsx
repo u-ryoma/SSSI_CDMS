@@ -1,10 +1,17 @@
-// import { Link, useNavigate } from "react-router-dom";
+// import { NavLink, useNavigate } from "react-router-dom";
 // import { useEffect, useState } from "react";
+
+// // Adds "active" (matches your existing .nav-link.active CSS) only when
+// // this link's route matches the current URL. `end` is passed through so
+// // "/admin" (Dashboard) doesn't stay highlighted on every other /admin/*
+// // page.
+// const navLinkClass = ({ isActive }) => `nav-link${isActive ? " active" : ""}`;
 
 // export default function Sidebar({ isOpen, onClose }) {
 //   const role = sessionStorage.getItem("role");
 //   const navigate = useNavigate();
 //   const [showConfirm, setShowConfirm] = useState(false);
+//   const [showAutoLogoutModal, setShowAutoLogoutModal] = useState(false); // ← new
 
 //   // ==========================
 //   // SAVE LOG HELPER
@@ -33,23 +40,35 @@
 //   useEffect(() => {
 //     if (!sessionStorage.getItem("activeUser")) return;
 
+//     let heartbeat; // ← declared here so it can be cleared from inside sendHeartbeat
+
 //     async function sendHeartbeat() {
 //       try {
-//         await fetch(`${import.meta.env.VITE_API_URL}/api/heartbeat`, {
-//           method: "POST",
-//           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify({
-//             username: sessionStorage.getItem("activeUser"),
-//             name: sessionStorage.getItem("activeName"),
-//             role: sessionStorage.getItem("userRole"),
-//           }),
-//         });
+//         const res = await fetch(
+//           `${import.meta.env.VITE_API_URL}/api/heartbeat`,
+//           {
+//             method: "POST",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({
+//               username: sessionStorage.getItem("activeUser"),
+//               name: sessionStorage.getItem("activeName"),
+//               role: sessionStorage.getItem("userRole"),
+//             }),
+//           },
+//         );
+//         const data = await res.json();
+
+//         if (data.loggedOut) {
+//           clearInterval(heartbeat); // stop pinging, session is already dead server-side
+//           setShowAutoLogoutModal(true); // ← trigger the popup
+//         }
 //       } catch (err) {
 //         console.error("Heartbeat error:", err);
 //       }
 //     }
+
 //     sendHeartbeat();
-//     const heartbeat = setInterval(sendHeartbeat, 30000);
+//     heartbeat = setInterval(sendHeartbeat, 30000);
 //     return () => clearInterval(heartbeat);
 //   }, []);
 
@@ -135,6 +154,17 @@
 //     }
 //   }
 
+//   // ==========================
+//   // AUTO-LOGOUT CONFIRM (OK button on the popup)
+//   // ==========================
+//   function handleAutoLogoutConfirm() {
+//     sessionStorage.clear();
+//     localStorage.removeItem("name");
+//     localStorage.removeItem("username");
+//     setShowAutoLogoutModal(false);
+//     navigate("/", { replace: true });
+//   }
+
 //   return (
 //     <aside className={`sidebar ${isOpen ? "active" : ""}`}>
 //       {/* CONFIRM LOGOUT MODAL */}
@@ -214,185 +244,290 @@
 //         </div>
 //       )}
 
+//       {/* AUTO-LOGOUT MODAL */}
+//       {showAutoLogoutModal && (
+//         <div
+//           style={{
+//             position: "fixed",
+//             top: 0,
+//             left: 0,
+//             width: "100vw",
+//             height: "100vh",
+//             background: "rgba(0,0,0,0.5)",
+//             zIndex: 9999,
+//             display: "flex",
+//             alignItems: "center",
+//             justifyContent: "center",
+//           }}
+//         >
+//           <div
+//             style={{
+//               background: "white",
+//               borderRadius: "12px",
+//               padding: "28px",
+//               width: "320px",
+//               textAlign: "center",
+//               boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+//             }}
+//           >
+//             <h3 style={{ margin: "0 0 8px", color: "#18181b" }}>
+//               Session Expired
+//             </h3>
+//             <p
+//               style={{
+//                 color: "#71717a",
+//                 fontSize: "0.875rem",
+//                 margin: "0 0 20px",
+//               }}
+//             >
+//               You have been logged out due to inactivity.
+//             </p>
+//             <button
+//               onClick={handleAutoLogoutConfirm}
+//               style={{
+//                 padding: "9px 24px",
+//                 background: "#18181b",
+//                 border: "none",
+//                 borderRadius: "8px",
+//                 cursor: "pointer",
+//                 color: "white",
+//                 fontWeight: "500",
+//               }}
+//             >
+//               OK
+//             </button>
+//           </div>
+//         </div>
+//       )}
+
 //       <nav className="nav-menu">
 //         <p className="nav-label">Main Menu</p>
 //         {(role === "admin" || role === "owner") && (
-//           <Link className="nav-link" to="/admin" onClick={onClose}>
+//           // `end` so this doesn't stay highlighted on every /admin/* subpage
+//           <NavLink className={navLinkClass} to="/admin" end onClick={onClose}>
 //             Dashboard
-//           </Link>
+//           </NavLink>
 //         )}
-//         <Link className="nav-link" to="/admin/customer" onClick={onClose}>
+//         <NavLink
+//           className={navLinkClass}
+//           to="/admin/customer"
+//           onClick={onClose}
+//         >
 //           Customer
-//         </Link>
+//         </NavLink>
 //         {(role === "admin" || role === "clerk") && (
-//           <Link className="nav-link" to="/admin/jobreceipt" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/jobreceipt"
+//             onClick={onClose}
+//           >
 //             Job Receipt
-//           </Link>
+//           </NavLink>
 //         )}
-//         <Link className="nav-link" to="/admin/joblist" onClick={onClose}>
+//         <NavLink className={navLinkClass} to="/admin/joblist" onClick={onClose}>
 //           Job Number List
-//         </Link>
+//         </NavLink>
 //         {(role === "admin" || role === "clerk") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/instrumenttag"
 //             onClick={onClose}
 //           >
 //             Instrument Tag
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "technician") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/incomingcalib"
 //             onClick={onClose}
 //           >
 //             Incoming Calibration
-//           </Link>
+//           </NavLink>
 //         )}{" "}
 //         {(role === "admin" || role === "technician") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/ongoinggcalib"
 //             onClick={onClose}
 //           >
 //             On Going Calibration
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk" || role === "typist") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/sitecalibration"
 //             onClick={onClose}
 //           >
 //             Site Calibration
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk" || role === "typist") && (
-//           <Link className="nav-link" to="/admin/fortyping" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/fortyping"
+//             onClick={onClose}
+//           >
 //             For Typing
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "technician") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/forcheckingic"
 //             onClick={onClose}
 //           >
 //             For Checking OIC
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "technician") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/forcheckingsig"
 //             onClick={onClose}
 //           >
 //             For Checking Sig
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk" || role === "typist") && (
-//           <Link className="nav-link" to="/admin/printfinal" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/printfinal"
+//             onClick={onClose}
+//           >
 //             Print Final
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "technician") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/concernincoming"
 //             onClick={onClose}
 //           >
 //             Incoming Concern
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "technician") && (
-//           <Link className="nav-link" to="/admin/concernout" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/concernout"
+//             onClick={onClose}
+//           >
 //             Out-Going Concern
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/deliveryreceipt"
 //             onClick={onClose}
 //           >
 //             Delivery Receipt
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk") && (
-//           <Link className="nav-link" to="/admin/recallsys" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/recallsys"
+//             onClick={onClose}
+//           >
 //             Recall System
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/assetmonitoring"
 //             onClick={onClose}
 //           >
 //             Asset Monitoring
-//           </Link>
+//           </NavLink>
 //         )}
-//         <Link
-//           className="nav-link"
+//         <NavLink
+//           className={navLinkClass}
 //           to="/admin/standardforcalib"
 //           onClick={onClose}
 //         >
 //           Standard For Calibration
-//         </Link>
-//         <Link
-//           className="nav-link"
+//         </NavLink>
+//         <NavLink
+//           className={navLinkClass}
 //           to="/admin/stdforcertification"
 //           onClick={onClose}
 //         >
 //           Standard For Certification
-//         </Link>
-//         <Link className="nav-link" to="/admin/stdforupdate" onClick={onClose}>
+//         </NavLink>
+//         <NavLink
+//           className={navLinkClass}
+//           to="/admin/stdforupdate"
+//           onClick={onClose}
+//         >
 //           Standard For Update
-//         </Link>
+//         </NavLink>
 //         {(role === "admin" || role === "clerk") && (
-//           <Link className="nav-link" to="/admin/qtnlist" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/qtnlist"
+//             onClick={onClose}
+//           >
 //             Quotation List
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "clerk") && (
-//           <Link className="nav-link" to="/admin/qtnforcheck" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/qtnforcheck"
+//             onClick={onClose}
+//           >
 //             Quotation For Check
-//           </Link>
+//           </NavLink>
 //         )}
-//         <Link className="nav-link" to="/admin/qtnforfile" onClick={onClose}>
+//         {/* <NavLink className={navLinkClass} to="/admin/qtnforfile" onClick={onClose}>
 //           Quotation For File
-//         </Link>
+//         </NavLink>
 //         {(role === "admin" || role === "clerk") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/qtnforfolowup"
 //             onClick={onClose}
 //           >
 //             Quotation For Follow Up
-//           </Link>
-//         )}
+//           </NavLink>
+//         )} */}
 //         {(role === "admin" || role === "clerk") && (
-//           <Link className="nav-link" to="/admin/qtnforsend" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/qtnforsend"
+//             onClick={onClose}
+//           >
 //             Quotation For Send
-//           </Link>
+//           </NavLink>
 //         )}
-//         <Link className="nav-link" to="/admin/schedmonitor" onClick={onClose}>
+//         <NavLink
+//           className={navLinkClass}
+//           to="/admin/schedmonitor"
+//           onClick={onClose}
+//         >
 //           Schedule Monitor
-//         </Link>
+//         </NavLink>
 //         {(role === "admin" || role === "owner") && (
-//           <Link className="nav-link" to="/admin/accounts" onClick={onClose}>
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/accounts"
+//             onClick={onClose}
+//           >
 //             Accounts
-//           </Link>
+//           </NavLink>
 //         )}
 //         {(role === "admin" || role === "owner") && (
-//           <Link
-//             className="nav-link"
+//           <NavLink
+//             className={navLinkClass}
 //             to="/admin/systemactivity"
 //             onClick={onClose}
 //           >
 //             System Activity
-//           </Link>
+//           </NavLink>
 //         )}
 //       </nav>
 
@@ -437,8 +572,14 @@
 //     </aside>
 //   );
 // }
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+
+// Adds "active" (matches your existing .nav-link.active CSS) only when
+// this link's route matches the current URL. `end` is passed through so
+// "/admin" (Dashboard) doesn't stay highlighted on every other /admin/*
+// page.
+const navLinkClass = ({ isActive }) => `nav-link${isActive ? " active" : ""}`;
 
 export default function Sidebar({ isOpen, onClose }) {
   const role = sessionStorage.getItem("role");
@@ -736,182 +877,231 @@ export default function Sidebar({ isOpen, onClose }) {
       <nav className="nav-menu">
         <p className="nav-label">Main Menu</p>
         {(role === "admin" || role === "owner") && (
-          <Link className="nav-link" to="/admin" onClick={onClose}>
+          // `end` so this doesn't stay highlighted on every /admin/* subpage
+          <NavLink className={navLinkClass} to="/admin" end onClick={onClose}>
             Dashboard
-          </Link>
+          </NavLink>
         )}
-        <Link className="nav-link" to="/admin/customer" onClick={onClose}>
+        <NavLink
+          className={navLinkClass}
+          to="/admin/customer"
+          onClick={onClose}
+        >
           Customer
-        </Link>
+        </NavLink>
         {(role === "admin" || role === "clerk") && (
-          <Link className="nav-link" to="/admin/jobreceipt" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/jobreceipt"
+            onClick={onClose}
+          >
             Job Receipt
-          </Link>
+          </NavLink>
         )}
-        <Link className="nav-link" to="/admin/joblist" onClick={onClose}>
+        <NavLink className={navLinkClass} to="/admin/joblist" onClick={onClose}>
           Job Number List
-        </Link>
+        </NavLink>
         {(role === "admin" || role === "clerk") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/instrumenttag"
             onClick={onClose}
           >
             Instrument Tag
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "technician") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/incomingcalib"
             onClick={onClose}
           >
             Incoming Calibration
-          </Link>
+          </NavLink>
         )}{" "}
         {(role === "admin" || role === "technician") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/ongoinggcalib"
             onClick={onClose}
           >
             On Going Calibration
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk" || role === "typist") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/sitecalibration"
             onClick={onClose}
           >
             Site Calibration
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk" || role === "typist") && (
-          <Link className="nav-link" to="/admin/fortyping" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/fortyping"
+            onClick={onClose}
+          >
             For Typing
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "technician") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/forcheckingic"
             onClick={onClose}
           >
             For Checking OIC
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "technician") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/forcheckingsig"
             onClick={onClose}
           >
             For Checking Sig
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk" || role === "typist") && (
-          <Link className="nav-link" to="/admin/printfinal" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/printfinal"
+            onClick={onClose}
+          >
             Print Final
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "technician") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/concernincoming"
             onClick={onClose}
           >
             Incoming Concern
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "technician") && (
-          <Link className="nav-link" to="/admin/concernout" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/concernout"
+            onClick={onClose}
+          >
             Out-Going Concern
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/deliveryreceipt"
             onClick={onClose}
           >
-            Delivery Receipt
-          </Link>
+            Delivery
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk") && (
-          <Link className="nav-link" to="/admin/recallsys" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/recallsys"
+            onClick={onClose}
+          >
             Recall System
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/assetmonitoring"
             onClick={onClose}
           >
             Asset Monitoring
-          </Link>
+          </NavLink>
         )}
-        <Link
-          className="nav-link"
+        <NavLink
+          className={navLinkClass}
           to="/admin/standardforcalib"
           onClick={onClose}
         >
           Standard For Calibration
-        </Link>
-        <Link
-          className="nav-link"
+        </NavLink>
+        <NavLink
+          className={navLinkClass}
           to="/admin/stdforcertification"
           onClick={onClose}
         >
           Standard For Certification
-        </Link>
-        <Link className="nav-link" to="/admin/stdforupdate" onClick={onClose}>
+        </NavLink>
+        <NavLink
+          className={navLinkClass}
+          to="/admin/stdforupdate"
+          onClick={onClose}
+        >
           Standard For Update
-        </Link>
+        </NavLink>
         {(role === "admin" || role === "clerk") && (
-          <Link className="nav-link" to="/admin/qtnlist" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/qtnlist"
+            onClick={onClose}
+          >
             Quotation List
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "clerk") && (
-          <Link className="nav-link" to="/admin/qtnforcheck" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/qtnforcheck"
+            onClick={onClose}
+          >
             Quotation For Check
-          </Link>
+          </NavLink>
         )}
-        {/* <Link className="nav-link" to="/admin/qtnforfile" onClick={onClose}>
+        {/* <NavLink className={navLinkClass} to="/admin/qtnforfile" onClick={onClose}>
           Quotation For File
-        </Link>
+        </NavLink>
         {(role === "admin" || role === "clerk") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/qtnforfolowup"
             onClick={onClose}
           >
             Quotation For Follow Up
-          </Link>
+          </NavLink>
         )} */}
         {(role === "admin" || role === "clerk") && (
-          <Link className="nav-link" to="/admin/qtnforsend" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/qtnforsend"
+            onClick={onClose}
+          >
             Quotation For Send
-          </Link>
+          </NavLink>
         )}
-        <Link className="nav-link" to="/admin/schedmonitor" onClick={onClose}>
-          Schedule Monitor
-        </Link>
+        <NavLink
+          className={navLinkClass}
+          to="/admin/onsiteschedule"
+          onClick={onClose}
+        >
+          On Site Schedule
+        </NavLink>
         {(role === "admin" || role === "owner") && (
-          <Link className="nav-link" to="/admin/accounts" onClick={onClose}>
+          <NavLink
+            className={navLinkClass}
+            to="/admin/accounts"
+            onClick={onClose}
+          >
             Accounts
-          </Link>
+          </NavLink>
         )}
         {(role === "admin" || role === "owner") && (
-          <Link
-            className="nav-link"
+          <NavLink
+            className={navLinkClass}
             to="/admin/systemactivity"
             onClick={onClose}
           >
             System Activity
-          </Link>
+          </NavLink>
         )}
       </nav>
 

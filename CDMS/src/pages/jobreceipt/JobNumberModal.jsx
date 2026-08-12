@@ -1,9 +1,12 @@
-// import React, { useState } from "react";
+// import React, { useState, useRef } from "react";
 // import { createPortal } from "react-dom";
 // import ConfirmDialog from "../../components/ConfirmDialog";
 // import AdminPasswordModal from "./AdminPasswordModal";
 // import CameraCaptureModal from "./CameraCaptureModal";
 // import AddContactSubModal from "./AddContactSubModal";
+// import ReceiptFolderModal from "./ReceiptFolderModal"; // was JobFolderModal — retired, see ReceiptFolderModal.jsx
+
+// const API = import.meta.env.VITE_API_URL;
 
 // const JobNumberModal = ({
 //   onClose,
@@ -13,7 +16,8 @@
 //   onJobChange,
 //   onOnSiteChange,
 //   onJobTypeChange,
-//   jobReceiptID,
+//   parentId, // was: jobReceiptID — generic so any parent (Job Receipt, Site Calibration) can supply its own ID
+//   parentLabel = "Job Receipt ID", // NEW — lets callers relabel this field
 //   onOpenInstrumentList,
 //   onOpenRecall,
 //   isEditing,
@@ -30,12 +34,37 @@
 //   const [locked, setLocked] = useState(isEditing);
 //   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
 
-//   // EQUIPMENT PHOTO — captured here via the "Open Camera" button, but NOT
-//   // previewed/shown in this modal. It's stored on jobForm.photoUrl (same
-//   // field name IncomingCalibDetailsModal already reads from), so it just
-//   // shows up there automatically once the job reaches Incoming/On-Going
-//   // Calibration. This modal only needs to trigger the capture.
+//   // EQUIPMENT PHOTOS — captured here via the "Open Camera" button.
+//   // CameraCaptureModal now hands back an ARRAY of dataURLs (one per shot
+//   // taken during that camera session, since it supports multi-photo
+//   // capture). Each one is uploaded to Cloudinary via the backend's
+//   // /api/uploads/equipment-photo/:jobNumber route; the returned
+//   // secure_urls accumulate on jobForm.photoUrls (an array), while
+//   // jobForm.photoUrl keeps pointing at the FIRST photo ever taken for
+//   // any older code (e.g. IncomingCalibDetailsModal's original single-
+//   // image field) still reading the singular value.
+//   //
+//   // IMPORTANT: Save is disabled while uploadingPhoto is true (see the Save
+//   // button below). Without this, clicking Save while the upload is still
+//   // in flight snapshots jobForm BEFORE onJobChange sets photoUrls, so the
+//   // saved job silently ends up without the photo even though it uploaded
+//   // successfully to Cloudinary.
 //   const [showCamera, setShowCamera] = useState(false);
+//   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+//   const [photoError, setPhotoError] = useState("");
+
+//   // EQUIPMENT DOCUMENTS (PDFs, etc.) — uploaded via a hidden file input
+//   // triggered by the "Upload PDF" button. Not previewed or tracked on
+//   // jobForm the way photoUrls is; the file goes straight to Cloudinary
+//   // under this job number's folder and is viewed later via Open Folder.
+//   const fileInputRef = useRef(null);
+//   const [uploadingDoc, setUploadingDoc] = useState(false);
+//   const [docError, setDocError] = useState("");
+
+//   // OPEN FOLDER — shows every file (photos + documents) stored under this
+//   // job number's Cloudinary folder, fetched fresh each time it's opened.
+//   // Now backed by the shared ReceiptFolderModal master component.
+//   const [showFolder, setShowFolder] = useState(false);
 
 //   // ADD CONTACT — Contact Cert reuses the same contact list (and Add
 //   // Contact modal) as AddReceiptModal's Contact Name field, keyed off the
@@ -118,6 +147,12 @@
 //   };
 
 //   const handleSaveClick = () => {
+//     // Guard against saving while a photo or document upload is still in
+//     // flight — the button is also disabled below, but this blocks any
+//     // other path that might still call handleSaveClick (e.g. a stray
+//     // keyboard submit).
+//     if (uploadingPhoto || uploadingDoc) return;
+
 //     if (!validate()) {
 //       showSuccess(
 //         "Incomplete Form",
@@ -164,10 +199,115 @@
 //     setLocked(false);
 //   };
 
-//   // EQUIPMENT PHOTO CAPTURE — stores straight to jobForm.photoUrl, no
-//   // preview shown here. Display happens in IncomingCalibDetailsModal.
-//   const handlePhotoCapture = (dataUrl) => {
-//     onJobChange({ target: { name: "photoUrl", value: dataUrl } });
+//   // EQUIPMENT PHOTO CAPTURE — receives an ARRAY of base64 dataURLs from
+//   // CameraCaptureModal (one per shot taken this session). Uploads each to
+//   // Cloudinary individually (the backend route only accepts one file per
+//   // request), collects the returned secure_urls into jobForm.photoUrls,
+//   // and keeps jobForm.photoUrl pointed at the FIRST photo ever taken for
+//   // any older code still reading the old singular field.
+//   const handlePhotoCapture = async (dataUrls) => {
+//     setPhotoError("");
+//     setUploadingPhoto(true);
+
+//     const uploaded = [];
+//     const failures = [];
+
+//     try {
+//       for (const dataUrl of dataUrls) {
+//         try {
+//           const blob = await (await fetch(dataUrl)).blob();
+
+//           const formData = new FormData();
+//           formData.append("photo", blob, "equipment.jpg");
+
+//           // If the job number hasn't been reserved yet (user hasn't picked
+//           // Mechanical/Electrical), fall back to a pending key so the
+//           // upload still has somewhere to go — matches the
+//           // "pending_<timestamp>" convention noted in the backend's
+//           // uploadRoutes.js.
+//           const folderKey = jobForm.jobNumber || `pending_${Date.now()}`;
+
+//           const res = await fetch(
+//             `${API}/api/uploads/equipment-photo/${encodeURIComponent(folderKey)}`,
+//             { method: "POST", body: formData },
+//           );
+//           const data = await res.json();
+
+//           if (data.success) {
+//             uploaded.push(data.url);
+//           } else {
+//             console.error("Photo upload failed:", data.message);
+//             failures.push(data.message || "Photo upload failed.");
+//           }
+//         } catch (err) {
+//           console.error("Photo upload error:", err);
+//           failures.push("Photo upload failed.");
+//         }
+//       }
+
+//       if (uploaded.length > 0) {
+//         const nextPhotoUrls = [...(jobForm.photoUrls || []), ...uploaded];
+//         onJobChange({ target: { name: "photoUrls", value: nextPhotoUrls } });
+//         // Keep the singular field pointed at the first photo ever taken,
+//         // for any older code still reading jobForm.photoUrl directly.
+//         if (!jobForm.photoUrl) {
+//           onJobChange({
+//             target: { name: "photoUrl", value: nextPhotoUrls[0] },
+//           });
+//         }
+//       }
+
+//       if (failures.length > 0) {
+//         setPhotoError(
+//           `${failures.length} of ${dataUrls.length} photo(s) failed to upload. Please retake them.`,
+//         );
+//       }
+//     } finally {
+//       setUploadingPhoto(false);
+//     }
+//   };
+
+//   // DOCUMENT UPLOAD (PDF, etc.) — triggered by the hidden file input
+//   // below, itself triggered by the visible "Upload PDF" button. Uses the
+//   // same folder-key convention as photo capture (real job number once
+//   // reserved, or "pending_<timestamp>" as a fallback), though in practice
+//   // the button is disabled until a job number exists (see the button
+//   // below) so the pending fallback shouldn't normally get hit here.
+//   //
+//   // Unlike photoUrls, the uploaded document's URL is NOT written back onto
+//   // jobForm — documents aren't tracked on the job record itself, only
+//   // viewable afterward via Open Folder, which lists everything Cloudinary
+//   // actually has for this job number.
+//   const handleDocumentSelect = async (e) => {
+//     const file = e.target.files?.[0];
+//     // Reset the input so selecting the same file again still fires onChange
+//     e.target.value = "";
+//     if (!file) return;
+
+//     setDocError("");
+//     setUploadingDoc(true);
+//     try {
+//       const formData = new FormData();
+//       formData.append("file", file, file.name);
+
+//       const folderKey = jobForm.jobNumber || `pending_${Date.now()}`;
+
+//       const res = await fetch(
+//         `${API}/api/uploads/job-document/${encodeURIComponent(folderKey)}`,
+//         { method: "POST", body: formData },
+//       );
+//       const data = await res.json();
+
+//       if (!data.success) {
+//         console.error("Document upload failed:", data.message);
+//         setDocError(data.message || "Document upload failed.");
+//       }
+//     } catch (err) {
+//       console.error("Document upload error:", err);
+//       setDocError("Document upload failed. Please try again.");
+//     } finally {
+//       setUploadingDoc(false);
+//     }
 //   };
 
 //   return createPortal(
@@ -208,10 +348,10 @@
 //                 />
 //               </div>
 //               <div className="jn-info-row">
-//                 <label>Job Receipt ID</label>
+//                 <label>{parentLabel}</label>
 //                 <input
 //                   type="text"
-//                   value={jobReceiptID}
+//                   value={parentId}
 //                   disabled
 //                   className="jr-input-auto"
 //                 />
@@ -549,15 +689,104 @@
 //             </div>
 //           </div>
 
+//           {photoError && (
+//             <div className="jr-error" style={{ padding: "0 16px" }}>
+//               {photoError}
+//             </div>
+//           )}
+
+//           {docError && (
+//             <div className="jr-error" style={{ padding: "0 16px" }}>
+//               {docError}
+//             </div>
+//           )}
+
+//           {uploadingPhoto && (
+//             <div
+//               className="jr-modal-hint"
+//               style={{ padding: "0 16px", color: "#555" }}
+//             >
+//               Uploading equipment photo(s)... Save is disabled until this
+//               finishes.
+//             </div>
+//           )}
+
+//           {uploadingDoc && (
+//             <div
+//               className="jr-modal-hint"
+//               style={{ padding: "0 16px", color: "#555" }}
+//             >
+//               Uploading document... Save is disabled until this finishes.
+//             </div>
+//           )}
+
 //           <div className="jn-modal-actions">
 //             <div className="jr-modal-actions-left">
 //               <button
 //                 className="jr-action-btn"
 //                 onClick={() => setShowCamera(true)}
+//                 disabled={uploadingPhoto || uploadingDoc}
 //               >
-//                 {jobForm.photoUrl ? "Retake Photo" : "Open Camera"}
+//                 {uploadingPhoto
+//                   ? "Uploading..."
+//                   : jobForm.photoUrls?.length
+//                     ? `Add More Photos (${jobForm.photoUrls.length})`
+//                     : "Open Camera"}
 //               </button>
-//               <button className="jr-action-btn">Open Folder</button>
+
+//               {/* UPLOAD PDF — hidden file input triggered by this button,
+//                   using the same folder-key convention as equipment photos.
+//                   Disabled until a job number has been reserved (picking
+//                   Mechanical/Electrical first), since uploading before that
+//                   would create an orphaned "pending_..." Cloudinary folder
+//                   disconnected from the job's real folder created on Save. */}
+//               <button
+//                 className="jr-action-btn"
+//                 onClick={() => fileInputRef.current?.click()}
+//                 disabled={uploadingPhoto || uploadingDoc || !jobForm.jobNumber}
+//                 title={
+//                   !jobForm.jobNumber
+//                     ? "Select Mechanical or Electrical first to assign a job number"
+//                     : undefined
+//                 }
+//                 style={
+//                   !jobForm.jobNumber
+//                     ? { opacity: 0.5, cursor: "not-allowed" }
+//                     : {}
+//                 }
+//               >
+//                 {uploadingDoc ? "Uploading..." : "Upload PDF"}
+//               </button>
+//               <input
+//                 type="file"
+//                 accept="application/pdf"
+//                 ref={fileInputRef}
+//                 onChange={handleDocumentSelect}
+//                 style={{ display: "none" }}
+//               />
+
+//               {/* OPEN FOLDER — lists every file already stored under this
+//                   job number's Cloudinary folder (photos + documents), via
+//                   the shared ReceiptFolderModal master component. Disabled
+//                   until a job number exists, for the same reason as Upload
+//                   PDF above. */}
+//               <button
+//                 className="jr-action-btn"
+//                 onClick={() => setShowFolder(true)}
+//                 disabled={!jobForm.jobNumber}
+//                 title={
+//                   !jobForm.jobNumber
+//                     ? "Select Mechanical or Electrical first to assign a job number"
+//                     : undefined
+//                 }
+//                 style={
+//                   !jobForm.jobNumber
+//                     ? { opacity: 0.5, cursor: "not-allowed" }
+//                     : {}
+//                 }
+//               >
+//                 Open Folder
+//               </button>
 //             </div>
 //             <div className="jr-modal-actions-right">
 //               <button className="jr-action-btn" onClick={onOpenRecall}>
@@ -573,8 +802,28 @@
 //               >
 //                 Cancel Job Number
 //               </button>
-//               <button className="jr-save-btn" onClick={handleSaveClick}>
-//                 Save
+//               <button
+//                 className="jr-save-btn"
+//                 onClick={handleSaveClick}
+//                 disabled={uploadingPhoto || uploadingDoc}
+//                 title={
+//                   uploadingPhoto
+//                     ? "Please wait for the photo upload to finish"
+//                     : uploadingDoc
+//                       ? "Please wait for the document upload to finish"
+//                       : undefined
+//                 }
+//                 style={
+//                   uploadingPhoto || uploadingDoc
+//                     ? { opacity: 0.5, cursor: "not-allowed" }
+//                     : {}
+//                 }
+//               >
+//                 {uploadingPhoto
+//                   ? "Uploading Photo(s)..."
+//                   : uploadingDoc
+//                     ? "Uploading Document..."
+//                     : "Save"}
 //               </button>
 //               <button className="jr-action-btn" onClick={handleExitClick}>
 //                 Exit
@@ -605,7 +854,10 @@
 //         />
 //       )}
 
-//       {/* EQUIPMENT PHOTO CAMERA MODAL — capture only, no preview here */}
+//       {/* EQUIPMENT PHOTO CAMERA MODAL — hands back an array of dataURLs;
+//           each is uploaded to Cloudinary in handlePhotoCapture above, no
+//           preview shown here (the thumbnail strip lives inside
+//           CameraCaptureModal itself during capture). */}
 //       {showCamera && (
 //         <CameraCaptureModal
 //           onClose={() => setShowCamera(false)}
@@ -627,6 +879,17 @@
 //           }}
 //         />
 //       )}
+
+//       {/* JOB FOLDER — lists every file Cloudinary has for this job number
+//           (equipment photos + documents), fetched fresh on open. Backed by
+//           the shared master component (formerly JobFolderModal.jsx). */}
+//       {showFolder && jobForm.jobNumber && (
+//         <ReceiptFolderModal
+//           jobNumber={jobForm.jobNumber}
+//           title="JOB FOLDER"
+//           onClose={() => setShowFolder(false)}
+//         />
+//       )}
 //     </div>,
 //     document.body,
 //   );
@@ -639,7 +902,7 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import AdminPasswordModal from "./AdminPasswordModal";
 import CameraCaptureModal from "./CameraCaptureModal";
 import AddContactSubModal from "./AddContactSubModal";
-import JobFolderModal from "./JobFolderModal";
+import ReceiptFolderModal from "./ReceiptFolderModal"; // was JobFolderModal — retired, see ReceiptFolderModal.jsx
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -651,7 +914,8 @@ const JobNumberModal = ({
   onJobChange,
   onOnSiteChange,
   onJobTypeChange,
-  jobReceiptID,
+  parentId, // was: jobReceiptID — generic so any parent (Job Receipt, Site Calibration) can supply its own ID
+  parentLabel = "Job Receipt ID", // NEW — lets callers relabel this field
   onOpenInstrumentList,
   onOpenRecall,
   isEditing,
@@ -668,26 +932,28 @@ const JobNumberModal = ({
   const [locked, setLocked] = useState(isEditing);
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
 
-  // EQUIPMENT PHOTO — captured here via the "Open Camera" button, but NOT
-  // previewed/shown in this modal. The captured image is uploaded to
-  // Cloudinary via the backend's /api/uploads/equipment-photo/:jobNumber
-  // route, and the returned secure_url is stored on jobForm.photoUrl (same
-  // field name IncomingCalibDetailsModal already reads from), so it just
-  // shows up there automatically once the job reaches Incoming/On-Going
-  // Calibration. This modal only needs to trigger the capture + upload.
+  // EQUIPMENT PHOTOS — captured here via the "Open Camera" button.
+  // CameraCaptureModal now hands back an ARRAY of dataURLs (one per shot
+  // taken during that camera session, since it supports multi-photo
+  // capture). Each one is uploaded to Cloudinary via the backend's
+  // /api/uploads/equipment-photo/:jobNumber route; the returned
+  // secure_urls accumulate on jobForm.photoUrls (an array), while
+  // jobForm.photoUrl keeps pointing at the FIRST photo ever taken for
+  // any older code (e.g. IncomingCalibDetailsModal's original single-
+  // image field) still reading the singular value.
   //
   // IMPORTANT: Save is disabled while uploadingPhoto is true (see the Save
   // button below). Without this, clicking Save while the upload is still
-  // in flight snapshots jobForm BEFORE onJobChange sets photoUrl, so the
-  // saved job silently ends up with photoUrl: "" even though the image
-  // uploaded successfully to Cloudinary.
+  // in flight snapshots jobForm BEFORE onJobChange sets photoUrls, so the
+  // saved job silently ends up without the photo even though it uploaded
+  // successfully to Cloudinary.
   const [showCamera, setShowCamera] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState("");
 
   // EQUIPMENT DOCUMENTS (PDFs, etc.) — uploaded via a hidden file input
   // triggered by the "Upload PDF" button. Not previewed or tracked on
-  // jobForm the way photoUrl is; the file goes straight to Cloudinary
+  // jobForm the way photoUrls is; the file goes straight to Cloudinary
   // under this job number's folder and is viewed later via Open Folder.
   const fileInputRef = useRef(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
@@ -695,6 +961,7 @@ const JobNumberModal = ({
 
   // OPEN FOLDER — shows every file (photos + documents) stored under this
   // job number's Cloudinary folder, fetched fresh each time it's opened.
+  // Now backed by the shared ReceiptFolderModal master component.
   const [showFolder, setShowFolder] = useState(false);
 
   // ADD CONTACT — Contact Cert reuses the same contact list (and Add
@@ -830,42 +1097,69 @@ const JobNumberModal = ({
     setLocked(false);
   };
 
-  // EQUIPMENT PHOTO CAPTURE — receives a base64 dataURL from
-  // CameraCaptureModal (either the live-camera canvas snapshot or the
-  // file-input fallback), converts it to a Blob, and uploads it to
-  // Cloudinary via the backend. jobForm.photoUrl is only set to the
-  // Cloudinary secure_url returned by the server — the raw base64 image
-  // itself is never stored in Mongo.
-  const handlePhotoCapture = async (dataUrl) => {
+  // EQUIPMENT PHOTO CAPTURE — receives an ARRAY of base64 dataURLs from
+  // CameraCaptureModal (one per shot taken this session). Uploads each to
+  // Cloudinary individually (the backend route only accepts one file per
+  // request), collects the returned secure_urls into jobForm.photoUrls,
+  // and keeps jobForm.photoUrl pointed at the FIRST photo ever taken for
+  // any older code still reading the old singular field.
+  const handlePhotoCapture = async (dataUrls) => {
     setPhotoError("");
     setUploadingPhoto(true);
+
+    const uploaded = [];
+    const failures = [];
+
     try {
-      const blob = await (await fetch(dataUrl)).blob();
+      for (const dataUrl of dataUrls) {
+        try {
+          const blob = await (await fetch(dataUrl)).blob();
 
-      const formData = new FormData();
-      formData.append("photo", blob, "equipment.jpg");
+          const formData = new FormData();
+          formData.append("photo", blob, "equipment.jpg");
 
-      // If the job number hasn't been reserved yet (user hasn't picked
-      // Mechanical/Electrical), fall back to a pending key so the upload
-      // still has somewhere to go — matches the "pending_<timestamp>"
-      // convention noted in the backend's uploadRoutes.js.
-      const folderKey = jobForm.jobNumber || `pending_${Date.now()}`;
+          // If the job number hasn't been reserved yet (user hasn't picked
+          // Mechanical/Electrical), fall back to a pending key so the
+          // upload still has somewhere to go — matches the
+          // "pending_<timestamp>" convention noted in the backend's
+          // uploadRoutes.js.
+          const folderKey = jobForm.jobNumber || `pending_${Date.now()}`;
 
-      const res = await fetch(
-        `${API}/api/uploads/equipment-photo/${encodeURIComponent(folderKey)}`,
-        { method: "POST", body: formData },
-      );
-      const data = await res.json();
+          const res = await fetch(
+            `${API}/api/uploads/equipment-photo/${encodeURIComponent(folderKey)}`,
+            { method: "POST", body: formData },
+          );
+          const data = await res.json();
 
-      if (data.success) {
-        onJobChange({ target: { name: "photoUrl", value: data.url } });
-      } else {
-        console.error("Photo upload failed:", data.message);
-        setPhotoError(data.message || "Photo upload failed.");
+          if (data.success) {
+            uploaded.push(data.url);
+          } else {
+            console.error("Photo upload failed:", data.message);
+            failures.push(data.message || "Photo upload failed.");
+          }
+        } catch (err) {
+          console.error("Photo upload error:", err);
+          failures.push("Photo upload failed.");
+        }
       }
-    } catch (err) {
-      console.error("Photo upload error:", err);
-      setPhotoError("Photo upload failed. Please try again.");
+
+      if (uploaded.length > 0) {
+        const nextPhotoUrls = [...(jobForm.photoUrls || []), ...uploaded];
+        onJobChange({ target: { name: "photoUrls", value: nextPhotoUrls } });
+        // Keep the singular field pointed at the first photo ever taken,
+        // for any older code still reading jobForm.photoUrl directly.
+        if (!jobForm.photoUrl) {
+          onJobChange({
+            target: { name: "photoUrl", value: nextPhotoUrls[0] },
+          });
+        }
+      }
+
+      if (failures.length > 0) {
+        setPhotoError(
+          `${failures.length} of ${dataUrls.length} photo(s) failed to upload. Please retake them.`,
+        );
+      }
     } finally {
       setUploadingPhoto(false);
     }
@@ -878,10 +1172,10 @@ const JobNumberModal = ({
   // the button is disabled until a job number exists (see the button
   // below) so the pending fallback shouldn't normally get hit here.
   //
-  // Unlike photoUrl, the uploaded document's URL is NOT written back onto
+  // Unlike photoUrls, the uploaded document's URL is NOT written back onto
   // jobForm — documents aren't tracked on the job record itself, only
-  // viewable afterward via Open Folder (JobFolderModal), which lists
-  // everything Cloudinary actually has for this job number.
+  // viewable afterward via Open Folder, which lists everything Cloudinary
+  // actually has for this job number.
   const handleDocumentSelect = async (e) => {
     const file = e.target.files?.[0];
     // Reset the input so selecting the same file again still fires onChange
@@ -952,10 +1246,10 @@ const JobNumberModal = ({
                 />
               </div>
               <div className="jn-info-row">
-                <label>Job Receipt ID</label>
+                <label>{parentLabel}</label>
                 <input
                   type="text"
-                  value={jobReceiptID}
+                  value={parentId}
                   disabled
                   className="jr-input-auto"
                 />
@@ -1272,24 +1566,20 @@ const JobNumberModal = ({
                 )}
               </div>
 
-              {/* ON-SITE TOGGLE — bound to the independent `onSite` field
-                  (mode of receipt), which JobNumber.jsx's getMOR() reads.
-                  This is deliberately separate from `tagged`, a pipeline-
-                  stage flag set elsewhere once the job passes Instrument
-                  Tagging. Checking this box only records how the unit was
-                  received; it does not by itself change what stage the
-                  job is in. */}
-              <div className="jn-type-row">
-                <label className="jr-radio-label">
-                  <input
-                    type="checkbox"
-                    name="onSite"
-                    checked={!!jobForm.onSite}
-                    onChange={onOnSiteChange}
-                  />{" "}
-                  On-Site Calibration
-                </label>
-              </div>
+              {/* ON-SITE STATUS — no manual checkbox here anymore. Whether
+                  a job is in-house or on-site is now decided entirely by
+                  which flow opened this modal, not by a toggle a user
+                  could accidentally flip mid-edit:
+                    - Opened from Job Receipt (JobReceipt.jsx)  -> in-house
+                      (jobForm.onSite defaults to false via emptyJobForm,
+                      and nothing in that flow ever sets it true).
+                    - Opened from Site Calibration
+                      (AddSiteCalibrationModal.jsx) -> on-site
+                      (handleOpenJobNumber force-sets onSite: true,
+                      tagged: true before this modal even opens).
+                  onOnSiteChange is still accepted as a prop for backward
+                  compatibility but is no longer wired to any control in
+                  this modal. */}
             </div>
           </div>
 
@@ -1310,7 +1600,8 @@ const JobNumberModal = ({
               className="jr-modal-hint"
               style={{ padding: "0 16px", color: "#555" }}
             >
-              Uploading equipment photo... Save is disabled until this finishes.
+              Uploading equipment photo(s)... Save is disabled until this
+              finishes.
             </div>
           )}
 
@@ -1332,8 +1623,8 @@ const JobNumberModal = ({
               >
                 {uploadingPhoto
                   ? "Uploading..."
-                  : jobForm.photoUrl
-                    ? "Retake Photo"
+                  : jobForm.photoUrls?.length
+                    ? `Add More Photos (${jobForm.photoUrls.length})`
                     : "Open Camera"}
               </button>
 
@@ -1369,9 +1660,10 @@ const JobNumberModal = ({
               />
 
               {/* OPEN FOLDER — lists every file already stored under this
-                  job number's Cloudinary folder (photos + documents).
-                  Disabled until a job number exists, for the same reason
-                  as Upload PDF above. */}
+                  job number's Cloudinary folder (photos + documents), via
+                  the shared ReceiptFolderModal master component. Disabled
+                  until a job number exists, for the same reason as Upload
+                  PDF above. */}
               <button
                 className="jr-action-btn"
                 onClick={() => setShowFolder(true)}
@@ -1422,7 +1714,7 @@ const JobNumberModal = ({
                 }
               >
                 {uploadingPhoto
-                  ? "Uploading Photo..."
+                  ? "Uploading Photo(s)..."
                   : uploadingDoc
                     ? "Uploading Document..."
                     : "Save"}
@@ -1456,9 +1748,10 @@ const JobNumberModal = ({
         />
       )}
 
-      {/* EQUIPMENT PHOTO CAMERA MODAL — capture only; the resulting dataURL
-          is uploaded to Cloudinary in handlePhotoCapture above, no preview
-          shown here. */}
+      {/* EQUIPMENT PHOTO CAMERA MODAL — hands back an array of dataURLs;
+          each is uploaded to Cloudinary in handlePhotoCapture above, no
+          preview shown here (the thumbnail strip lives inside
+          CameraCaptureModal itself during capture). */}
       {showCamera && (
         <CameraCaptureModal
           onClose={() => setShowCamera(false)}
@@ -1481,11 +1774,13 @@ const JobNumberModal = ({
         />
       )}
 
-      {/* JOB FOLDER MODAL — lists every file Cloudinary has for this job
-          number (equipment photos + documents), fetched fresh on open. */}
+      {/* JOB FOLDER — lists every file Cloudinary has for this job number
+          (equipment photos + documents), fetched fresh on open. Backed by
+          the shared master component (formerly JobFolderModal.jsx). */}
       {showFolder && jobForm.jobNumber && (
-        <JobFolderModal
+        <ReceiptFolderModal
           jobNumber={jobForm.jobNumber}
+          title="JOB FOLDER"
           onClose={() => setShowFolder(false)}
         />
       )}

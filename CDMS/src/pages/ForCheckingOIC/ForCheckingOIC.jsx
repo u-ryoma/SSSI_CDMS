@@ -71,6 +71,7 @@
 //                 frequency: job.frequency || "1 Year",
 //                 eta: job.eta || "",
 //                 oicBy: job.oicBy || "",
+//                 oicCheckedBy: job.oicCheckedBy || "",
 //                 priority: job.priority || "Normal",
 //                 typedBy: job.typedBy || "",
 //                 sig: job.sig || "",
@@ -123,13 +124,19 @@
 //   };
 
 //   // "Update" is what actually persists the move: stamp the OIC review
-//   // dates and who performed the check, tag the job as ready for
-//   // Checking SIG, then drop it out of this table and close.
+//   // dates and who performed the check (oicCheckedBy — an audit-trail
+//   // field, separate from `oicBy`). `oicBy` is the *assigned* OIC set
+//   // back in Incoming/On-Going Calibration and must stay untouched here;
+//   // `oicCheckedBy` records whoever actually reviewed and signed off at
+//   // this stage, mirroring how `sig` (assigned) vs `sigCheckedBy`
+//   // (audit stamp) work at the Checking SIG stage.
 //   const handleUpdate = async () => {
 //     if (!selectedRecord) return;
 //     try {
 //       const now = new Date().toISOString();
-//       const oicCheckedBy = sessionStorage.getItem("username") || "";
+//       // "name" is the sessionStorage key used app-wide for the logged-in
+//       // user's display name (see JobReceipt.jsx, IncomingCalibDetailsModal.jsx).
+//       const oicCheckedBy = sessionStorage.getItem("name") || "";
 //       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
 //         method: "PUT",
 //         headers: { "Content-Type": "application/json" },
@@ -388,9 +395,13 @@ const ForCheckingOIC = () => {
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
-                dateRec: receipt.date || "",
-                companyName: receipt.companyName || "",
-                contactName: receipt.contactName || "",
+                // from receipt — falls back to the job's own date/companyName
+                // for jobs that have no jobReceiptID (e.g. jobs added from
+                // Site Calibration, which don't go through Job Receipt but
+                // carry date/companyName directly on the job record).
+                dateRec: receipt.date || job.date || "",
+                companyName: receipt.companyName || job.companyName || "",
+                contactName: receipt.contactName || job.contactName || "",
               };
             })
         : [];

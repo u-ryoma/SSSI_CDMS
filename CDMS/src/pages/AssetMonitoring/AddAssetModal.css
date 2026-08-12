@@ -423,3 +423,15 @@ button.btn-outline:active {
   padding: 2px 4px;
   line-height: 1;
 }
+.cdms-qr-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cdms-qr-placeholder {
+  font-size: 13px;
+  color: #888;
+  padding: 12px 0;
+}

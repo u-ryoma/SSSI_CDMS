@@ -69,7 +69,16 @@
 //                 remarks: job.remarks || "",
 //                 concern: job.concern || "",
 //                 eta: job.eta || "",
+//                 // "Eval By" (CPGP/SSSI) — set in JobNumberModal, unrelated
+//                 // to who's processing the job. Kept for completeness but
+//                 // NOT used for the OIC column below.
 //                 evalBy: job.evalBy || "",
+//                 // OIC — the originally assigned OIC from Incoming/On-Going
+//                 // Calibration.
+//                 oicBy: job.oicBy || "",
+//                 // Audit stamp of who actually performed the OIC check
+//                 // (separate from oicBy, the originally assigned OIC).
+//                 oicCheckedBy: job.oicCheckedBy || "",
 //                 priority: job.priority || "Normal",
 //                 dateRec: receipt.date || "",
 //                 companyName: receipt.companyName || "",
@@ -144,9 +153,6 @@
 //     setIsSigned(true);
 //   };
 
-//   // "Update" is what actually persists the move: stamp the SIG review
-//   // dates, tag the job as ready for Print Final, then drop it out of
-//   // this table and close.
 //   // "Update" is what actually persists the move: stamp the SIG review
 //   // dates and who performed the check, tag the job as ready for Print
 //   // Final, then drop it out of this table and close.
@@ -248,6 +254,7 @@
 //               <th>Date Rec</th>
 //               <th>Priority</th>
 //               <th>OIC</th>
+//               {/* <th>OIC Checked By</th> */}
 //               <th>SIG</th>
 //               <th>Typist</th>
 //               <th>Company</th>
@@ -263,7 +270,7 @@
 //           <tbody>
 //             {loading ? (
 //               <tr>
-//                 <td colSpan="14" className="no-data">
+//                 <td colSpan="15" className="no-data">
 //                   Loading...
 //                 </td>
 //               </tr>
@@ -277,7 +284,8 @@
 //                   <td>{r.jobNumber}</td>
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
-//                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.oicBy || r.contactName}</td>
+//                   {/* <td>{r.oicCheckedBy}</td> */}
 //                   <td>{r.sig}</td>
 //                   <td>{r.typedBy}</td>
 //                   <td>{r.companyName}</td>
@@ -292,7 +300,7 @@
 //               ))
 //             ) : (
 //               <tr>
-//                 <td colSpan="14" className="no-data">
+//                 <td colSpan="15" className="no-data">
 //                   {activeSearch
 //                     ? `No results found for "${activeSearch}"`
 //                     : "No jobs awaiting SIG check"}
@@ -414,9 +422,13 @@ const ForCheckingSig = () => {
                 // (separate from oicBy, the originally assigned OIC).
                 oicCheckedBy: job.oicCheckedBy || "",
                 priority: job.priority || "Normal",
-                dateRec: receipt.date || "",
-                companyName: receipt.companyName || "",
-                contactName: receipt.contactName || "",
+                // from receipt — falls back to the job's own date/companyName
+                // for jobs that have no jobReceiptID (e.g. jobs added from
+                // Site Calibration, which don't go through Job Receipt but
+                // carry date/companyName directly on the job record).
+                dateRec: receipt.date || job.date || "",
+                companyName: receipt.companyName || job.companyName || "",
+                contactName: receipt.contactName || job.contactName || "",
 
                 // ---- extra fields needed by ForCheckingSigDetailsModal ----
                 sig: job.sig || "",

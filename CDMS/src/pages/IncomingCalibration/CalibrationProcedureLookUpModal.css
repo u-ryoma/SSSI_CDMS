@@ -114,3 +114,46 @@
   display: flex;
   justify-content: flex-end;
 }
+/*
+  Append these rules to your existing CalibrationStandardLookUpModal.css.
+  They style the new QR scanner UI that replaced the masked Code input.
+  Class names not listed here (csl-modal-overlay, csl-field-row, etc.)
+  already exist in your file and don't need changes.
+*/
+
+.csl-qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.csl-qr-scan-btn {
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.csl-qr-video-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.csl-qr-video {
+  width: 260px;
+  max-width: 100%;
+  border-radius: 6px;
+  background: #000;
+}
+
+.csl-qr-cancel-btn {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.csl-qr-code-value {
+  font-size: 0.85rem;
+  color: #444;
+}

@@ -1,42 +1,76 @@
 // import { useEffect, useState } from "react";
 
 // export default function Header({ onMenuToggle }) {
-//   const [time, setTime] = useState("");
+//   const [now, setNow] = useState(new Date());
 
 //   useEffect(() => {
 //     const interval = setInterval(() => {
-//       setTime(new Date().toLocaleString());
+//       setNow(new Date());
 //     }, 1000);
 //     return () => clearInterval(interval);
 //   }, []);
+
+//   // e.g. "Tuesday, August 4, 2026"
+//   const dateLabel = now.toLocaleDateString("en-US", {
+//     weekday: "long",
+//     year: "numeric",
+//     month: "long",
+//     day: "numeric",
+//   });
+
+//   // e.g. "7:39:58 PM"
+//   const timeLabel = now.toLocaleTimeString("en-US", {
+//     hour: "numeric",
+//     minute: "2-digit",
+//     second: "2-digit",
+//   });
 
 //   return (
 //     <header className="header">
 //       <div className="logo">
 //         <button className="menu-btn" onClick={onMenuToggle}>
-//           <i className="fas fa-bars"></i>
-//           <button className="menu-btn" onClick={onMenuToggle}>
-//             ☰ Menu
-//           </button>
+//           <i className="fas fa-bars"></i>☰ Menu
 //         </button>
-//         <i className="fas fa-microscope"></i>
+//         <img
+//           src="/images/SSSi-Logo.png"
+//           alt="SSSI Logo"
+//           className="header-logo"
+//         />
 //         <span>Scientific Standard Services</span>
 //       </div>
-//       <div className="header-right">{time}</div>
+//       <div className="header-right" style={{ textAlign: "right" }}>
+//         <div style={{ fontSize: "0.85rem", fontWeight: 500 }}>{dateLabel}</div>
+//         <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{timeLabel}</div>
+//       </div>
 //     </header>
 //   );
 // }
 import { useEffect, useState } from "react";
 
-export default function Header({ onMenuToggle }) {
-  const [time, setTime] = useState("");
+export default function Header({ onMenuToggle, children }) {
+  const [now, setNow] = useState(new Date());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTime(new Date().toLocaleString());
+      setNow(new Date());
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // e.g. "Tuesday, August 4, 2026"
+  const dateLabel = now.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // e.g. "7:39:58 PM"
+  const timeLabel = now.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 
   return (
     <header className="header">
@@ -51,7 +85,18 @@ export default function Header({ onMenuToggle }) {
         />
         <span>Scientific Standard Services</span>
       </div>
-      <div className="header-right">{time}</div>
+      <div
+        className="header-right"
+        style={{ display: "flex", alignItems: "center", gap: 14 }}
+      >
+        {children}
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: "0.85rem", fontWeight: 500 }}>
+            {dateLabel}
+          </div>
+          <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{timeLabel}</div>
+        </div>
+      </div>
     </header>
   );
 }

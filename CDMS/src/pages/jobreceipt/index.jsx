@@ -450,16 +450,44 @@
 //               ...job,
 //               jobReceiptID: savedJrId,
 //               type: job.type,
+//               // Who created this job number — the person who prepared
+//               // the parent job receipt (same value stamped on
+//               // formData.preparedBy). Only set on the initial create; a
+//               // PUT for an already-existing job re-sends it too, but
+//               // since it never changes after creation that's harmless.
+//               recBy: user,
 //             }),
 //           });
 //           const jobData = await jobRes.json();
 //           if (jobData.success) {
 //             const { _isNew, ...cleanJob } = job;
+//             const finalJobNumber = jobData.jobNumber || job.jobNumber;
+
 //             savedJobs.push({
 //               ...cleanJob,
-//               jobNumber: jobData.jobNumber || job.jobNumber,
+//               jobNumber: finalJobNumber,
 //               _id: jobData._id || job._id,
 //             });
+
+//             // CLOUDINARY FOLDER — only for brand-new job numbers. Existing
+//             // ones already got a folder the first time they were saved, so
+//             // there's no reason to re-call this on every Update. Fired
+//             // fire-and-forget (not awaited) so a slow or unreachable
+//             // Cloudinary never stalls or fails the receipt save itself —
+//             // worst case, the folder simply gets created implicitly later,
+//             // the first time an equipment photo is uploaded into it via
+//             // /api/uploads/equipment-photo/:jobNumber.
+//             if (!isExistingJob) {
+//               fetch(
+//                 `${API}/api/uploads/job-folder/${encodeURIComponent(finalJobNumber)}`,
+//                 { method: "POST" },
+//               ).catch((err) =>
+//                 console.warn(
+//                   `Failed to pre-create Cloudinary folder for ${finalJobNumber}:`,
+//                   err,
+//                 ),
+//               );
+//             }
 //           }
 //         }
 
@@ -706,7 +734,7 @@
 //           onJobChange={handleJobChange}
 //           onOnSiteChange={handleOnSiteChange}
 //           onJobTypeChange={handleJobTypeChange}
-//           jobReceiptID={formData.jrId}
+//           parentId={formData.jrId}
 //           onOpenInstrumentList={() => setShowInstrumentList(true)}
 //           onOpenRecall={() => setShowRecall(true)}
 //           isEditing={editingJobIndex !== null}
@@ -767,7 +795,6 @@ import JobNumberModal from "./JobNumberModal";
 import InstrumentListModal from "./InstrumentListModal";
 import RecallJobModal from "./RecallJobModal";
 import PrintReceiptModal from "./PrintReceiptModal";
-import PrintReceiptModalOnSite from "./PrintReceiptModalOnSite";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -813,7 +840,8 @@ export const emptyJobForm = {
   voltage: "-",
   onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Checking On-Site also auto-sets `tagged` (see handleOnSiteChange), since on-site jobs skip Instrument Tagging.
   tagged: false, // pipeline-stage flag: true once the job is ready for Incoming Calibration — either it passed Instrument Tagging, or it's an On-Site job (which skips tagging). Must default to false, or every new job skips straight to Incoming Calibration.
-  photoUrl: "", // base64 data URL of the equipment photo, captured via camera in JobNumberModal
+  photoUrl: "", // legacy single-photo field, kept in sync with the FIRST photo ever taken (see JobNumberModal's handlePhotoCapture)
+  photoUrls: [], // equipment photos captured via camera in JobNumberModal, accumulated across capture sessions
 };
 
 const currentYear = new Date().getFullYear();
@@ -940,8 +968,16 @@ const JobReceipt = () => {
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+  // NOTE: uses the functional setState form (prev => ...) rather than
+  // spreading the `jobForm` closure directly. JobNumberModal's
+  // handlePhotoCapture fires this twice back-to-back on the first photo
+  // capture (once for photoUrls, once for photoUrl) — with a non-
+  // functional update, both calls would read the same stale `jobForm`
+  // snapshot from render, so the second call would clobber the first and
+  // silently drop the photoUrls array. The functional form makes each
+  // call build on the real latest state instead.
   const handleJobChange = (e) =>
-    setJobForm({ ...jobForm, [e.target.name]: e.target.value });
+    setJobForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
   // ON-SITE TOGGLE CHANGE — sets the mode-of-receipt flag (`onSite`) that
   // JobNumber.jsx's getMOR() reads.
@@ -1035,6 +1071,7 @@ const JobReceipt = () => {
       onSite: job.onSite ?? false,
       tagged: job.tagged ?? false,
       photoUrl: job.photoUrl || "",
+      photoUrls: job.photoUrls || [],
     }));
     setShowRecall(false);
   };
@@ -1211,6 +1248,12 @@ const JobReceipt = () => {
               ...job,
               jobReceiptID: savedJrId,
               type: job.type,
+              // Who created this job number — the person who prepared
+              // the parent job receipt (same value stamped on
+              // formData.preparedBy). Only set on the initial create; a
+              // PUT for an already-existing job re-sends it too, but
+              // since it never changes after creation that's harmless.
+              recBy: user,
             }),
           });
           const jobData = await jobRes.json();
@@ -1489,7 +1532,7 @@ const JobReceipt = () => {
           onJobChange={handleJobChange}
           onOnSiteChange={handleOnSiteChange}
           onJobTypeChange={handleJobTypeChange}
-          jobReceiptID={formData.jrId}
+          parentId={formData.jrId}
           onOpenInstrumentList={() => setShowInstrumentList(true)}
           onOpenRecall={() => setShowRecall(true)}
           isEditing={editingJobIndex !== null}

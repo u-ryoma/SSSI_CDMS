@@ -267,6 +267,7 @@ const QuotationList = () => {
   const currentUser = {
     name: sessionStorage.getItem("name") || "Guest User",
     role: sessionStorage.getItem("role") || "staff",
+    username: sessionStorage.getItem("username") || "",
   };
 
   const companies = ["Company Name", "Contact Name", "JR ID"];

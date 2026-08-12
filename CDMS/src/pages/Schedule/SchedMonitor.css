@@ -1,0 +1,375 @@
+/* ==========================================================================
+   Schedule Monitoring — black & white design tokens
+   Canvas   #FFFFFF   Surface   #FFFFFF   Border    #1A1A1A
+   Ink      #0A0A0A   Slate     #5C5C5C   Slate-soft #9A9A9A
+   Today marker: solid black fill, everything else pure grayscale.
+   Display face: Space Grotesk (headings, eyebrow)
+   UI face:      Inter (everything else)
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+.sm-container {
+  --sm-canvas: #ffffff;
+  --sm-surface: #ffffff;
+  --sm-border: #1a1a1a;
+  --sm-border-soft: #d4d4d4;
+  --sm-ink: #0a0a0a;
+  --sm-slate: #5c5c5c;
+  --sm-slate-soft: #9a9a9a;
+  --sm-accent: #0a0a0a;
+  --sm-accent-soft: #ececec;
+  --sm-today: #0a0a0a;
+  --sm-today-soft: #f2f2f2;
+  --sm-radius: 4px;
+
+  width: 100%;
+  height: 100vh;
+  max-width: none;
+  margin: 0;
+  padding: 32px 40px 40px;
+  background: var(--sm-canvas);
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  color: var(--sm-ink);
+  -webkit-font-smoothing: antialiased;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Header ---------- */
+
+.sm-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+.sm-topline > div {
+  flex: 1;
+}
+
+.sm-eyebrow {
+  display: block;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sm-slate);
+  margin: 0 0 6px;
+}
+
+.sm-container h1 {
+  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--sm-ink);
+}
+
+/* BANNER — matches the black glitch-text header used across the app */
+.sm-banner {
+  background: #000;
+  width: auto;
+  margin: -32px -40px 20px -40px; /* cancels .sm-container's padding on all sides */
+  padding: 15px 40px; /* re-add horizontal padding so text isn't flush against edge */
+  box-sizing: border-box;
+}
+
+.sm-banner h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-shadow:
+    2px 0 0 rgba(255, 0, 60, 0.7),
+    -2px 0 0 rgba(0, 200, 255, 0.7);
+}
+
+/* ---------- Toolbar ---------- */
+
+.sm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--sm-border);
+  padding-bottom: 16px;
+}
+
+.sm-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sm-nav button {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sm-ink);
+  background: var(--sm-surface);
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  padding: 7px 12px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+  line-height: 1;
+}
+
+.sm-nav button:hover {
+  background: var(--sm-ink);
+  color: #ffffff;
+}
+
+.sm-nav button:focus-visible {
+  outline: 2px solid var(--sm-ink);
+  outline-offset: 2px;
+}
+
+.sm-header-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--sm-ink);
+  margin-left: 8px;
+  min-width: 160px;
+}
+
+.sm-view-toggle {
+  display: flex;
+  background: var(--sm-surface);
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  padding: 3px;
+  gap: 2px;
+}
+
+.sm-view-toggle button {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--sm-slate);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.sm-view-toggle button:hover {
+  color: var(--sm-ink);
+}
+
+.sm-view-toggle button.active {
+  background: var(--sm-ink);
+  color: #ffffff;
+}
+
+/* ---------- Grid ---------- */
+
+.sm-grid-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  position: relative;
+  padding: 0 44px; /* room for the floating prev/next buttons */
+}
+
+.sm-nav-prev,
+.sm-nav-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--sm-border);
+  background: var(--sm-surface);
+  color: var(--sm-ink);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.sm-nav-prev:hover,
+.sm-nav-next:hover {
+  background: var(--sm-ink);
+  color: #ffffff;
+}
+
+.sm-nav-prev:focus-visible,
+.sm-nav-next:focus-visible {
+  outline: 2px solid var(--sm-ink);
+  outline-offset: 2px;
+}
+
+.sm-nav-prev {
+  left: 0;
+}
+
+.sm-nav-next {
+  right: 0;
+}
+
+.sm-grid {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: auto repeat(6, 1fr);
+  gap: 1px;
+  background: var(--sm-border);
+  border: 1px solid var(--sm-border);
+  border-radius: var(--sm-radius);
+  overflow: hidden;
+  width: 100%;
+}
+
+.sm-grid.week {
+  grid-template-rows: auto repeat(1, 1fr);
+}
+
+.sm-weekday-label {
+  background: var(--sm-surface);
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sm-slate-soft);
+  text-align: left;
+  border-bottom: 1px solid var(--sm-border);
+}
+
+.sm-day-cell {
+  background: var(--sm-surface);
+  padding: 10px 10px 8px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 78px;
+  overflow: visible;
+}
+
+.sm-day-cell:hover {
+  background: var(--sm-accent-soft);
+}
+
+/* Days from the previous/next month: dimmed text only, still fully
+   visible and clickable — nothing in the grid is hidden. */
+.sm-day-cell.sm-outside .sm-day-number {
+  color: var(--sm-slate-soft);
+}
+
+.sm-day-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sm-ink);
+  min-width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+}
+
+.sm-day-cell.sm-today .sm-day-number {
+  background: var(--sm-today);
+  color: #ffffff;
+}
+
+.sm-day-cell.sm-today {
+  background: var(--sm-today-soft);
+}
+
+.sm-day-cell.sm-today:hover {
+  background: var(--sm-accent-soft);
+}
+
+.sm-day-assignments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  overflow: visible;
+  flex: 1 1 auto;
+}
+
+.sm-tech-chip {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: var(--sm-surface);
+  border: 1px solid var(--sm-border);
+  color: var(--sm-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 0 auto;
+}
+
+.sm-more-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sm-slate);
+  padding: 2px 8px 0;
+}
+
+/* ---------- Loading ---------- */
+
+.sm-loading {
+  font-size: 13px;
+  color: var(--sm-slate);
+  margin-top: 10px;
+  flex: 0 0 auto;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 720px) {
+  .sm-container {
+    height: auto;
+    padding: 20px 16px 32px;
+  }
+  .sm-grid-wrap {
+    min-height: 640px;
+    padding: 0 36px;
+  }
+  .sm-nav-prev,
+  .sm-nav-next {
+    width: 28px;
+    height: 28px;
+  }
+  .sm-weekday-label {
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+  .sm-header-label {
+    min-width: 0;
+  }
+}

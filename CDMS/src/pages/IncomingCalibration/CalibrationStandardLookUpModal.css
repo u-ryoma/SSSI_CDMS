@@ -1,3 +1,7 @@
+/* ============================================
+   CalibrationStandardLookUpModal.css
+   ============================================ */
+
 .csl-modal-overlay {
   position: fixed;
   inset: 0;
@@ -9,22 +13,35 @@
 }
 
 .csl-modal-wrapper {
-  background: #f0f0f0;
-  width: 380px;
+  --csl-navy: #1e3a5f;
+  --csl-navy-dark: #16304d;
+  --csl-border: #e2e5ea;
+  --csl-text: #1f2937;
+  --csl-label: #6b7280;
+  --csl-muted-bg: #f7f8fa;
+  --csl-radius: 8px;
+
+  background: #fff;
+  width: 400px;
   max-width: 95vw;
   max-height: 92vh;
-  border: 1px solid #999;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border-radius: var(--csl-radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, "Segoe UI", Inter, sans-serif;
 }
 
+/* ============================================
+   Body rhythm
+   ============================================ */
 .csl-modal-body {
   overflow-y: auto;
-  padding: 14px;
+  padding: 20px 24px 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 20px;
 }
 
 .csl-field-row {
@@ -33,9 +50,12 @@
 }
 
 .csl-field-row label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  margin-bottom: 3px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--csl-label);
+  margin-bottom: 6px;
 }
 
 .csl-field-row input,
@@ -44,33 +64,52 @@
   box-sizing: border-box;
 }
 
-.csl-input-with-btn {
-  display: flex;
-  gap: 4px;
+/* ============================================
+   Inputs — one consistent style everywhere
+   ============================================ */
+.csl-modal-body input[type="text"],
+.csl-modal-body input[type="date"],
+.csl-modal-body select,
+.csl-modal-body textarea {
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--csl-text);
+  border: 1px solid var(--csl-border);
+  border-radius: 6px;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.csl-input-with-btn input {
-  flex: 1;
+.csl-modal-body input:focus,
+.csl-modal-body select:focus,
+.csl-modal-body textarea:focus {
+  outline: none;
+  border-color: var(--csl-navy);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
 }
 
-.csl-barcode-btn {
-  border: 1px solid #999;
-  background: #e8e8e8;
-  cursor: pointer;
-  padding: 0 10px;
-  letter-spacing: 2px;
-  font-weight: 700;
+.csl-modal-body textarea {
+  resize: vertical;
+  min-height: 56px;
+  font-family: inherit;
 }
 
+/* Asset No. / Status side-by-side row */
 .csl-inline-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 16px;
 }
 
 .csl-inline-row label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--csl-label);
+  flex-shrink: 0;
 }
 
 .csl-inline-row input,
@@ -83,8 +122,88 @@
   flex: 1;
 }
 
+/* ============================================
+   QR scan control — the focal action on open
+   ============================================ */
+.csl-qr-area {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.csl-qr-scan-btn {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 22px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--csl-navy);
+  background: var(--csl-muted-bg);
+  border: 1.5px dashed #c7cdd6;
+  border-radius: var(--csl-radius);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.csl-qr-scan-btn:hover {
+  border-color: var(--csl-navy);
+  background: #eef2f6;
+}
+
+.csl-qr-video-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  background: var(--csl-muted-bg);
+  border: 1.5px solid var(--csl-border);
+  border-radius: var(--csl-radius);
+}
+
+.csl-qr-video {
+  width: 100%;
+  border-radius: 6px;
+  background: #000;
+}
+
+.csl-qr-cancel-btn {
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--csl-text);
+  background: #fff;
+  border: 1px solid var(--csl-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.csl-qr-cancel-btn:hover {
+  border-color: #b0b7c1;
+}
+
+.csl-qr-code-value {
+  font-size: 13px;
+  color: var(--csl-navy);
+  font-weight: 500;
+}
+
+.csl-code-not-found {
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: #b42318;
+}
+
+/* ============================================
+   Results table
+   ============================================ */
 .csl-results-list {
-  border: 1px solid #999;
+  border: 1px solid var(--csl-border);
+  border-radius: 6px;
   background: #fff;
   min-height: 220px;
   max-height: 260px;
@@ -94,14 +213,14 @@
 .csl-results-list table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .csl-results-list th,
 .csl-results-list td {
   text-align: left;
-  padding: 4px 6px;
-  border-bottom: 1px solid #eee;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eef0f3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -110,81 +229,84 @@
 .csl-results-list th {
   position: sticky;
   top: 0;
-  background: #e8e8e8;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--csl-label);
+  background: var(--csl-muted-bg);
 }
 
 .csl-results-list tbody tr {
   cursor: pointer;
+  transition: background 0.1s ease;
 }
 
 .csl-results-list tbody tr:hover {
-  background: #f2f6ff;
+  background: var(--csl-muted-bg);
 }
 
 .csl-row-selected {
-  background: #d6e4ff !important;
+  background: rgba(30, 58, 95, 0.08) !important;
 }
 
 .csl-results-empty {
-  padding: 14px;
-  font-size: 12px;
-  color: #999;
+  padding: 20px 14px;
+  font-size: 13px;
+  color: var(--csl-label);
   text-align: center;
 }
 
+/* ============================================
+   Footer — clear primary/secondary hierarchy
+   ============================================ */
 .csl-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
-}
-
-.csl-scan-link {
-  background: none;
-  border: none;
-  color: #2f6fed;
-  text-decoration: underline;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 0;
+  justify-content: flex-end;
+  border-top: 1px solid var(--csl-border);
+  padding: 16px 24px;
 }
 
 .csl-footer-right {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
-.csl-footer-right button {
-  padding: 6px 14px;
-  border: 1px solid #999;
-  background: #e8e8e8;
+.csl-use-btn {
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--csl-navy);
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.csl-use-btn:hover:not(:disabled) {
+  background: var(--csl-navy-dark);
 }
 
 .csl-use-btn:disabled {
-  color: #aaa;
+  background: #c7cdd6;
+  color: #fff;
   cursor: not-allowed;
 }
 
 .csl-cancel-btn {
-  color: #2f6fed;
-  font-weight: 600;
-}
-/* Append these rules to CalibrationStandardLookUpModal.css */
-
-.csl-input-with-btn {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.csl-lookup-btn {
-  flex-shrink: 0;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--csl-text);
+  background: #fff;
+  border: 1px solid var(--csl-border);
+  border-radius: 6px;
+  cursor: pointer;
 }
 
-.csl-code-not-found {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #b91c1c;
+.csl-cancel-btn:hover {
+  border-color: #b0b7c1;
+  background: var(--csl-muted-bg);
 }

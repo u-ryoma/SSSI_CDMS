@@ -106,6 +106,24 @@
 //     return data.url;
 //   };
 
+//   // Explicitly creates (or confirms) the Cloudinary folder for a
+//   // standardId. Called on every Save/Update even when no photo was
+//   // taken this session — otherwise a folder only ever appeared as a
+//   // side effect of uploadPhoto, so standards saved without a photo
+//   // never got a folder at all. Non-fatal: a failure here shouldn't
+//   // block the actual record save.
+//   const ensureStandardFolder = async (standardId) => {
+//     const folderKey = standardId.replace(/\//g, "_");
+//     try {
+//       await fetch(
+//         `/api/uploads/standard-folder/${encodeURIComponent(folderKey)}`,
+//         { method: "POST" },
+//       );
+//     } catch (err) {
+//       console.error("Failed to ensure standard folder:", err);
+//     }
+//   };
+
 //   // Create (POST) if this is a brand new standard, otherwise update (PUT)
 //   // the existing one. Whether it's new is now tracked explicitly via
 //   // isEditingExisting, NOT by checking if standardId is empty — since
@@ -115,7 +133,9 @@
 //   // If the user captured a new photo in this session, photoBlob is the
 //   // raw image data handed up from AddAssetModal. It gets uploaded to
 //   // Cloudinary first so the resulting URL can be saved alongside the
-//   // rest of the standard's fields in one record.
+//   // rest of the standard's fields in one record. If no photo was
+//   // captured, we still ensure a Cloudinary folder exists for this
+//   // standardId so every saved standard has one from the start.
 //   const handleSubmit = async (e, photoBlob) => {
 //     e.preventDefault();
 //     try {
@@ -123,6 +143,8 @@
 
 //       if (photoBlob) {
 //         photoUrl = await uploadPhoto(photoBlob);
+//       } else if (formData.standardId) {
+//         await ensureStandardFolder(formData.standardId);
 //       }
 
 //       const payload = { ...formData, photoUrl };
@@ -322,6 +344,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "../assetmonitoring.css";
 import AddAssetModal from "./AddAssetModal";
+import PrintStandardQrModal from "./PrintStandardQrModal";
 
 const initialFormState = {
   standardId: "",
@@ -352,6 +375,11 @@ const CalibrationSystem = () => {
   const [isEditingExisting, setIsEditingExisting] = useState(false);
   const [searchField, setSearchField] = useState("standardId");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Standard currently shown in the "Print Label" QR modal, opened from
+  // a table row without also opening the edit modal — and also opened
+  // automatically right after a successful Save/Update.
+  const [qrAsset, setQrAsset] = useState(null);
 
   const fetchAssets = useCallback(async () => {
     setLoading(true);
@@ -457,6 +485,10 @@ const CalibrationSystem = () => {
   // rest of the standard's fields in one record. If no photo was
   // captured, we still ensure a Cloudinary folder exists for this
   // standardId so every saved standard has one from the start.
+  //
+  // On success, the Add/Edit modal closes and the QR label modal opens
+  // automatically for the standard that was just saved — so a QR is
+  // generated the moment Save/Update succeeds, without a separate click.
   const handleSubmit = async (e, photoBlob) => {
     e.preventDefault();
     try {
@@ -489,6 +521,14 @@ const CalibrationSystem = () => {
 
       handleCloseModal();
       fetchAssets();
+
+      // Auto-open the QR label modal for the standard that was just
+      // saved. Falls back to payload.standardId (what the user typed)
+      // in case the backend response doesn't echo it back.
+      setQrAsset({
+        ...payload,
+        standardId: data.standardId || payload.standardId,
+      });
     } catch (err) {
       console.error("Failed to save standard:", err);
       alert(
@@ -604,18 +644,19 @@ const CalibrationSystem = () => {
               <th>Date Due</th>
               <th>Cycle</th>
               <th>Centre</th>
+              <th>QR</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: "center" }}>
+                <td colSpan={12} style={{ textAlign: "center" }}>
                   Loading...
                 </td>
               </tr>
             ) : filteredAssets.length === 0 ? (
               <tr>
-                <td colSpan={11} style={{ textAlign: "center" }}>
+                <td colSpan={12} style={{ textAlign: "center" }}>
                   No records found.
                 </td>
               </tr>
@@ -637,6 +678,18 @@ const CalibrationSystem = () => {
                   <td>{formatDate(asset.dateDue)}</td>
                   <td>{asset.cycle}</td>
                   <td>{asset.centre}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="print-label-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQrAsset(asset);
+                      }}
+                    >
+                      Print Label
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -656,6 +709,12 @@ const CalibrationSystem = () => {
         onModificationHistory={handleModificationHistory}
         isEditingExisting={isEditingExisting}
         subtitleBottom="Asset Monitoring"
+      />
+
+      {/* PRINT QR LABEL MODAL */}
+      <PrintStandardQrModal
+        standard={qrAsset}
+        onClose={() => setQrAsset(null)}
       />
     </div>
   );

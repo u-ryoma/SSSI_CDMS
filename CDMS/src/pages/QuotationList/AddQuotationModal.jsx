@@ -1092,8 +1092,10 @@ const AddQuotationModal = ({
     quotationId: idForRecord,
     date: date.toISOString().slice(0, 10),
     preparedBy,
+    preparedByUsername: isEditMode
+      ? initialData?.preparedByUsername || ""
+      : currentUser?.username || "",
   });
-
   // Silently POSTs the current form as a new quotation record, without
   // closing the modal or touching the parent's selectedQuotation state.
   // Returns the server-generated quotationId. Used by Download Template

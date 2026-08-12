@@ -1,0 +1,344 @@
+.scm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.scm-modal {
+  background: #eeeeee;
+  border-radius: 6px;
+  width: 1000px;
+  max-width: 96vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13.5px;
+}
+
+.scm-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  background: #eeeeee;
+}
+
+.scm-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+}
+
+.scm-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.scm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scm-field-grow {
+  flex: 1;
+}
+
+.scm-row-inline {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.scm-row-inline .scm-field:last-child {
+  flex: 0 0 170px;
+}
+
+.scm-technician-field {
+  position: relative;
+}
+
+.scm-technician-picker {
+  position: relative;
+}
+
+.scm-technician-trigger {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #c7c7c7;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.scm-technician-trigger:hover {
+  background: #f7f7f7;
+}
+
+.scm-technician-caret {
+  color: #666;
+  margin-left: 8px;
+}
+
+.scm-technician-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #c7c7c7;
+  border-radius: 4px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  max-height: 180px;
+  overflow-y: auto;
+  z-index: 20;
+  padding: 4px 0;
+}
+
+.scm-technician-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+
+.scm-technician-option:hover {
+  background: #f2f5fb;
+}
+
+.scm-technician-initials {
+  color: #777;
+  font-size: 12.5px;
+}
+
+.scm-technician-empty {
+  padding: 10px 12px;
+  color: #888;
+  font-size: 13px;
+}
+
+.scm-label {
+  font-weight: 600;
+  color: #222;
+  font-size: 13.5px;
+}
+
+.scm-field input[type="text"],
+.scm-field input[type="date"],
+.scm-field select,
+.scm-field textarea,
+.scm-inline-group input[type="text"],
+.scm-inline-group select {
+  border: 1px solid #c7c7c7;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scm-field textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.scm-readonly {
+  background: #e2e2e2 !important;
+  color: #555;
+}
+
+.scm-inline-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.scm-inline-group select,
+.scm-inline-group input {
+  flex: 1;
+}
+
+.scm-icon-btn {
+  flex: 0 0 auto;
+  border: 1px solid #a9bde0;
+  background: #dbe6fb;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.scm-icon-btn:hover {
+  background: #c8d9f7;
+}
+
+.scm-jobs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.scm-jobs-toolbar-spacer {
+  flex: 1;
+}
+
+.scm-add-btn {
+  background: #fff;
+  border: 1px solid #b9b9b9;
+  border-radius: 4px;
+  padding: 7px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.scm-add-btn:hover {
+  background: #f4f4f4;
+}
+
+.scm-radio {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.scm-ghost-btn {
+  background: #fff;
+  border: 1px solid #b9b9b9;
+  border-radius: 4px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.scm-ghost-btn:hover {
+  background: #f4f4f4;
+}
+
+.scm-update-btn {
+  background: #111;
+  color: #fff;
+  border: 1px solid #111;
+  border-radius: 4px;
+  padding: 7px 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.scm-update-btn:hover {
+  background: #000;
+}
+
+.scm-update-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scm-jobs-table-wrapper {
+  margin-top: 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  max-height: 260px;
+  overflow: auto;
+  background: #fff;
+}
+
+.scm-jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.scm-jobs-table thead th {
+  position: sticky;
+  top: 0;
+  background: #dde5f4;
+  border-bottom: 1px solid #b7c3dc;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.scm-jobs-table td {
+  border-bottom: 1px solid #ececec;
+  padding: 4px 8px;
+}
+
+.scm-jobs-table input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 5px 6px;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
+.scm-jobs-table input:focus {
+  border: 1px solid #a9bde0;
+  background: #fff;
+}
+
+.scm-type-cell {
+  color: #333;
+}
+
+.scm-row-remove {
+  border: none;
+  background: transparent;
+  color: #b33;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.scm-no-jobs {
+  text-align: center;
+  color: #888;
+  padding: 16px;
+}
+
+.scm-picker-stub {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  padding: 20px;
+  z-index: 1100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-width: 320px;
+  text-align: center;
+}
+
+.scm-picker-stub p {
+  margin-bottom: 12px;
+}
+
+.scm-picker-stub button {
+  margin: 0 4px;
+  border: 1px solid #999;
+  background: #f7f7f7;
+  border-radius: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+}

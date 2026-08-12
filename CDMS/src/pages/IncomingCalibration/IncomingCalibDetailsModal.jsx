@@ -1,11 +1,18 @@
-// import React, { useState, useEffect, useRef } from "react";
+// import React, { useState, useEffect, useRef, useCallback } from "react";
 // import { createPortal } from "react-dom";
 // import "./IncomingCalibDetailsModal.css";
 // import CdmsModalHeader from "./CdmsModalHeader";
 // import CalibrationStandardLookupModal from "./CalibrationStandardLookUpModal";
-// import CalibrationProcedureLookupModal from "./CalibrationProcedureLookupModal";
+// import CalibrationProcedureLookupModal from "./CalibrationProcedureLookUpModal";
 // import ConfirmDialog from "../../components/ConfirmDialog";
-// import JobFilesModal from "./JobFilesModal";
+// import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
+
+// // Base backend URL — every /api/... fetch in this file must be prefixed
+// // with this (same pattern as OnGoingCalib.jsx / JobReceipt.jsx), or the
+// // request goes to the frontend's own origin (e.g. the Vite dev server)
+// // instead of the actual backend, and 404s with "Cannot POST /api/..."
+// // whenever the two aren't on the same host/port.
+// const API = import.meta.env.VITE_API_URL;
 
 // const ROW_COUNT = 5;
 
@@ -38,19 +45,12 @@
 // // routes/uploadRoutes.js -> GET /api/uploads/templates/download). Needs
 // // the template's Cloudinary publicId, which only exists once a template
 // // has actually been picked via CalibrationProcedureLookupModal.
-// //
-// // This is the UNFILLED, as-stored copy of the template — still used by
-// // JobFilesModal's version-history downloads (an audit trail of past
-// // template edits, which should stay exactly as they were uploaded, not
-// // have the current job's data stamped into them). The Download button
-// // in this modal uses handleDownloadClick below instead, which fetches a
-// // job-data-filled copy from a separate route.
 // const buildTemplateDownloadUrl = (template) => {
 //   if (!template?.publicId) return null;
 //   const filename = template.format
 //     ? `${template.code}.${template.format}`
 //     : template.code;
-//   return `/api/uploads/templates/download?publicId=${encodeURIComponent(
+//   return `${API}/api/uploads/templates/download?publicId=${encodeURIComponent(
 //     template.publicId,
 //   )}&filename=${encodeURIComponent(filename)}`;
 // };
@@ -59,20 +59,19 @@
 //   jobForm,
 //   onClose,
 //   onUpdate,
+//   onConcernFlagged,
 //   onOpenCamera,
 //   onLoadTemplate,
 //   onLoadAndConnect,
 //   onOpenCalProcedureLookup,
 //   onOpenCalStandardLookup,
 //   title = "INCOMING CALIBRATION DETAILS",
+//   downloadLabel = "",
 // }) => {
 //   const [form, setForm] = useState(() => ({
 //     jobNumber: jobForm.jobNumber || "",
 //     dateRec: jobForm.dateRec || "",
 //     companyName: jobForm.companyName || "",
-//     // Company address lives on the job receipt record, not entered here
-//     // — carried through so the filled-template download can stamp the
-//     // CDMS sheet's COMPANY ADDRESS cell with it.
 //     companyAddress: jobForm.companyAddress || "",
 //     description: jobForm.description || "",
 //     brand: jobForm.brand || "",
@@ -92,17 +91,28 @@
 //     dateDue: jobForm.dateDue || "",
 //     accreditationLogo: jobForm.accreditationLogo || "with",
 //     calibrationProcedure: jobForm.calibrationProcedure || "",
-//     // Full template record (publicId, code, format, fileUrl, etc.) for
-//     // whatever was picked via the lookup modal — separate from
-//     // calibrationProcedure (just the display text) so the Download
-//     // button below has what it needs.
 //     calibrationProcedureTemplate: jobForm.calibrationProcedureTemplate || null,
 //     calibrationStandards:
 //       jobForm.calibrationStandards?.length === ROW_COUNT
 //         ? jobForm.calibrationStandards
 //         : Array.from({ length: ROW_COUNT }, emptyStandardRow),
-//     photoUrl: jobForm.photoUrl || "",
+
+//     // PHOTOS — the job may have several equipment photos captured across
+//     // sessions (CameraCaptureModal supports multi-shot capture). Prefers
+//     // jobForm.photoUrls (the array); falls back to wrapping the older
+//     // singular jobForm.photoUrl in a one-item array so records saved
+//     // before this change still display their photo. This is only the
+//     // INITIAL seed — the useEffect below (fetch job-folder files) tops
+//     // this up with every equipment photo saved under this job number
+//     // across every stage, not just what jobForm happened to carry.
+//     photoUrls: jobForm.photoUrls?.length
+//       ? jobForm.photoUrls
+//       : jobForm.photoUrl
+//         ? [jobForm.photoUrl]
+//         : [],
 //   }));
+
+//   const stageLabel = downloadLabel || "Incoming Calib";
 
 //   useEffect(() => {
 //     if (!form.dateCal) return;
@@ -152,8 +162,6 @@
 //     });
 //   };
 
-//   // Validation-style dialog — just an OK button, no Cancel, since
-//   // there's nothing to confirm/undo, only something to acknowledge.
 //   const showError = (title, message) => {
 //     setDialog({
 //       show: true,
@@ -167,8 +175,6 @@
 //     });
 //   };
 
-//   // Acknowledgment dialog for successful actions (e.g. a completed
-//   // re-upload) — OK only, no Cancel, and not styled as danger/error.
 //   const showInfo = (title, message) => {
 //     setDialog({
 //       show: true,
@@ -213,6 +219,78 @@
 //     );
 //   };
 
+//   // --- Job Number With Concern ---------------------------------------
+//   // Flags this job as a concern via the existing PUT /api/jobnumbers/tag
+//   // route (same one InstrumentTag.jsx presumably calls to move a job
+//   // into Incoming Calibration in the first place). Sending
+//   // concernTagged: true here is what the dashboard analytics aggregation
+//   // in server.js already reads as the "Concern" stage (tagged: true,
+//   // concernTagged: true, ongoingTagged not true) — so this job will show
+//   // up in the Incoming Concern list without needing any new backend
+//   // route. tagged: true is sent alongside it since this job already
+//   // reached Incoming Calibration, so it should already be tagged, but
+//   // it's included explicitly rather than assumed.
+//   //
+//   // concernSource: "calibration" — marks that this concern was flagged
+//   // from HERE (Incoming Calibration Details), not straight from
+//   // Instrument Tagging, so this job already has a real OIC/SIG on it.
+//   // JobDetailsModal / ConcernIncoming.jsx use this to decide whether to
+//   // show the OIC/SIG fields. See InstrumentTag.jsx for the other source.
+//   //
+//   // onConcernFlagged — lets the parent screen (e.g. OnGoingCalib.jsx)
+//   // remove this job from ITS list immediately on success, rather than
+//   // relying on the parent's next refetch to notice concernTagged flipped
+//   // to true. Parents that don't need this (e.g. plain Incoming
+//   // Calibration, if it doesn't render concern-tagged jobs anyway) can
+//   // simply not pass the prop — it's optional and a no-op if omitted.
+//   const [isMarkingConcern, setIsMarkingConcern] = useState(false);
+
+//   const handleMarkAsConcernClick = () => {
+//     showConfirm(
+//       "Job Number With Concern",
+//       `Are you sure you want to flag Job Number ${form.jobNumber} as a concern? It will move to the Incoming Concern list.`,
+//       async () => {
+//         hideDialog();
+//         setIsMarkingConcern(true);
+//         try {
+//           const res = await fetch(`${API}/api/jobnumbers/tag`, {
+//             method: "PUT",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({
+//               jobNumber: form.jobNumber,
+//               tagged: true,
+//               concernTagged: true,
+//               concernSource: "calibration",
+//               // Without these, the OIC/SIG typed into this form were
+//               // never actually persisted to the job document — only
+//               // clicking "Update" saved them (via onUpdate), and "Job
+//               // Number With Concern" bypasses that entirely. This is
+//               // why the Incoming Concern table showed OIC blank even
+//               // when it was visibly filled in on screen.
+//               oicBy: form.oicBy,
+//               sig: form.sig,
+//             }),
+//           });
+//           const data = await res.json();
+//           if (!res.ok || data.success === false) {
+//             throw new Error(data?.message || "Failed to flag job as concern");
+//           }
+//           onConcernFlagged?.(form.jobNumber);
+//           onClose();
+//         } catch (err) {
+//           console.error("Failed to mark job as concern:", err);
+//           showError(
+//             "Update Failed",
+//             "This job could not be flagged as a concern. Please try again.",
+//           );
+//         } finally {
+//           setIsMarkingConcern(false);
+//         }
+//       },
+//       "default",
+//     );
+//   };
+
 //   const [standardLookupTarget, setStandardLookupTarget] = useState(null);
 
 //   const openStandardLookup = (rowIndex, columnKey) => {
@@ -238,9 +316,6 @@
 //   };
 
 //   const handleSelectTemplate = (template) => {
-//     // Selecting a template fills the text field AND keeps the full
-//     // template record around (publicId etc.) so the Download button
-//     // below can actually build a working download link.
 //     setForm((prev) => ({
 //       ...prev,
 //       calibrationProcedure: template.name,
@@ -249,13 +324,6 @@
 //     setShowProcedureLookup(false);
 //   };
 
-//   // Recovers calibrationProcedureTemplate for records that only have the
-//   // plain text code saved (e.g. typed by hand, or saved before this
-//   // field existed) — without this, the Download button silently stays
-//   // hidden even though the text field shows a valid-looking code, since
-//   // it has no publicId to build a download link from. Runs once, only
-//   // when there's a code to match but no template object already
-//   // attached to it.
 //   useEffect(() => {
 //     if (form.calibrationProcedureTemplate || !form.calibrationProcedure) {
 //       return;
@@ -264,7 +332,7 @@
 
 //     (async () => {
 //       try {
-//         const res = await fetch("/api/uploads/templates");
+//         const res = await fetch(`${API}/api/uploads/templates`);
 //         const data = await res.json();
 //         if (cancelled || !res.ok || data.success === false) return;
 
@@ -290,102 +358,154 @@
 //     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, []);
 
+//   // --- Fetch valid SIG signers (technicians + admins) ----------------
+//   // The SIG field is a code (initials) looked up against
+//   // calculations!H86:H93 in the downloaded template — it must be one of
+//   // the actual technician/admin account usernames, not a fixed value.
+//   // GET /api/accounts returns every account with no role filter, so
+//   // filter down to role === "technician" OR "admin" here — both roles
+//   // are eligible signers (this used to be technician-only, which wrongly
+//   // excluded admin accounts from the dropdown even though the backend's
+//   // resolved-name lookup and the rest of the system treat admins as
+//   // valid signers too). Each option's value is the username (the
+//   // initials code the template lookup expects); the label shows the
+//   // full name for readability.
+//   const [signerOptions, setSignerOptions] = useState([]);
+
+//   useEffect(() => {
+//     let cancelled = false;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API}/api/accounts`);
+//         const accounts = await res.json();
+//         if (cancelled || !Array.isArray(accounts)) return;
+//         const eligible = accounts.filter(
+//           (u) => u.role === "technician" || u.role === "admin",
+//         );
+//         setSignerOptions(eligible);
+//       } catch (err) {
+//         console.error("Failed to fetch signer options:", err);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, []);
+
+//   // --- Fetch ALL equipment photos saved for this job number ----------
+//   // jobForm.photoUrls/photoUrl only covers what THIS stage's camera flow
+//   // captured. Other stages (e.g. JobNumberModal) may have added more
+//   // photos into the same Cloudinary folder
+//   // (cdms/job-numbers/<jobNumber>/equipment-photos/). On mount, pull the
+//   // job's full file listing — the same GET /job-folder/:jobNumber/files
+//   // endpoint ReceiptFolderModal's "View Files" already uses — and merge
+//   // in just the photo subset, so the carousel shows every equipment
+//   // photo saved under this job number, regardless of which stage
+//   // uploaded it, not just this stage's local subset.
+//   useEffect(() => {
+//     if (!form.jobNumber) return;
+//     let cancelled = false;
+
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API}/api/uploads/job-folder/${encodeURIComponent(form.jobNumber)}/files`,
+//         );
+//         const data = await res.json();
+//         if (cancelled || !res.ok || data.success === false) return;
+
+//         // resourceType is the reliable signal here — Cloudinary image
+//         // uploads don't carry their extension in publicId (that's a
+//         // separate `format` field, so the old extension regex never
+//         // matched), and on Dynamic Folder mode accounts the Search API's
+//         // legacy `folder` string can come back empty/inconsistent even
+//         // for files that really do live under .../equipment-photos/. The
+//         // backend's job-folder/files route already returns resourceType
+//         // per file (set at upload time to "image" for equipment photos,
+//         // "raw" for PDFs/documents/templates), so filter on that first.
+//         const files = data.files || [];
+//         const remotePhotoUrls = files
+//           .filter(
+//             (f) =>
+//               f.resourceType === "image" ||
+//               f.folder?.includes("/equipment-photos") ||
+//               /\.(jpe?g|png|gif|webp)$/i.test(f.publicId || ""),
+//           )
+//           .map((f) => f.url);
+
+//         if (remotePhotoUrls.length === 0) return;
+
+//         setForm((prev) => {
+//           const merged = Array.from(
+//             new Set([...prev.photoUrls, ...remotePhotoUrls]),
+//           );
+//           return merged.length === prev.photoUrls.length
+//             ? prev
+//             : { ...prev, photoUrls: merged };
+//         });
+//       } catch (err) {
+//         console.error("Failed to fetch job equipment photos:", err);
+//       }
+//     })();
+
+//     return () => {
+//       cancelled = true;
+//     };
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [form.jobNumber]);
+
+//   // OPEN CAMERA — onOpenCamera is expected to resolve either a single
+//   // dataURL/uploaded-URL (older callers) or an ARRAY of them (multi-shot
+//   // capture, matching CameraCaptureModal's onCapture(photos) contract).
+//   // Either way, results are APPENDED to form.photoUrls rather than
+//   // replacing it, so previously captured photos stay in the carousel.
 //   const handleOpenCamera = async () => {
 //     const result = await onOpenCamera?.();
-//     if (result) setForm((prev) => ({ ...prev, photoUrl: result }));
+//     if (!result) return;
+//     const newPhotos = Array.isArray(result) ? result : [result];
+//     if (newPhotos.length === 0) return;
+//     setForm((prev) => ({
+//       ...prev,
+//       photoUrls: [...prev.photoUrls, ...newPhotos],
+//     }));
+//     setActivePhotoIndex(form.photoUrls.length); // jump to first newly added photo
 //   };
 
 //   const contactCertOptions = CONTACT_CERT_OPTIONS.includes(form.contactCert)
 //     ? CONTACT_CERT_OPTIONS
 //     : [form.contactCert, ...CONTACT_CERT_OPTIONS].filter(Boolean);
 
+//   // --- Photo carousel (inline, in the icd-image-viewer box) ----------
+//   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+//   // Keep the active index in range whenever the photo list changes
+//   // (e.g. new photos captured, or a record loads with fewer photos).
+//   useEffect(() => {
+//     setActivePhotoIndex((i) =>
+//       Math.min(i, Math.max(form.photoUrls.length - 1, 0)),
+//     );
+//   }, [form.photoUrls.length]);
+
+//   const goToPrevPhoto = useCallback(() => {
+//     setActivePhotoIndex(
+//       (i) => (i - 1 + form.photoUrls.length) % form.photoUrls.length,
+//     );
+//   }, [form.photoUrls.length]);
+
+//   const goToNextPhoto = useCallback(() => {
+//     setActivePhotoIndex((i) => (i + 1) % form.photoUrls.length);
+//   }, [form.photoUrls.length]);
+
 //   // --- View Files modal --------------------------------------------
-//   // Lists the job's unit photo, the full version history of the
-//   // calibration procedure template, AND everything actually stored in
-//   // this job number's Cloudinary folder (equipment photos + uploaded
-//   // documents — same data JobFolderModal's standalone "Open Folder"
-//   // shows, via GET /api/uploads/job-folder/:jobNumber/files), since the
-//   // template now cycles through repeated download -> edit -> re-upload
-//   // steps as the job moves through each process stage.
 //   const [showViewFiles, setShowViewFiles] = useState(false);
-//   const [templateVersionHistory, setTemplateVersionHistory] = useState([]);
-//   const [isLoadingFileHistory, setIsLoadingFileHistory] = useState(false);
 
-//   const [jobFiles, setJobFiles] = useState([]);
-//   const [isLoadingJobFiles, setIsLoadingJobFiles] = useState(false);
-//   const [jobFilesError, setJobFilesError] = useState("");
-
-//   const fetchJobFiles = async () => {
-//     if (!form.jobNumber) {
-//       setJobFiles([]);
-//       return;
-//     }
-//     setIsLoadingJobFiles(true);
-//     setJobFilesError("");
-//     try {
-//       const res = await fetch(
-//         `/api/uploads/job-folder/${encodeURIComponent(form.jobNumber)}/files`,
-//       );
-//       const data = await res.json();
-//       if (res.ok && data.success !== false) {
-//         setJobFiles(data.files || []);
-//       } else {
-//         setJobFilesError(data.message || "Failed to load job folder files.");
-//       }
-//     } catch (err) {
-//       console.error("Failed to load job folder files:", err);
-//       setJobFilesError("Failed to load job folder files.");
-//     } finally {
-//       setIsLoadingJobFiles(false);
-//     }
-//   };
-
-//   const handleViewFilesClick = async () => {
+//   const handleViewFilesClick = () => {
 //     setShowViewFiles(true);
-
-//     // Fires alongside the template version fetch below rather than
-//     // waiting on it — the two lists are independent, so there's no
-//     // reason to serialize them.
-//     fetchJobFiles();
-
-//     const code =
-//       form.calibrationProcedureTemplate?.code || form.calibrationProcedure;
-//     if (!code) return;
-
-//     setIsLoadingFileHistory(true);
-//     try {
-//       // Expected backend contract (see routes/uploadRoutes.js):
-//       // GET /api/uploads/templates/versions?code=<code>
-//       // -> { success, versions: [{ publicId, code, format, version, uploadedAt, uploadedBy }, ...] }
-//       // sorted newest-first.
-//       const res = await fetch(
-//         `/api/uploads/templates/versions?code=${encodeURIComponent(code)}`,
-//       );
-//       const data = await res.json();
-//       if (res.ok && data.success !== false) {
-//         setTemplateVersionHistory(data.versions || []);
-//       }
-//     } catch (err) {
-//       console.error("Failed to load template file history:", err);
-//     } finally {
-//       setIsLoadingFileHistory(false);
-//     }
 //   };
 
 //   // --- Re-upload the edited template --------------------------------
-//   // Each process stage downloads the current template, edits it
-//   // offline, then re-uploads it here as the new current version before
-//   // moving to the next stage. Every re-upload creates a new version
-//   // (rather than overwriting) so the full edit history stays visible
-//   // in View Files.
 //   const reuploadInputRef = useRef(null);
 //   const [isReuploading, setIsReuploading] = useState(false);
-//   // Gates the Update button: the workflow requires the edited template to
-//   // be re-uploaded (via handleReuploadFileChange below) at least once
-//   // during this session before the job's details can be saved — Update
-//   // should never go through on a template that's still the old,
-//   // unedited version. Resets to false every time this modal is opened
-//   // fresh (it's not persisted onto the job record itself).
 //   const [hasReuploadedThisSession, setHasReuploadedThisSession] =
 //     useState(false);
 
@@ -402,7 +522,7 @@
 
 //   const handleReuploadFileChange = async (e) => {
 //     const file = e.target.files?.[0];
-//     e.target.value = ""; // allow re-selecting the same filename next time
+//     e.target.value = "";
 //     if (!file) return;
 
 //     const formData = new FormData();
@@ -412,19 +532,11 @@
 //       "code",
 //       form.calibrationProcedureTemplate?.code || form.calibrationProcedure,
 //     );
-//     if (form.calibrationProcedureTemplate?.publicId) {
-//       formData.append(
-//         "previousPublicId",
-//         form.calibrationProcedureTemplate.publicId,
-//       );
-//     }
+//     formData.append("stageLabel", stageLabel);
 
 //     setIsReuploading(true);
 //     try {
-//       // Expected backend contract (see routes/uploadRoutes.js):
-//       // POST /api/uploads/templates/reupload (multipart/form-data)
-//       // -> { success, template: { publicId, code, format, name, version, uploadedAt, uploadedBy } }
-//       const res = await fetch("/api/uploads/templates/reupload", {
+//       const res = await fetch(`${API}/api/uploads/templates/reupload`, {
 //         method: "POST",
 //         body: formData,
 //       });
@@ -433,20 +545,14 @@
 //         throw new Error(data?.message || "Upload failed");
 //       }
 
-//       const newVersion = data.template;
-//       setForm((prev) => ({
-//         ...prev,
-//         calibrationProcedureTemplate: newVersion,
-//         calibrationProcedure: newVersion?.name || prev.calibrationProcedure,
-//       }));
-//       setTemplateVersionHistory((prev) => [newVersion, ...prev]);
+//       const newTemplate = data.template;
 //       setHasReuploadedThisSession(true);
 
 //       showInfo(
 //         "Template Uploaded",
-//         newVersion?.version
-//           ? `Version ${newVersion.version} of the template has been uploaded and is now the current version.`
-//           : "The revised template has been uploaded and is now the current version.",
+//         newTemplate?.savedAs
+//           ? `The revised template has been saved for this job as "${newTemplate.savedAs}". Downloads for this job will now use this version.`
+//           : "The revised template has been saved for this job.",
 //       );
 //     } catch (err) {
 //       console.error("Failed to re-upload template:", err);
@@ -460,19 +566,6 @@
 //   };
 
 //   // --- Download the template, filled with this job's data -----------
-//   // Gate: requires a calibration procedure AND at least one filled-in
-//   // calibration standard cell before a download is allowed. Clicking
-//   // without these shows a validation error via the shared ConfirmDialog
-//   // instead of silently doing nothing / hiding.
-//   //
-//   // Unlike the old version (which just opened
-//   // buildTemplateDownloadUrl(template) in a new tab), this POSTs the
-//   // job's current form data to the backend, which loads the stored
-//   // .xlsx template, writes the data into its CDMS input sheet (the
-//   // sheet every other tab in the workbook pulls from via formulas), and
-//   // streams back the filled copy. That's why this has to go through
-//   // fetch + blob + a synthetic <a download> instead of window.open — a
-//   // plain GET link can't carry a JSON body.
 //   const [isDownloading, setIsDownloading] = useState(false);
 
 //   const handleDownloadClick = async () => {
@@ -498,31 +591,30 @@
 //     }
 
 //     const template = form.calibrationProcedureTemplate;
-//     if (!template?.publicId) {
+//     const code = template?.code || form.calibrationProcedure?.trim();
+//     if (!code) {
 //       showError(
 //         "Template Not Found",
-//         "No downloadable file is linked to this calibration procedure. Please select one from the lookup.",
+//         "No calibration procedure code is set. Please select one from the lookup.",
 //       );
 //       return;
 //     }
 
-//     // Filename is the job number, not the template's code — e.g.
-//     // "SSS-0001-26.xlsx" instead of "SSS-CP-020.xlsx". Slashes are
-//     // swapped for dashes since job numbers are often formatted like
-//     // "SSS/0001/26", and a raw "/" would both break the filename and
-//     // corrupt the Content-Disposition header. Extension comes from the
-//     // template so the downloaded file still opens correctly.
-//     const ext = template.format ? `.${template.format}` : "";
+//     const ext = template?.format ? `.${template.format}` : ".xlsx";
 //     const safeJobNumber = (form.jobNumber || "job").replace(/[\\/]/g, "-");
-//     const filename = `${safeJobNumber}${ext}`;
+//     const baseName = downloadLabel
+//       ? `${safeJobNumber} - ${downloadLabel}`
+//       : safeJobNumber;
+//     const filename = `${baseName}${ext}`;
 
 //     setIsDownloading(true);
 //     try {
-//       const res = await fetch("/api/uploads/templates/download-filled", {
+//       const res = await fetch(`${API}/api/uploads/templates/download-filled`, {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify({
-//           publicId: template.publicId,
+//           publicId: template?.publicId,
+//           code,
 //           filename,
 //           jobData: {
 //             jobNumber: form.jobNumber,
@@ -536,6 +628,19 @@
 //             dateCal: form.dateCal,
 //             dateDue: form.dateDue,
 //             contactCert: form.contactCert,
+//             // The template's OIC/SIG cells (ws!B7/B8) are the acronym
+//             // lookup INPUT cells the workbook itself is built around:
+//             // calculations!B84/H84 — which Front Page!B55/W55 and Calib
+//             // Data 1!B55/W55 both read from — do
+//             // MATCH(ws!B7 or ws!B8, ...) against the acronym tables at
+//             // calculations!B86:C93 / H86:I93 to resolve the full name.
+//             // So we send the acronym (username), NOT the full name,
+//             // here: ws ends up showing the initials, and Front Page /
+//             // Calib Data 1 end up showing the resolved full name
+//             // automatically via that lookup. form.oicBy and form.sig
+//             // are already usernames/initials (see the OIC field's
+//             // initial state and the SIG <select>'s option values
+//             // above), so they're sent through as-is.
 //             oicBy: form.oicBy,
 //             sig: form.sig,
 //             calibrationStandards: form.calibrationStandards,
@@ -656,7 +761,11 @@
 //                 <label>SIG</label>
 //                 <select name="sig" value={form.sig} onChange={handleChange}>
 //                   <option value="">-- Select --</option>
-//                   <option>MCJ</option>
+//                   {signerOptions.map((u) => (
+//                     <option key={u.username} value={u.username}>
+//                       {u.username} — {u.name}
+//                     </option>
+//                   ))}
 //                 </select>
 //               </div>
 
@@ -771,9 +880,83 @@
 //                 />
 //               </div>
 
-//               <div className="icd-image-viewer">
-//                 {form.photoUrl ? (
-//                   <img src={form.photoUrl} alt="Unit" />
+//               {/* IMAGE VIEWER — carousel over form.photoUrls (seeded from
+//                   jobForm, then topped up with every equipment photo
+//                   found under this job number via the job-folder fetch
+//                   above). Shows the currently active photo with ‹ › nav
+//                   buttons and a counter whenever there's more than one. */}
+//               <div
+//                 className="icd-image-viewer"
+//                 style={{ position: "relative" }}
+//               >
+//                 {form.photoUrls.length > 0 ? (
+//                   <>
+//                     <img
+//                       src={form.photoUrls[activePhotoIndex]}
+//                       alt={`Unit photo ${activePhotoIndex + 1} of ${form.photoUrls.length}`}
+//                     />
+//                     {form.photoUrls.length > 1 && (
+//                       <>
+//                         <button
+//                           type="button"
+//                           onClick={goToPrevPhoto}
+//                           title="Previous photo"
+//                           style={{
+//                             position: "absolute",
+//                             top: "50%",
+//                             left: 4,
+//                             transform: "translateY(-50%)",
+//                             width: 28,
+//                             height: 28,
+//                             borderRadius: "50%",
+//                             border: "1px solid #999",
+//                             background: "rgba(255,255,255,0.85)",
+//                             cursor: "pointer",
+//                             fontSize: 14,
+//                             lineHeight: 1,
+//                           }}
+//                         >
+//                           &lsaquo;
+//                         </button>
+//                         <button
+//                           type="button"
+//                           onClick={goToNextPhoto}
+//                           title="Next photo"
+//                           style={{
+//                             position: "absolute",
+//                             top: "50%",
+//                             right: 4,
+//                             transform: "translateY(-50%)",
+//                             width: 28,
+//                             height: 28,
+//                             borderRadius: "50%",
+//                             border: "1px solid #999",
+//                             background: "rgba(255,255,255,0.85)",
+//                             cursor: "pointer",
+//                             fontSize: 14,
+//                             lineHeight: 1,
+//                           }}
+//                         >
+//                           &rsaquo;
+//                         </button>
+//                         <div
+//                           style={{
+//                             position: "absolute",
+//                             bottom: 4,
+//                             left: "50%",
+//                             transform: "translateX(-50%)",
+//                             background: "rgba(0,0,0,0.6)",
+//                             color: "#fff",
+//                             fontSize: 11,
+//                             padding: "1px 6px",
+//                             borderRadius: 10,
+//                           }}
+//                         >
+//                           {activePhotoIndex + 1} / {form.photoUrls.length}
+//                         </div>
+//                       </>
+//                     )}
+//                   </>
 //                 ) : (
 //                   <div className="icd-image-placeholder">No Image</div>
 //                 )}
@@ -829,7 +1012,7 @@
 //                     className="icd-download-btn"
 //                     onClick={handleDownloadClick}
 //                     disabled={isDownloading}
-//                     title="Download the selected calibration procedure template, filled with this job's data"
+//                     title="Download the calibration procedure template (this job's latest re-upload if one exists, otherwise the blank master), filled with this job's data"
 //                   >
 //                     {isDownloading ? "Preparing..." : "⬇ Download"}
 //                   </button>
@@ -838,7 +1021,7 @@
 //                     className="icd-reupload-btn"
 //                     onClick={handleReuploadClick}
 //                     disabled={isReuploading}
-//                     title="Upload the edited template as the new current version"
+//                     title="Upload the edited template as this job's current version"
 //                   >
 //                     {isReuploading ? "Uploading..." : "⤴ Re-upload"}
 //                   </button>
@@ -898,14 +1081,22 @@
 //           <div className="icd-footer">
 //             <div className="icd-footer-left">
 //               <button type="button" onClick={handleOpenCamera}>
-//                 Open Camera
+//                 {form.photoUrls.length > 0
+//                   ? `Add More Photos (${form.photoUrls.length})`
+//                   : "Open Camera"}
 //               </button>
 //               <button type="button" onClick={handleViewFilesClick}>
 //                 View Files
 //               </button>
 //             </div>
 //             <div className="icd-footer-right">
-//               <button type="button">Job Number With Concern</button>
+//               <button
+//                 type="button"
+//                 onClick={handleMarkAsConcernClick}
+//                 disabled={isMarkingConcern}
+//               >
+//                 {isMarkingConcern ? "Flagging..." : "Job Number With Concern"}
+//               </button>
 //               <button
 //                 type="button"
 //                 className="icd-update-btn"
@@ -939,18 +1130,16 @@
 //           onSelectTemplate={handleSelectTemplate}
 //         />
 //       )}
+
+//       {/* VIEW FILES — Cloudinary-fetched job files, plus this modal's own
+//           locally-tracked photoUrls shown as an extra "Unit Photo" section
+//           (with its own carousel/lightbox) up top. */}
 //       {showViewFiles && (
-//         <JobFilesModal
+//         <ReceiptFolderModal
 //           jobNumber={form.jobNumber}
+//           title="JOB FILES"
+//           unitPhotoUrls={form.photoUrls}
 //           onClose={() => setShowViewFiles(false)}
-//           photoUrl={form.photoUrl}
-//           jobFiles={jobFiles}
-//           isLoadingJobFiles={isLoadingJobFiles}
-//           jobFilesError={jobFilesError}
-//           templateVersionHistory={templateVersionHistory}
-//           isLoadingFileHistory={isLoadingFileHistory}
-//           currentTemplatePublicId={form.calibrationProcedureTemplate?.publicId}
-//           buildTemplateDownloadUrl={buildTemplateDownloadUrl}
 //         />
 //       )}
 
@@ -971,14 +1160,14 @@
 // };
 
 // export default IncomingCalibDetailsModal;
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import "./IncomingCalibDetailsModal.css";
 import CdmsModalHeader from "./CdmsModalHeader";
 import CalibrationStandardLookupModal from "./CalibrationStandardLookUpModal";
 import CalibrationProcedureLookupModal from "./CalibrationProcedureLookUpModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
-import JobFilesModal from "./JobFilesModal";
+import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
 
 // Base backend URL — every /api/... fetch in this file must be prefixed
 // with this (same pattern as OnGoingCalib.jsx / JobReceipt.jsx), or the
@@ -1018,14 +1207,6 @@ const addMonths = (isoDateStr, months) => {
 // routes/uploadRoutes.js -> GET /api/uploads/templates/download). Needs
 // the template's Cloudinary publicId, which only exists once a template
 // has actually been picked via CalibrationProcedureLookupModal.
-//
-// This is the UNFILLED, as-stored copy of whatever publicId is passed in
-// — still used by JobFilesModal's file-list downloads (raw copies of
-// this job's own saved calibration-procedure files, or the master, as
-// stored — an audit trail, not something that should have job data
-// stamped into it). The Download button in this modal uses
-// handleDownloadClick below instead, which POSTs to a separate route
-// that both resolves the right base file AND fills in the job's data.
 const buildTemplateDownloadUrl = (template) => {
   if (!template?.publicId) return null;
   const filename = template.format
@@ -1036,30 +1217,31 @@ const buildTemplateDownloadUrl = (template) => {
   )}&filename=${encodeURIComponent(filename)}`;
 };
 
+// Converts a base64 dataURL (what CameraCaptureModal produces, from
+// either canvas.toDataURL or FileReader.readAsDataURL) into a Blob, so it
+// can be sent as multipart/form-data to the equipment-photo upload route.
+const dataUrlToBlob = async (dataUrl) => {
+  const res = await fetch(dataUrl);
+  return res.blob();
+};
+
 const IncomingCalibDetailsModal = ({
   jobForm,
   onClose,
   onUpdate,
+  onConcernFlagged,
   onOpenCamera,
   onLoadTemplate,
   onLoadAndConnect,
   onOpenCalProcedureLookup,
   onOpenCalStandardLookup,
   title = "INCOMING CALIBRATION DETAILS",
-  // Appended to the downloaded filled-template filename, e.g.
-  // "SSS-0001-26 - On-Going Calib.xlsx". Left blank by default so
-  // Incoming Calibration's downloads keep their original plain
-  // job-number filename. Each stage's parent component passes its own
-  // label in (see OnGoingCalib.jsx).
   downloadLabel = "",
 }) => {
   const [form, setForm] = useState(() => ({
     jobNumber: jobForm.jobNumber || "",
     dateRec: jobForm.dateRec || "",
     companyName: jobForm.companyName || "",
-    // Company address lives on the job receipt record, not entered here
-    // — carried through so the filled-template download can stamp the
-    // CDMS sheet's COMPANY ADDRESS cell with it.
     companyAddress: jobForm.companyAddress || "",
     description: jobForm.description || "",
     brand: jobForm.brand || "",
@@ -1079,30 +1261,27 @@ const IncomingCalibDetailsModal = ({
     dateDue: jobForm.dateDue || "",
     accreditationLogo: jobForm.accreditationLogo || "with",
     calibrationProcedure: jobForm.calibrationProcedure || "",
-    // Full template record (publicId, code, format, fileUrl, etc.) for
-    // whatever was picked via the lookup modal — this always identifies
-    // the CANONICAL MASTER, never a job-scoped re-upload. Re-uploading
-    // (see handleReuploadFileChange below) intentionally does NOT touch
-    // this — it only ever saves a copy scoped to this job, and the
-    // backend resolves which base file to fill on Download without
-    // needing this field repointed. Kept around so the lookup modal and
-    // the procedure text field stay accurate.
     calibrationProcedureTemplate: jobForm.calibrationProcedureTemplate || null,
     calibrationStandards:
       jobForm.calibrationStandards?.length === ROW_COUNT
         ? jobForm.calibrationStandards
         : Array.from({ length: ROW_COUNT }, emptyStandardRow),
-    photoUrl: jobForm.photoUrl || "",
+
+    // PHOTOS — the job may have several equipment photos captured across
+    // sessions (CameraCaptureModal supports multi-shot capture). Prefers
+    // jobForm.photoUrls (the array); falls back to wrapping the older
+    // singular jobForm.photoUrl in a one-item array so records saved
+    // before this change still display their photo. This is only the
+    // INITIAL seed — the useEffect below (fetch job-folder files) tops
+    // this up with every equipment photo saved under this job number
+    // across every stage, not just what jobForm happened to carry.
+    photoUrls: jobForm.photoUrls?.length
+      ? jobForm.photoUrls
+      : jobForm.photoUrl
+        ? [jobForm.photoUrl]
+        : [],
   }));
 
-  // Label used to name this stage's re-uploaded template copy in the
-  // job's own Cloudinary folder, e.g. "SSS-0001-26 - Incoming Calib.xlsx"
-  // or "SSS-0001-26 - On-Going Calib.xlsx" for later stages. Falls back
-  // to "Incoming Calib" when the parent screen doesn't pass a
-  // downloadLabel (which stays blank by default for this stage so the
-  // *download* filename remains unchanged/backwards-compatible) — the
-  // re-upload save name still needs SOME stage label, so it defaults
-  // here instead.
   const stageLabel = downloadLabel || "Incoming Calib";
 
   useEffect(() => {
@@ -1153,8 +1332,6 @@ const IncomingCalibDetailsModal = ({
     });
   };
 
-  // Validation-style dialog — just an OK button, no Cancel, since
-  // there's nothing to confirm/undo, only something to acknowledge.
   const showError = (title, message) => {
     setDialog({
       show: true,
@@ -1168,8 +1345,6 @@ const IncomingCalibDetailsModal = ({
     });
   };
 
-  // Acknowledgment dialog for successful actions (e.g. a completed
-  // re-upload) — OK only, no Cancel, and not styled as danger/error.
   const showInfo = (title, message) => {
     setDialog({
       show: true,
@@ -1214,6 +1389,78 @@ const IncomingCalibDetailsModal = ({
     );
   };
 
+  // --- Job Number With Concern ---------------------------------------
+  // Flags this job as a concern via the existing PUT /api/jobnumbers/tag
+  // route (same one InstrumentTag.jsx presumably calls to move a job
+  // into Incoming Calibration in the first place). Sending
+  // concernTagged: true here is what the dashboard analytics aggregation
+  // in server.js already reads as the "Concern" stage (tagged: true,
+  // concernTagged: true, ongoingTagged not true) — so this job will show
+  // up in the Incoming Concern list without needing any new backend
+  // route. tagged: true is sent alongside it since this job already
+  // reached Incoming Calibration, so it should already be tagged, but
+  // it's included explicitly rather than assumed.
+  //
+  // concernSource: "calibration" — marks that this concern was flagged
+  // from HERE (Incoming Calibration Details), not straight from
+  // Instrument Tagging, so this job already has a real OIC/SIG on it.
+  // JobDetailsModal / ConcernIncoming.jsx use this to decide whether to
+  // show the OIC/SIG fields. See InstrumentTag.jsx for the other source.
+  //
+  // onConcernFlagged — lets the parent screen (e.g. OnGoingCalib.jsx)
+  // remove this job from ITS list immediately on success, rather than
+  // relying on the parent's next refetch to notice concernTagged flipped
+  // to true. Parents that don't need this (e.g. plain Incoming
+  // Calibration, if it doesn't render concern-tagged jobs anyway) can
+  // simply not pass the prop — it's optional and a no-op if omitted.
+  const [isMarkingConcern, setIsMarkingConcern] = useState(false);
+
+  const handleMarkAsConcernClick = () => {
+    showConfirm(
+      "Job Number With Concern",
+      `Are you sure you want to flag Job Number ${form.jobNumber} as a concern? It will move to the Incoming Concern list.`,
+      async () => {
+        hideDialog();
+        setIsMarkingConcern(true);
+        try {
+          const res = await fetch(`${API}/api/jobnumbers/tag`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobNumber: form.jobNumber,
+              tagged: true,
+              concernTagged: true,
+              concernSource: "calibration",
+              // Without these, the OIC/SIG typed into this form were
+              // never actually persisted to the job document — only
+              // clicking "Update" saved them (via onUpdate), and "Job
+              // Number With Concern" bypasses that entirely. This is
+              // why the Incoming Concern table showed OIC blank even
+              // when it was visibly filled in on screen.
+              oicBy: form.oicBy,
+              sig: form.sig,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.success === false) {
+            throw new Error(data?.message || "Failed to flag job as concern");
+          }
+          onConcernFlagged?.(form.jobNumber);
+          onClose();
+        } catch (err) {
+          console.error("Failed to mark job as concern:", err);
+          showError(
+            "Update Failed",
+            "This job could not be flagged as a concern. Please try again.",
+          );
+        } finally {
+          setIsMarkingConcern(false);
+        }
+      },
+      "default",
+    );
+  };
+
   const [standardLookupTarget, setStandardLookupTarget] = useState(null);
 
   const openStandardLookup = (rowIndex, columnKey) => {
@@ -1239,10 +1486,6 @@ const IncomingCalibDetailsModal = ({
   };
 
   const handleSelectTemplate = (template) => {
-    // Selecting a template fills the text field AND keeps the full
-    // template record around (publicId etc.) so the Download button
-    // below can identify the right procedure code, and the lookup list
-    // stays accurate.
     setForm((prev) => ({
       ...prev,
       calibrationProcedure: template.name,
@@ -1251,11 +1494,6 @@ const IncomingCalibDetailsModal = ({
     setShowProcedureLookup(false);
   };
 
-  // Recovers calibrationProcedureTemplate for records that only have the
-  // plain text code saved (e.g. typed by hand, or saved before this
-  // field existed) — without this, Download has no `code` to search
-  // with. Runs once, only when there's a code to match but no template
-  // object already attached to it.
   useEffect(() => {
     if (form.calibrationProcedureTemplate || !form.calibrationProcedure) {
       return;
@@ -1290,92 +1528,209 @@ const IncomingCalibDetailsModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // --- Fetch valid SIG signers (technicians + admins) ----------------
+  // The SIG field is a code (initials) looked up against
+  // calculations!H86:H93 in the downloaded template — it must be one of
+  // the actual technician/admin account usernames, not a fixed value.
+  // GET /api/accounts returns every account with no role filter, so
+  // filter down to role === "technician" OR "admin" here — both roles
+  // are eligible signers (this used to be technician-only, which wrongly
+  // excluded admin accounts from the dropdown even though the backend's
+  // resolved-name lookup and the rest of the system treat admins as
+  // valid signers too). Each option's value is the username (the
+  // initials code the template lookup expects); the label shows the
+  // full name for readability.
+  const [signerOptions, setSignerOptions] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API}/api/accounts`);
+        const accounts = await res.json();
+        if (cancelled || !Array.isArray(accounts)) return;
+        const eligible = accounts.filter(
+          (u) => u.role === "technician" || u.role === "admin",
+        );
+        setSignerOptions(eligible);
+      } catch (err) {
+        console.error("Failed to fetch signer options:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // --- Fetch ALL equipment photos saved for this job number ----------
+  // jobForm.photoUrls/photoUrl only covers what THIS stage's camera flow
+  // captured. Other stages (e.g. JobNumberModal) may have added more
+  // photos into the same Cloudinary folder
+  // (cdms/job-numbers/<jobNumber>/equipment-photos/). On mount, pull the
+  // job's full file listing — the same GET /job-folder/:jobNumber/files
+  // endpoint ReceiptFolderModal's "View Files" already uses — and merge
+  // in just the photo subset, so the carousel shows every equipment
+  // photo saved under this job number, regardless of which stage
+  // uploaded it, not just this stage's local subset.
+  useEffect(() => {
+    if (!form.jobNumber) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API}/api/uploads/job-folder/${encodeURIComponent(form.jobNumber)}/files`,
+        );
+        const data = await res.json();
+        if (cancelled || !res.ok || data.success === false) return;
+
+        // resourceType is the reliable signal here — Cloudinary image
+        // uploads don't carry their extension in publicId (that's a
+        // separate `format` field, so the old extension regex never
+        // matched), and on Dynamic Folder mode accounts the Search API's
+        // legacy `folder` string can come back empty/inconsistent even
+        // for files that really do live under .../equipment-photos/. The
+        // backend's job-folder/files route already returns resourceType
+        // per file (set at upload time to "image" for equipment photos,
+        // "raw" for PDFs/documents/templates), so filter on that first.
+        const files = data.files || [];
+        const remotePhotoUrls = files
+          .filter(
+            (f) =>
+              f.resourceType === "image" ||
+              f.folder?.includes("/equipment-photos") ||
+              /\.(jpe?g|png|gif|webp)$/i.test(f.publicId || ""),
+          )
+          .map((f) => f.url);
+
+        if (remotePhotoUrls.length === 0) return;
+
+        setForm((prev) => {
+          const merged = Array.from(
+            new Set([...prev.photoUrls, ...remotePhotoUrls]),
+          );
+          return merged.length === prev.photoUrls.length
+            ? prev
+            : { ...prev, photoUrls: merged };
+        });
+      } catch (err) {
+        console.error("Failed to fetch job equipment photos:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.jobNumber]);
+
+  // OPEN CAMERA — onOpenCamera is expected to resolve either a single
+  // dataURL/uploaded-URL (older callers) or an ARRAY of them (multi-shot
+  // capture, matching CameraCaptureModal's onCapture(photos) contract).
+  //
+  // IMPORTANT: what CameraCaptureModal actually hands back are raw
+  // base64 dataURLs — nothing has uploaded them to Cloudinary yet. Those
+  // dataURLs are NOT stored directly into form.photoUrls (that used to
+  // be the bug: photos never made it past local component state, so if
+  // the session ended any other way than a successful "Update" — or
+  // even after Update, since nothing ever actually persisted them to
+  // Cloudinary — the photo just vanished and never showed up in the
+  // "View Files" / job-folder listing on the next stage).
+  //
+  // So each dataURL is uploaded here, immediately, via
+  // POST /api/uploads/equipment-photo/:jobNumber (see uploadRoutes.js),
+  // and only the URL Cloudinary actually returns is appended to
+  // form.photoUrls. That's what makes captured photos survive
+  // regardless of what the user does afterwards (Update, Concern, or
+  // just closing the modal) — they're already saved server-side the
+  // moment they're taken, same as how the template Re-upload button
+  // works.
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+
   const handleOpenCamera = async () => {
     const result = await onOpenCamera?.();
-    if (result) setForm((prev) => ({ ...prev, photoUrl: result }));
+    if (!result) return;
+    const newDataUrls = Array.isArray(result) ? result : [result];
+    if (newDataUrls.length === 0) return;
+
+    if (!form.jobNumber) {
+      showError(
+        "Missing Job Number",
+        "This job has no job number yet, so the photo can't be saved. Please try again once the job number is set.",
+      );
+      return;
+    }
+
+    setIsUploadingPhotos(true);
+    try {
+      const uploadedUrls = [];
+      for (const dataUrl of newDataUrls) {
+        const blob = await dataUrlToBlob(dataUrl);
+        const formData = new FormData();
+        formData.append("photo", blob, `photo_${Date.now()}.jpg`);
+
+        const res = await fetch(
+          `${API}/api/uploads/equipment-photo/${encodeURIComponent(form.jobNumber)}`,
+          { method: "POST", body: formData },
+        );
+        const data = await res.json();
+        if (!res.ok || data.success === false) {
+          throw new Error(data?.message || "Photo upload failed");
+        }
+        uploadedUrls.push(data.url);
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        photoUrls: [...prev.photoUrls, ...uploadedUrls],
+      }));
+      setActivePhotoIndex(form.photoUrls.length); // jump to first newly added photo
+    } catch (err) {
+      console.error("Failed to upload captured photo(s):", err);
+      showError(
+        "Upload Failed",
+        "One or more captured photos could not be saved. Please try taking the photo again.",
+      );
+    } finally {
+      setIsUploadingPhotos(false);
+    }
   };
 
   const contactCertOptions = CONTACT_CERT_OPTIONS.includes(form.contactCert)
     ? CONTACT_CERT_OPTIONS
     : [form.contactCert, ...CONTACT_CERT_OPTIONS].filter(Boolean);
 
+  // --- Photo carousel (inline, in the icd-image-viewer box) ----------
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+  // Keep the active index in range whenever the photo list changes
+  // (e.g. new photos captured, or a record loads with fewer photos).
+  useEffect(() => {
+    setActivePhotoIndex((i) =>
+      Math.min(i, Math.max(form.photoUrls.length - 1, 0)),
+    );
+  }, [form.photoUrls.length]);
+
+  const goToPrevPhoto = useCallback(() => {
+    setActivePhotoIndex(
+      (i) => (i - 1 + form.photoUrls.length) % form.photoUrls.length,
+    );
+  }, [form.photoUrls.length]);
+
+  const goToNextPhoto = useCallback(() => {
+    setActivePhotoIndex((i) => (i + 1) % form.photoUrls.length);
+  }, [form.photoUrls.length]);
+
   // --- View Files modal --------------------------------------------
-  // Lists the job's unit photo AND everything actually stored in this
-  // job number's Cloudinary folder (equipment photos, uploaded
-  // documents, and each stage's own re-uploaded calibration procedure
-  // copy), via GET /api/uploads/job-folder/:jobNumber/files. This is the
-  // same data JobFolderModal's standalone "Open Folder" shows.
-  //
-  // There's no separate template "version history" list anymore: since
-  // re-uploads save directly into this job's own folder (named
-  // "<jobNumber> - <stage>", overwritten per-stage on each re-upload
-  // rather than accumulating), every stage's saved copy already shows up
-  // in jobFiles below without a dedicated fetch — this is also how a
-  // person can see all of a job's re-uploaded versions at once, even
-  // though Download itself (see handleDownloadClick) only ever pulls the
-  // single most recent one automatically.
   const [showViewFiles, setShowViewFiles] = useState(false);
 
-  const [jobFiles, setJobFiles] = useState([]);
-  const [isLoadingJobFiles, setIsLoadingJobFiles] = useState(false);
-  const [jobFilesError, setJobFilesError] = useState("");
-
-  const fetchJobFiles = async () => {
-    if (!form.jobNumber) {
-      setJobFiles([]);
-      return;
-    }
-    setIsLoadingJobFiles(true);
-    setJobFilesError("");
-    try {
-      const res = await fetch(
-        `${API}/api/uploads/job-folder/${encodeURIComponent(form.jobNumber)}/files`,
-      );
-      const data = await res.json();
-      if (res.ok && data.success !== false) {
-        setJobFiles(data.files || []);
-      } else {
-        setJobFilesError(data.message || "Failed to load job folder files.");
-      }
-    } catch (err) {
-      console.error("Failed to load job folder files:", err);
-      setJobFilesError("Failed to load job folder files.");
-    } finally {
-      setIsLoadingJobFiles(false);
-    }
-  };
-
-  const handleViewFilesClick = async () => {
+  const handleViewFilesClick = () => {
     setShowViewFiles(true);
-    fetchJobFiles();
   };
 
   // --- Re-upload the edited template --------------------------------
-  // Each process stage downloads the current template, edits it
-  // offline, then re-uploads it here as the new current version before
-  // moving to the next stage.
-  //
-  // A re-upload saves ONE file scoped to THIS job number, named
-  // "<jobNumber> - <stageLabel>" (e.g. "SSS-0001-26 - Incoming
-  // Calib.xlsx") — re-uploading again for the same job+stage overwrites
-  // that same file rather than accumulating a history.
-  //
-  // IMPORTANT: this does NOT touch the canonical master template in
-  // Cloudinary's templates-for-calibration folder — that file is
-  // maintained by hand and must always stay the pristine blank form
-  // shown in the calibration procedure lookup list. Instead, Download
-  // (see handleDownloadClick below) automatically finds and uses this
-  // job's latest re-upload across ALL stages on its own, so nothing here
-  // needs to update calibrationProcedureTemplate/publicId for Download
-  // to work correctly.
   const reuploadInputRef = useRef(null);
   const [isReuploading, setIsReuploading] = useState(false);
-  // Gates the Update button: the workflow requires the edited template to
-  // be re-uploaded (via handleReuploadFileChange below) at least once
-  // during this session before the job's details can be saved — Update
-  // should never go through on a template that's still the old,
-  // unedited version. Resets to false every time this modal is opened
-  // fresh (it's not persisted onto the job record itself).
   const [hasReuploadedThisSession, setHasReuploadedThisSession] =
     useState(false);
 
@@ -1392,7 +1747,7 @@ const IncomingCalibDetailsModal = ({
 
   const handleReuploadFileChange = async (e) => {
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-selecting the same filename next time
+    e.target.value = "";
     if (!file) return;
 
     const formData = new FormData();
@@ -1402,17 +1757,10 @@ const IncomingCalibDetailsModal = ({
       "code",
       form.calibrationProcedureTemplate?.code || form.calibrationProcedure,
     );
-    // Stage label for naming the job-scoped saved copy, e.g.
-    // "Incoming Calib" or "On-Going Calib" — see stageLabel above.
     formData.append("stageLabel", stageLabel);
 
     setIsReuploading(true);
     try {
-      // Expected backend contract (see routes/uploadRoutes.js):
-      // POST /api/uploads/templates/reupload (multipart/form-data)
-      // -> { success, template: { code, format, savedAs, jobCopyPublicId, uploadedAt, uploadedBy } }
-      // Note there's no canonical publicId in this response anymore —
-      // this route only ever saves a copy scoped to this job.
       const res = await fetch(`${API}/api/uploads/templates/reupload`, {
         method: "POST",
         body: formData,
@@ -1423,13 +1771,6 @@ const IncomingCalibDetailsModal = ({
       }
 
       const newTemplate = data.template;
-      // Deliberately NOT updating calibrationProcedureTemplate or
-      // calibrationProcedure here — those identify the canonical master
-      // for the lookup list/text field, and this re-upload never
-      // touched the master. Download will automatically prefer this
-      // job's latest re-upload over the master on its own (see the
-      // backend's base-file resolution order), without the form needing
-      // to point at it.
       setHasReuploadedThisSession(true);
 
       showInfo(
@@ -1450,20 +1791,6 @@ const IncomingCalibDetailsModal = ({
   };
 
   // --- Download the template, filled with this job's data -----------
-  // Gate: requires a calibration procedure AND at least one filled-in
-  // calibration standard cell before a download is allowed. Clicking
-  // without these shows a validation error via the shared ConfirmDialog
-  // instead of silently doing nothing / hiding.
-  //
-  // POSTs the job's current form data (plus the procedure `code` and
-  // `jobNumber`) to the backend, which resolves the right BASE file to
-  // fill — this job's latest re-upload across all stages if one exists,
-  // otherwise the untouched canonical master — loads it with ExcelJS,
-  // writes the data into its CDMS input sheet (the sheet every other tab
-  // in the workbook pulls from via formulas), and streams back the
-  // filled copy. That's why this has to go through fetch + blob + a
-  // synthetic <a download> instead of window.open — a plain GET link
-  // can't carry a JSON body.
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownloadClick = async () => {
@@ -1489,12 +1816,6 @@ const IncomingCalibDetailsModal = ({
     }
 
     const template = form.calibrationProcedureTemplate;
-    // The backend resolves the actual base file itself (this job's
-    // latest re-upload, else the canonical master) — it just needs a
-    // procedure `code` to search with. `template.publicId` is sent too,
-    // as a last-resort fallback only, but is no longer required, since a
-    // hand-typed procedure code with no matched template record should
-    // still be able to search by code.
     const code = template?.code || form.calibrationProcedure?.trim();
     if (!code) {
       showError(
@@ -1504,19 +1825,6 @@ const IncomingCalibDetailsModal = ({
       return;
     }
 
-    // Filename is the job number, not the template's code — e.g.
-    // "SSS-0001-26.xlsx" instead of "SSS-CP-020.xlsx". Slashes are
-    // swapped for dashes since job numbers are often formatted like
-    // "SSS/0001/26", and a raw "/" would both break the filename and
-    // corrupt the Content-Disposition header. Extension defaults to
-    // .xlsx (the only format ExcelJS/the backend can actually fill)
-    // when there's no matched template record to read a format from.
-    //
-    // downloadLabel (passed in per-stage by the parent screen, e.g.
-    // "On-Going Calib") is appended after the job number so each stage's
-    // download is distinguishable, e.g. "SSS-0001-26 - On-Going Calib.xlsx".
-    // Left blank for stages that don't pass one (e.g. Incoming
-    // Calibration), which keeps their filenames exactly as before.
     const ext = template?.format ? `.${template.format}` : ".xlsx";
     const safeJobNumber = (form.jobNumber || "job").replace(/[\\/]/g, "-");
     const baseName = downloadLabel
@@ -1545,6 +1853,19 @@ const IncomingCalibDetailsModal = ({
             dateCal: form.dateCal,
             dateDue: form.dateDue,
             contactCert: form.contactCert,
+            // The template's OIC/SIG cells (ws!B7/B8) are the acronym
+            // lookup INPUT cells the workbook itself is built around:
+            // calculations!B84/H84 — which Front Page!B55/W55 and Calib
+            // Data 1!B55/W55 both read from — do
+            // MATCH(ws!B7 or ws!B8, ...) against the acronym tables at
+            // calculations!B86:C93 / H86:I93 to resolve the full name.
+            // So we send the acronym (username), NOT the full name,
+            // here: ws ends up showing the initials, and Front Page /
+            // Calib Data 1 end up showing the resolved full name
+            // automatically via that lookup. form.oicBy and form.sig
+            // are already usernames/initials (see the OIC field's
+            // initial state and the SIG <select>'s option values
+            // above), so they're sent through as-is.
             oicBy: form.oicBy,
             sig: form.sig,
             calibrationStandards: form.calibrationStandards,
@@ -1665,7 +1986,11 @@ const IncomingCalibDetailsModal = ({
                 <label>SIG</label>
                 <select name="sig" value={form.sig} onChange={handleChange}>
                   <option value="">-- Select --</option>
-                  <option>MCJ</option>
+                  {signerOptions.map((u) => (
+                    <option key={u.username} value={u.username}>
+                      {u.username} — {u.name}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -1780,9 +2105,83 @@ const IncomingCalibDetailsModal = ({
                 />
               </div>
 
-              <div className="icd-image-viewer">
-                {form.photoUrl ? (
-                  <img src={form.photoUrl} alt="Unit" />
+              {/* IMAGE VIEWER — carousel over form.photoUrls (seeded from
+                  jobForm, then topped up with every equipment photo
+                  found under this job number via the job-folder fetch
+                  above). Shows the currently active photo with ‹ › nav
+                  buttons and a counter whenever there's more than one. */}
+              <div
+                className="icd-image-viewer"
+                style={{ position: "relative" }}
+              >
+                {form.photoUrls.length > 0 ? (
+                  <>
+                    <img
+                      src={form.photoUrls[activePhotoIndex]}
+                      alt={`Unit photo ${activePhotoIndex + 1} of ${form.photoUrls.length}`}
+                    />
+                    {form.photoUrls.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={goToPrevPhoto}
+                          title="Previous photo"
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: 4,
+                            transform: "translateY(-50%)",
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            border: "1px solid #999",
+                            background: "rgba(255,255,255,0.85)",
+                            cursor: "pointer",
+                            fontSize: 14,
+                            lineHeight: 1,
+                          }}
+                        >
+                          &lsaquo;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={goToNextPhoto}
+                          title="Next photo"
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            right: 4,
+                            transform: "translateY(-50%)",
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            border: "1px solid #999",
+                            background: "rgba(255,255,255,0.85)",
+                            cursor: "pointer",
+                            fontSize: 14,
+                            lineHeight: 1,
+                          }}
+                        >
+                          &rsaquo;
+                        </button>
+                        <div
+                          style={{
+                            position: "absolute",
+                            bottom: 4,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background: "rgba(0,0,0,0.6)",
+                            color: "#fff",
+                            fontSize: 11,
+                            padding: "1px 6px",
+                            borderRadius: 10,
+                          }}
+                        >
+                          {activePhotoIndex + 1} / {form.photoUrls.length}
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <div className="icd-image-placeholder">No Image</div>
                 )}
@@ -1906,15 +2305,29 @@ const IncomingCalibDetailsModal = ({
 
           <div className="icd-footer">
             <div className="icd-footer-left">
-              <button type="button" onClick={handleOpenCamera}>
-                Open Camera
+              <button
+                type="button"
+                onClick={handleOpenCamera}
+                disabled={isUploadingPhotos}
+              >
+                {isUploadingPhotos
+                  ? "Saving Photo..."
+                  : form.photoUrls.length > 0
+                    ? `Add More Photos (${form.photoUrls.length})`
+                    : "Open Camera"}
               </button>
               <button type="button" onClick={handleViewFilesClick}>
                 View Files
               </button>
             </div>
             <div className="icd-footer-right">
-              <button type="button">Job Number With Concern</button>
+              <button
+                type="button"
+                onClick={handleMarkAsConcernClick}
+                disabled={isMarkingConcern}
+              >
+                {isMarkingConcern ? "Flagging..." : "Job Number With Concern"}
+              </button>
               <button
                 type="button"
                 className="icd-update-btn"
@@ -1948,16 +2361,16 @@ const IncomingCalibDetailsModal = ({
           onSelectTemplate={handleSelectTemplate}
         />
       )}
+
+      {/* VIEW FILES — Cloudinary-fetched job files, plus this modal's own
+          locally-tracked photoUrls shown as an extra "Unit Photo" section
+          (with its own carousel/lightbox) up top. */}
       {showViewFiles && (
-        <JobFilesModal
+        <ReceiptFolderModal
           jobNumber={form.jobNumber}
+          title="JOB FILES"
+          unitPhotoUrls={form.photoUrls}
           onClose={() => setShowViewFiles(false)}
-          photoUrl={form.photoUrl}
-          jobFiles={jobFiles}
-          isLoadingJobFiles={isLoadingJobFiles}
-          jobFilesError={jobFilesError}
-          currentTemplatePublicId={form.calibrationProcedureTemplate?.publicId}
-          buildTemplateDownloadUrl={buildTemplateDownloadUrl}
         />
       )}
 

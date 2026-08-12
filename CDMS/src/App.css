@@ -59,6 +59,21 @@ body {
   color: var(--accent);
 }
 
+/* Pulled in from style.css — Header.jsx's <img className="header-logo">
+   had no rule at all in App.css, so it was rendering unstyled. */
+.logo span {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.header-logo {
+  height: 36px;
+  width: 36px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
 /* HAMBURGER BUTTON */
 .menu-btn {
   display: none;
@@ -89,6 +104,38 @@ body {
   padding: 20px 0;
   transition: var(--transition);
   flex-shrink: 0;
+}
+
+/* DESKTOP: sidebar collapses to a thin edge strip and expands on hover.
+   Scoped to min-width so it never fights the mobile slide-in below —
+   :hover doesn't fire on touch anyway, but this keeps the two behaviors
+   fully independent. */
+@media (min-width: 769px) {
+  .sidebar {
+    width: 12px;
+    min-width: 12px; /* Flex items default to min-width: auto, which lets
+                         their content's intrinsic size win over an explicit
+                         width. Since .nav-menu/.sidebar-footer below force
+                         min-width: 240px, that was overriding width: 12px
+                         and keeping the sidebar permanently expanded. This
+                         min-width override on the flex item itself is what
+                         actually lets it shrink to 12px at rest. */
+    padding: 20px 0;
+    overflow: hidden;
+    transition: width 0.25s ease;
+  }
+
+  .sidebar:hover {
+    width: 240px;
+    min-width: 240px;
+  }
+
+  /* Prevents nav text/links from wrapping or squishing while the
+     sidebar is still animating from 12px -> 240px. */
+  .nav-menu,
+  .sidebar-footer {
+    min-width: 240px;
+  }
 }
 
 .nav-label {
@@ -126,8 +173,8 @@ body {
 
 .nav-link.active {
   background: var(--active-bg);
-  color: var(--text-light);
-  border-left: 3px solid var(--accent);
+  color: #facc15;
+  border-left: 3px solid #facc15;
 }
 
 /* NAV MENU */
@@ -214,12 +261,22 @@ body {
   flex-direction: column;
 }
 
+/* System Status (top) now gets most of the space, since it grew from
+   3 stats to 10; Currently Logged In (bottom) shrinks accordingly.
+   NOTE: style.css previously had this as 4/6 instead of 8/2 — this
+   8/2 split from App.css is kept as the source of truth. If the top
+   panel looks wrong now, that's this ratio — just adjust the two
+   numbers below. */
 .panel-top {
-  flex: 4;
+  flex: 8;
+}
+
+.panel-top .panel-content {
+  overflow-y: auto;
 }
 
 .panel-bottom {
-  flex: 6;
+  flex: 2;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -363,6 +420,10 @@ iframe:hover {
 @media (max-width: 768px) {
   .menu-btn {
     display: block !important;
+  }
+
+  .collapse-btn {
+    display: none !important;
   }
 
   .sidebar {

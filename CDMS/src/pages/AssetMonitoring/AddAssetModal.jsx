@@ -25,6 +25,12 @@
 //   const [isCameraOpen, setIsCameraOpen] = useState(false);
 //   const [isViewFilesOpen, setIsViewFilesOpen] = useState(false);
 
+//   // Code is masked by default (used as a lookup key elsewhere — the
+//   // Calibration Standard search in IncomingCalibDetailsModal — not meant
+//   // to be read casually off the screen). Toggled via the eye button next
+//   // to the field, same idea as a password field's show/hide.
+//   const [showCode, setShowCode] = useState(false);
+
 //   // A photo the user just captured but hasn't saved yet. It only lives
 //   // here — { dataUrl, blob } — and is NOT written into formData, since
 //   // formData.photoUrl is reserved for the final Cloudinary URL. The
@@ -39,6 +45,15 @@
 //   useEffect(() => {
 //     if (isOpen) {
 //       setPendingPhoto(null);
+//     }
+//   }, [isOpen]);
+
+//   // Also reset the reveal state every time the modal (re)opens, so
+//   // switching between standards (or opening a fresh Add New) never
+//   // leaves a previous standard's code sitting revealed on screen.
+//   useEffect(() => {
+//     if (isOpen) {
+//       setShowCode(false);
 //     }
 //   }, [isOpen]);
 
@@ -91,13 +106,24 @@
 //                 <div className="cdms-section-title">Asset Details</div>
 //                 <div className="cdms-field">
 //                   <span className="cdms-field-label">Code</span>
-//                   <input
-//                     type="text"
-//                     name="code"
-//                     className="cdms-underline-input"
-//                     value={formData.code}
-//                     onChange={onChange}
-//                   />
+//                   <div className="cdms-input-with-toggle">
+//                     <input
+//                       type={showCode ? "text" : "password"}
+//                       name="code"
+//                       className="cdms-underline-input"
+//                       value={formData.code}
+//                       onChange={onChange}
+//                       autoComplete="off"
+//                     />
+//                     <button
+//                       type="button"
+//                       className="cdms-toggle-visibility-btn"
+//                       title={showCode ? "Hide code" : "Show code"}
+//                       onClick={() => setShowCode((prev) => !prev)}
+//                     >
+//                       {showCode ? "🙈" : "👁"}
+//                     </button>
+//                   </div>
 //                 </div>
 //                 <div className="cdms-field">
 //                   <span className="cdms-field-label">Description</span>
@@ -421,6 +447,7 @@ import "./AddAssetModal.css";
 import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
 import CameraModal from "./CameraModal";
 import ViewFilesModal from "./ViewFilesModal";
+import StandardQrCodeDisplay from "./standardQrCodeDisplay";
 
 const AddAssetModal = ({
   isOpen,
@@ -759,7 +786,8 @@ const AddAssetModal = ({
                 </button>
               </div>
 
-              {/* IMAGE VIEWER */}
+              {/* IMAGE VIEWER — QR is nested below it so it shares the
+                  same grid cell instead of taking its own column/row */}
               <div className="cdms-image-viewer">
                 <div className="cdms-section-title">Asset Photo</div>
                 <div className="cdms-image-frame">
@@ -775,6 +803,21 @@ const AddAssetModal = ({
                     {isEditingExisting ? "Update" : "Save"}
                   </div>
                 )}
+
+                {/* QR PREVIEW */}
+                <div className="cdms-qr-viewer">
+                  <div className="cdms-section-title">Standard QR</div>
+                  {formData.standardId ? (
+                    <StandardQrCodeDisplay
+                      standard={{ ...formData, code: formData.standardId }}
+                      size={140}
+                    />
+                  ) : (
+                    <div className="cdms-qr-placeholder">
+                      Enter a Standard ID to generate a QR.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

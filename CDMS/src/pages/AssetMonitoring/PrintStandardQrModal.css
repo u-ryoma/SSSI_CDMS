@@ -1,0 +1,74 @@
+.psq-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.psq-modal-wrapper {
+  background: #fff;
+  border-radius: 8px;
+  width: 340px;
+  max-width: 90vw;
+}
+
+.psq-modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.psq-summary {
+  text-align: center;
+}
+
+.psq-summary-code {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.psq-summary-desc {
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.psq-footer {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.psq-close-btn {
+  padding: 6px 14px;
+}
+
+/* --- StandardQrCode (shared by this modal and AddAssetModal preview) --- */
+
+.std-qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.std-qr-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.std-qr-actions button {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.std-qr-empty {
+  color: #888;
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 8px;
+}

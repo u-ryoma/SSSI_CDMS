@@ -99,6 +99,7 @@
 //                 // from receipt
 //                 dateRec: receipt.date || "",
 //                 companyName: receipt.companyName || "",
+//                 companyAddress: receipt.companyAddress || "",
 //                 contactName: receipt.contactName || "",
 //               };
 //             })
@@ -386,8 +387,8 @@
 //       )}
 
 //       {/* CAMERA MODAL — captures a dataURL, we upload it to Cloudinary in
-//           handlePhotoCapture, then resolve the Promise IncomingCalibDetailsModal
-//           is awaiting with the returned secure_url. */}
+//             handlePhotoCapture, then resolve the Promise IncomingCalibDetailsModal
+//             is awaiting with the returned secure_url. */}
 //       {showCamera && (
 //         <CameraCaptureModal
 //           onClose={handleCameraClose}
@@ -460,10 +461,16 @@ const IncomingCalib = () => {
       const merged = Array.isArray(jobs)
         ? jobs
             // Only show jobs that are tagged into Incoming Calib, not flagged
-            // as a concern, and not yet moved on to On-Going Calibration.
+            // as a concern, not yet moved on to On-Going Calibration, and not
+            // closed out via "Log RWOC" in Outgoing Concern (RWOC clears
+            // concernTagged/outgoingConcernTagged, so without this check the
+            // job would otherwise reappear here).
             .filter(
               (job) =>
-                job.tagged === true && !job.concernTagged && !job.ongoingTagged,
+                job.tagged === true &&
+                !job.concernTagged &&
+                !job.ongoingTagged &&
+                !job.rwocTagged,
             )
             .map((job) => {
               const receipt = receiptsMap[job.jobReceiptID] || {};

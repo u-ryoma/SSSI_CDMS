@@ -50,8 +50,17 @@
 //       const merged = Array.isArray(jobs)
 //         ? jobs
 //             // Only jobs that have been moved on from Incoming Calibration,
-//             // and haven't already moved on to For Typing.
-//             .filter((job) => job.ongoingTagged === true && !job.forTypingTagged)
+//             // haven't already moved on to For Typing, and haven't been
+//             // closed out via "Log RWOC" in Outgoing Concern (a concern
+//             // raised while a job was already ongoingTagged would otherwise
+//             // fall right back into this list once RWOC clears the concern
+//             // flags).
+//             .filter(
+//               (job) =>
+//                 job.ongoingTagged === true &&
+//                 !job.forTypingTagged &&
+//                 !job.rwocTagged,
+//             )
 //             .map((job) => {
 //               const receipt = receiptsMap[job.jobReceiptID] || {};
 //               return {
@@ -80,10 +89,22 @@
 //                 dateDue: job.dateDue || "",
 //                 accreditationLogo: job.accreditationLogo || "with",
 //                 calibrationProcedure: job.calibrationProcedure || "",
+//                 // Full template record (publicId, code, format, version,
+//                 // etc.) selected/re-uploaded back in Incoming Calibration.
+//                 // Without carrying this over, the Download button in this
+//                 // stage's modal has no publicId to build a filled-template
+//                 // download from, even though calibrationProcedure (the
+//                 // display text) looks populated.
+//                 calibrationProcedureTemplate:
+//                   job.calibrationProcedureTemplate || null,
 //                 calibrationStandards: job.calibrationStandards || [],
 //                 photoUrl: job.photoUrl || "",
 //                 dateRec: receipt.date || "",
 //                 companyName: receipt.companyName || "",
+//                 // Lives on the job receipt record, not the job number
+//                 // record — needed so the filled-template download can
+//                 // stamp the CDMS sheet's COMPANY ADDRESS cell with it.
+//                 companyAddress: receipt.companyAddress || "",
 //                 contactName: receipt.contactName || "",
 //               };
 //             })
@@ -304,11 +325,16 @@
 //         </table>
 //       </div>
 
-//       {/* Reuses the same details modal as Incoming Calibration, retitled */}
+//       {/* Reuses the same details modal as Incoming Calibration, retitled.
+//           downloadLabel="On-Going Calib" is appended to the downloaded
+//           filled-template filename (e.g. "SSS-0001-26 - On-Going Calib.xlsx")
+//           so downloads from this stage are distinguishable from Incoming
+//           Calibration's. */}
 //       {showModal && selectedRecord && (
 //         <IncomingCalibDetailsModal
 //           jobForm={selectedRecord}
 //           title="ON-GOING CALIBRATION DETAILS"
+//           downloadLabel="On-Going Calib"
 //           onClose={() => setShowModal(false)}
 //           onUpdate={handleUpdate}
 //           onOpenCamera={() => {}}
@@ -324,9 +350,10 @@
 // };
 
 // export default OnGoingCalib;
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import "./Ongoinglistcalib.css";
 import IncomingCalibDetailsModal from "../IncomingCalibration/IncomingCalibDetailsModal";
+import CameraCaptureModal from "../jobreceipt/CameraCaptureModal"; // adjust path to wherever this actually lives
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -352,6 +379,44 @@ const OnGoingCalib = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear.toString());
   const [rowsPerPage, setRowsPerPage] = useState(25);
 
+  // --- Camera wiring ---------------------------------------------------
+  // IncomingCalibDetailsModal's handleOpenCamera does:
+  //   const result = await onOpenCamera?.();
+  //   if (!result) return;
+  // i.e. it expects onOpenCamera to be a function that (a) actually opens
+  // a CameraCaptureModal, and (b) returns a Promise that resolves with the
+  // array of captured photo dataURLs once the user hits "Done" in that
+  // modal. Previously this was stubbed as onOpenCamera={() => {}}, which
+  // resolves to undefined immediately, so handleOpenCamera always bailed
+  // out on the `if (!result) return;` line and the button did nothing.
+  const [showCamera, setShowCamera] = useState(false);
+  const cameraResolveRef = useRef(null);
+
+  const handleOpenCamera = () => {
+    return new Promise((resolve) => {
+      cameraResolveRef.current = resolve;
+      setShowCamera(true);
+    });
+  };
+
+  // Called by CameraCaptureModal's onCapture when the user taps "Done"
+  // with at least one photo taken/picked.
+  const handleCameraCapture = (photos) => {
+    cameraResolveRef.current?.(photos);
+    cameraResolveRef.current = null;
+    setShowCamera(false);
+  };
+
+  // Called by CameraCaptureModal's onClose (✕ / Cancel, or after Done
+  // already closed it via handleCameraCapture above). If the modal is
+  // dismissed without ever capturing anything, resolve with undefined so
+  // the pending Promise in IncomingCalibDetailsModal doesn't hang forever.
+  const handleCameraClose = () => {
+    cameraResolveRef.current?.(undefined);
+    cameraResolveRef.current = null;
+    setShowCamera(false);
+  };
+
   useEffect(() => {
     fetchRecords();
   }, []);
@@ -376,8 +441,22 @@ const OnGoingCalib = () => {
       const merged = Array.isArray(jobs)
         ? jobs
             // Only jobs that have been moved on from Incoming Calibration,
-            // and haven't already moved on to For Typing.
-            .filter((job) => job.ongoingTagged === true && !job.forTypingTagged)
+            // haven't already moved on to For Typing, haven't been closed
+            // out via "Log RWOC" in Outgoing Concern (a concern raised
+            // while a job was already ongoingTagged would otherwise fall
+            // right back into this list once RWOC clears the concern
+            // flags), and haven't just been flagged as a concern from
+            // THIS stage (clicking "Job Number With Concern" in the
+            // details modal sets concernTagged: true and moves the job to
+            // Incoming Concern — it must disappear from here too, not
+            // just show up over there).
+            .filter(
+              (job) =>
+                job.ongoingTagged === true &&
+                !job.forTypingTagged &&
+                !job.rwocTagged &&
+                !job.concernTagged,
+            )
             .map((job) => {
               const receipt = receiptsMap[job.jobReceiptID] || {};
               return {
@@ -390,6 +469,7 @@ const OnGoingCalib = () => {
                 serialNo: job.serialNo || "",
                 remarks: job.remarks || "",
                 concern: job.concern || "",
+                concernTagged: job.concernTagged || false,
                 range: job.range || "",
                 uncertainty: job.uncertainty || "",
                 contactCert: job.contactCert || "",
@@ -484,6 +564,16 @@ const OnGoingCalib = () => {
     } catch (err) {
       console.error("Update failed:", err);
     }
+  };
+
+  // Clicking "Job Number With Concern" inside the details modal tags the
+  // job with concernTagged: true on the backend and moves it to Incoming
+  // Concern. The modal already handles the API call and confirmation
+  // dialog — this just drops the row out of THIS table right away so the
+  // user doesn't have to hit Refresh to see it disappear.
+  const handleConcernFlagged = (jobNumber) => {
+    setRecords((prev) => prev.filter((r) => r.jobNumber !== jobNumber));
+    setShowModal(false);
   };
 
   const handleSearch = () => setActiveSearch(searchInput);
@@ -646,7 +736,10 @@ const OnGoingCalib = () => {
           downloadLabel="On-Going Calib" is appended to the downloaded
           filled-template filename (e.g. "SSS-0001-26 - On-Going Calib.xlsx")
           so downloads from this stage are distinguishable from Incoming
-          Calibration's. */}
+          Calibration's. onConcernFlagged removes the row from this table
+          immediately when "Job Number With Concern" succeeds. onOpenCamera
+          now actually opens CameraCaptureModal below and resolves with
+          the captured photos, instead of being a no-op stub. */}
       {showModal && selectedRecord && (
         <IncomingCalibDetailsModal
           jobForm={selectedRecord}
@@ -654,12 +747,21 @@ const OnGoingCalib = () => {
           downloadLabel="On-Going Calib"
           onClose={() => setShowModal(false)}
           onUpdate={handleUpdate}
-          onOpenCamera={() => {}}
+          onConcernFlagged={handleConcernFlagged}
+          onOpenCamera={handleOpenCamera}
           onOpenFolder={() => {}}
           onLoadTemplate={() => {}}
           onLoadAndConnect={() => {}}
           onOpenCalProcedureLookup={() => {}}
           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
+        />
+      )}
+
+      {showCamera && (
+        <CameraCaptureModal
+          onClose={handleCameraClose}
+          onCapture={handleCameraCapture}
+          contextLabel={selectedRecord?.jobNumber}
         />
       )}
     </div>

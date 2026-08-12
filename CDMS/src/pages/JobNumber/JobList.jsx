@@ -19,6 +19,12 @@
 
 // // Determine job status label based on the most advanced flag set to true
 // const getJobStatus = (job) => {
+//   // Checked first — RWOC is a terminal state set from Outgoing Concern's
+//   // "Log RWOC" button (see ConcernOutgoing.jsx's handleLogRwoc) and
+//   // should always win over whatever earlier-stage flags the job still
+//   // carries (concernTagged, ongoingTagged, etc. are never cleared by
+//   // RWOC, only concernTagged/outgoingConcernTagged are).
+//   if (job.rwocTagged) return "Job Number Finished (RWOC)";
 //   if (job.unitDelivered && job.certificateDelivered)
 //     return "Job Number Finished";
 //   if (job.forPrintFinalTagged) return "Print Final Certificate";
@@ -39,6 +45,34 @@
 //   if (job.onSite === true) return "On-Site";
 //   if (job.onSite === false) return "In-house";
 //   return "Waiting for Update"; // onSite not yet set (legacy job)
+// };
+
+// // Find the delivery receipt of a given type (instrument/certificate) that
+// // belongs to a job's CURRENT cycle. A job number can be reused (see
+// // RecallSys.jsx's handleReuse), so multiple delivery receipts may share the
+// // same jobNumber across different cycles. `job.reusedAt` (set at the moment
+// // of reuse) is the cutoff: any candidate receipt dated before it belongs to
+// // a previous, already-closed-out cycle and must be ignored. Among whatever
+// // remains, take the most recent one — this is the receipt for the job's
+// // current run, not necessarily the very first match found.
+// const findCurrentDeliveryReceipt = (deliveryReceipts, job, type) => {
+//   const candidates = deliveryReceipts.filter((r) => {
+//     if (r.type !== type) return false;
+//     if (!r.items?.some((i) => i.jobNumber === job.jobNumber)) return false;
+//     if (job.reusedAt && r.date && new Date(r.date) < new Date(job.reusedAt)) {
+//       return false;
+//     }
+//     return true;
+//   });
+
+//   if (candidates.length === 0) return undefined;
+
+//   return candidates.reduce((latest, r) => {
+//     if (!latest) return r;
+//     if (!r.date) return latest;
+//     if (!latest.date) return r;
+//     return new Date(r.date) > new Date(latest.date) ? r : latest;
+//   }, undefined);
 // };
 
 // const JobNumber = () => {
@@ -98,16 +132,19 @@
 //             const receipt = receiptsMap[job.jobReceiptID] || {};
 
 //             // Find the delivery receipt (if any) that released this
-//             // job's unit, and the one that released its certificate.
-//             const unitDR = deliveryReceipts.find(
-//               (r) =>
-//                 r.type === "instrument" &&
-//                 r.items?.some((i) => i.jobNumber === job.jobNumber),
+//             // job's unit, and the one that released its certificate —
+//             // scoped to the job's current cycle (see
+//             // findCurrentDeliveryReceipt above), so a reused job number
+//             // doesn't pick up stale data from a previous cycle.
+//             const unitDR = findCurrentDeliveryReceipt(
+//               deliveryReceipts,
+//               job,
+//               "instrument",
 //             );
-//             const certDR = deliveryReceipts.find(
-//               (r) =>
-//                 r.type === "certificate" &&
-//                 r.items?.some((i) => i.jobNumber === job.jobNumber),
+//             const certDR = findCurrentDeliveryReceipt(
+//               deliveryReceipts,
+//               job,
+//               "certificate",
 //             );
 //             const unitItem = unitDR?.items?.find(
 //               (i) => i.jobNumber === job.jobNumber,
@@ -372,8 +409,20 @@ const searchKeyMap = {
 
 // Determine job status label based on the most advanced flag set to true
 const getJobStatus = (job) => {
+  // Checked first — RWOC is a terminal state set from Outgoing Concern's
+  // "Log RWOC" button (see ConcernOutgoing.jsx's handleLogRwoc) and
+  // should always win over whatever earlier-stage flags the job still
+  // carries (concernTagged, ongoingTagged, etc. are never cleared by
+  // RWOC, only concernTagged/outgoingConcernTagged are).
+  if (job.rwocTagged) return "Job Number Finished (RWOC)";
   if (job.unitDelivered && job.certificateDelivered)
     return "Job Number Finished";
+  // Checked before forPrintFinalTagged — a job that has moved on to
+  // Delivery still has forPrintFinalTagged: true (flags are never
+  // cleared going forward), so without this check it would keep
+  // showing "Print Final Certificate" even after being tagged for
+  // Delivery.
+  if (job.forDeliveryTagged) return "For Delivery";
   if (job.forPrintFinalTagged) return "Print Final Certificate";
   if (job.forCheckingSigTagged) return "For Checking SIG";
   if (job.forCheckingOICTagged) return "For Checking OIC";

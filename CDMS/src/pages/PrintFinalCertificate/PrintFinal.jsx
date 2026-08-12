@@ -69,7 +69,15 @@
 //                 remarks: job.remarks || "",
 //                 concern: job.concern || "",
 //                 eta: job.eta || "",
+//                 // "Eval By" (CPGP/SSSI) — set in JobNumberModal, unrelated
+//                 // to who's processing the job. Kept for completeness but
+//                 // NOT used for the OIC column below.
 //                 evalBy: job.evalBy || "",
+//                 // OIC — the originally assigned OIC from Incoming/On-Going
+//                 // Calibration (NOT who checked it — that's oicCheckedBy,
+//                 // a separate audit field carried along below).
+//                 oicBy: job.oicBy || "",
+//                 oicCheckedBy: job.oicCheckedBy || "",
 //                 priority: job.priority || "Normal",
 //                 dateRec: receipt.date || "",
 //                 companyName: receipt.companyName || "",
@@ -274,7 +282,7 @@
 //                   <td>{r.jobNumber}</td>
 //                   <td>{r.dateRec}</td>
 //                   <td>{r.priority}</td>
-//                   <td>{r.evalBy || r.contactName}</td>
+//                   <td>{r.oicBy || r.contactName}</td>
 //                   <td>{r.sig}</td>
 //                   <td>{r.typedBy}</td>
 //                   <td>{r.companyName}</td>
@@ -404,9 +412,13 @@ const PrintFinal = () => {
                 oicBy: job.oicBy || "",
                 oicCheckedBy: job.oicCheckedBy || "",
                 priority: job.priority || "Normal",
-                dateRec: receipt.date || "",
-                companyName: receipt.companyName || "",
-                contactName: receipt.contactName || "",
+                // from receipt — falls back to the job's own date/companyName
+                // for jobs that have no jobReceiptID (e.g. jobs added from
+                // Site Calibration, which don't go through Job Receipt but
+                // carry date/companyName directly on the job record).
+                dateRec: receipt.date || job.date || "",
+                companyName: receipt.companyName || job.companyName || "",
+                contactName: receipt.contactName || job.contactName || "",
                 typedBy: job.typedBy || "",
 
                 // ---- extra fields needed by ForPrintFinalDetailsModal ----

@@ -5,8 +5,8 @@
   padding: 24px;
   display: flex;
   align-items: stretch;
-  overflow: hidden; /* ← add this */
-  height: calc(100vh - 60px); /* ← add this */
+  overflow: hidden;
+  height: calc(100vh - 60px);
 }
 
 .activity-page {
@@ -19,22 +19,40 @@
 
 .activity-header {
   padding-bottom: 24px;
-  flex-shrink: 0; /* ← header never shrinks */
+  flex-shrink: 0; /* header never shrinks */
 }
-.activity-header h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #18181b;
+
+/* BANNER */
+.activity-banner {
+  background: #000;
+  width: 100%;
+  padding: 18px 24px;
+  box-sizing: border-box;
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+.activity-banner h2 {
   margin: 0;
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.6rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  /* chromatic-aberration / glitch effect */
+  text-shadow:
+    2px 0 0 rgba(255, 0, 60, 0.7),
+    -2px 0 0 rgba(0, 200, 255, 0.7);
 }
 
 .activity-header p {
+  padding: 0 24px;
   font-size: 0.85rem;
   color: #71717a;
   margin: 4px 0 0;
 }
 
-/* TABLE CONTAINER - merged */
+/* TABLE CONTAINER */
 .activity-table-wrapper {
   background: white;
   border-radius: 12px;
@@ -42,7 +60,7 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow-y: auto;
   flex: 1;
-  min-height: 0; /* ← critical */
+  min-height: 0; /* critical */
 }
 
 /* STICKY HEADER */

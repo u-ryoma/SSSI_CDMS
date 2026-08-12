@@ -282,6 +282,13 @@
 //     setShowModal(true);
 //   };
 
+//   // concernSource is stamped here so downstream screens (ConcernIncoming,
+//   // JobDetailsModal) can tell this concern was flagged straight from
+//   // Instrument Tagging — the job never passed through Incoming
+//   // Calibration Details, so it has no real OIC/SIG yet. Only set when
+//   // concernPicTaken is actually true; otherwise null, since this job
+//   // isn't a concern at all. See IncomingCalibDetailsModal.jsx for the
+//   // other source ("calibration").
 //   const handleTagged = async (record, { concernPicTaken }) => {
 //     try {
 //       const res = await fetch(`${API}/api/jobnumbers/tag`, {
@@ -291,6 +298,7 @@
 //           jobNumber: record.jobNumber,
 //           tagged: true,
 //           concernTagged: concernPicTaken,
+//           concernSource: concernPicTaken ? "instrumentTag" : null,
 //           taggedAt: new Date().toISOString(),
 //         }),
 //       });
@@ -429,12 +437,13 @@
 //               <th>Serial No</th>
 //               <th>ETA</th>
 //               <th>Remarks</th>
+//               <th>Concern</th>
 //             </tr>
 //           </thead>
 //           <tbody>
 //             {loading ? (
 //               <tr>
-//                 <td colSpan="10" className="no-data">
+//                 <td colSpan="11" className="no-data">
 //                   Loading...
 //                 </td>
 //               </tr>
@@ -455,11 +464,12 @@
 //                   <td>{record.serialNo}</td>
 //                   <td>{record.eta}</td>
 //                   <td>{record.remarks}</td>
+//                   <td>{record.concern}</td>
 //                 </tr>
 //               ))
 //             ) : (
 //               <tr>
-//                 <td colSpan="10" className="no-data">
+//                 <td colSpan="11" className="no-data">
 //                   {activeSearch
 //                     ? `No results found for "${activeSearch}"`
 //                     : `No untagged records found for ${selectedYear}`}
@@ -482,7 +492,7 @@
 // };
 
 // export default InstrumentTag;
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import "./instrumenttag.css";
 
@@ -497,6 +507,122 @@ const searchKeyMap = {
   "Company Name": "companyName",
   "Job Number": "jobNumber",
   Brand: "brand",
+};
+
+// -----------------------------------------------------------------------
+// Lightbox: full-size image viewer with prev/next + keyboard nav.
+// Rendered as its own portal so it always sits above the tagging modal.
+// -----------------------------------------------------------------------
+const ImageLightbox = ({ images, startIndex, onClose }) => {
+  const [index, setIndex] = useState(startIndex);
+
+  const goPrev = useCallback(
+    () => setIndex((i) => (i - 1 + images.length) % images.length),
+    [images.length],
+  );
+  const goNext = useCallback(
+    () => setIndex((i) => (i + 1) % images.length),
+    [images.length],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") goPrev();
+      if (e.key === "ArrowRight") goNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [goPrev, goNext, onClose]);
+
+  if (!images.length) return null;
+
+  return createPortal(
+    <div className="lightbox-overlay" onClick={onClose}>
+      <button className="lightbox-close" onClick={onClose}>
+        ✕
+      </button>
+
+      {images.length > 1 && (
+        <button
+          className="lightbox-nav lightbox-prev"
+          onClick={(e) => {
+            e.stopPropagation();
+            goPrev();
+          }}
+        >
+          ‹
+        </button>
+      )}
+
+      <img
+        className="lightbox-image"
+        src={images[index]}
+        alt={`Job image ${index + 1} of ${images.length}`}
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {images.length > 1 && (
+        <button
+          className="lightbox-nav lightbox-next"
+          onClick={(e) => {
+            e.stopPropagation();
+            goNext();
+          }}
+        >
+          ›
+        </button>
+      )}
+
+      {images.length > 1 && (
+        <div className="lightbox-counter">
+          {index + 1} / {images.length}
+        </div>
+      )}
+    </div>,
+    document.body,
+  );
+};
+
+// -----------------------------------------------------------------------
+// ImageGallery: thumbnail strip shown inside the tagging modal.
+// Clicking a thumbnail opens the ImageLightbox at that index.
+// -----------------------------------------------------------------------
+const ImageGallery = ({ images }) => {
+  const [lightboxIndex, setLightboxIndex] = useState(null);
+
+  return (
+    <div className="tag-images-section">
+      <div className="tag-images-header">
+        Images {images.length > 0 && `(${images.length})`}
+      </div>
+
+      {images.length > 0 ? (
+        <div className="tag-images-grid">
+          {images.map((src, i) => (
+            <button
+              key={i}
+              type="button"
+              className="tag-image-thumb"
+              onClick={() => setLightboxIndex(i)}
+            >
+              <img src={src} alt={`Job image ${i + 1}`} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="tag-images-empty">No images available</div>
+      )}
+
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={images}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+    </div>
+  );
 };
 
 const TaggingModal = ({ record, onClose, onTagged }) => {
@@ -614,6 +740,8 @@ const TaggingModal = ({ record, onClose, onTagged }) => {
             </table>
           </div>
 
+          <ImageGallery images={record.images || []} />
+
           {confirming && (
             <div className="tag-confirm-prompt">
               <p>
@@ -701,6 +829,21 @@ const InstrumentTag = () => {
       const merged = Array.isArray(jobs)
         ? jobs.map((job) => {
             const receipt = receiptsMap[job.jobReceiptID] || {};
+
+            // Images may live on the job record, the receipt record, or
+            // both — merge and dedupe. Field name assumed to be `images`
+            // (array of URL strings), with `imageUrls` / `pictures` as
+            // fallbacks in case the backend uses a different key. If your
+            // API uses something else entirely, adjust this one line.
+            const rawImages = [
+              ...(job.images || job.imageUrls || job.pictures || []),
+              ...(receipt.images ||
+                receipt.imageUrls ||
+                receipt.pictures ||
+                []),
+            ];
+            const images = [...new Set(rawImages.filter(Boolean))];
+
             return {
               _id: job._id,
               jobNumber: job.jobNumber,
@@ -723,6 +866,7 @@ const InstrumentTag = () => {
               type: job.type || "mechanical",
               tagged: job.tagged || false,
               concernTagged: job.concernTagged || false,
+              images,
             };
           })
         : [];
@@ -766,6 +910,13 @@ const InstrumentTag = () => {
     setShowModal(true);
   };
 
+  // concernSource is stamped here so downstream screens (ConcernIncoming,
+  // JobDetailsModal) can tell this concern was flagged straight from
+  // Instrument Tagging — the job never passed through Incoming
+  // Calibration Details, so it has no real OIC/SIG yet. Only set when
+  // concernPicTaken is actually true; otherwise null, since this job
+  // isn't a concern at all. See IncomingCalibDetailsModal.jsx for the
+  // other source ("calibration").
   const handleTagged = async (record, { concernPicTaken }) => {
     try {
       const res = await fetch(`${API}/api/jobnumbers/tag`, {
@@ -775,6 +926,7 @@ const InstrumentTag = () => {
           jobNumber: record.jobNumber,
           tagged: true,
           concernTagged: concernPicTaken,
+          concernSource: concernPicTaken ? "instrumentTag" : null,
           taggedAt: new Date().toISOString(),
         }),
       });

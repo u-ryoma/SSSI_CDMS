@@ -3,22 +3,22 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Logs from "./pages/SystemActivity";
 
 import "./App.css";
-import "./style.css";
+
 import Login from "./login/login.jsx";
 import AdminLayout from "./layout/AdminLayout";
 import Dashboard from "./pages/Dashboard";
-import Customer from "./pages/Customer";
+import Customer from "./pages/Customer/Customer";
 import JobList from "./pages/JobNumber/JobList";
 import AccountSettings from "./pages/AccountSettings.jsx";
 import AssetMonitoring from "./pages/AssetMonitoring/AssetMonitoring";
-import ConcernIncoming from "./pages/ConcernIncoming";
-import ConcernOut from "./pages/ConcernOut";
-import DeliveryReceipt from "./pages/DeliveryReceipt/DeliveryReceipt";
+import ConcernIncoming from "./pages/IncomingConcern/ConcernIncoming";
+import ConcernOut from "./pages/OutgoingConcern/ConcernOutgoing";
+import DeliveryReceipt from "./pages/Delivery/DeliveryReceipt";
 import ForCheckingOIC from "./pages/ForCheckingOIC/ForCheckingOIC";
 import ForCheckingSig from "./pages/ForCheckingSIG/ForCheckingSig";
 import ForTyping from "./pages/ForTyping/ForTyping";
 import IncomingCalib from "./pages/IncomingCalibration/IncomingCalib";
-import InstrumentTag from "./pages/InstrumentTag";
+import InstrumentTag from "./pages/InstrumentTagging/InstrumentTag";
 import JobReceipt from "./pages/jobreceipt/index";
 import Monitoring from "./pages/Monitoring";
 import OnGoingCalib from "./pages/OngoingCalibration/OnGoingCalib";
@@ -31,7 +31,7 @@ import QtnForFollowUp from "./pages/QtnForFollowUp";
 import QtnList from "./pages/QuotationList/QtnList";
 import QtnForSend from "./pages/QuotationForSend/QtnForSend";
 import RecallSys from "./pages/RecallSys";
-import SchedMonitor from "./pages/SchedMonitor";
+import SchedMonitor from "./pages/Schedule/SchedMonitor";
 import SiteCalibration from "./pages/SiteCalibration/SiteCalibration";
 import StandardForCalib from "./pages/StandardForCalib";
 import StdForCertification from "./pages/StdForCertification";
@@ -82,7 +82,7 @@ function App() {
           <Route path="qtnlist" element={<QtnList />} />
           <Route path="qtnforsend" element={<QtnForSend />} />
           <Route path="recallsys" element={<RecallSys />} />
-          <Route path="schedmonitor" element={<SchedMonitor />} />
+          <Route path="onsiteschedule" element={<SchedMonitor />} />
           <Route path="sitecalibration" element={<SiteCalibration />} />
           <Route path="standardforcalib" element={<StandardForCalib />} />
           <Route path="stdforcertification" element={<StdForCertification />} />
