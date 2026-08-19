@@ -242,8 +242,8 @@ const InstrumentTag = () => {
           <option value={100}>100</option>
         </select>
 
-        <button>Log Printed</button>
-        <button>Re-Print</button>
+        {/* <button>Log Printed</button>
+        <button>Re-Print</button> */}
         <button onClick={handleRefresh}>Refresh</button>
       </div>
 

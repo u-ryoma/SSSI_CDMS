@@ -564,8 +564,8 @@ const ForCheckingSig = () => {
           onKeyDown={handleSearchKeyDown}
         />
 
-        <button>Re-Log</button>
-        <button>Quick Log</button>
+        {/* <button>Re-Log</button>
+        <button>Quick Log</button> */}
         <button onClick={handleRefresh}>Refresh</button>
       </div>
 

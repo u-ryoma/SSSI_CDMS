@@ -1193,9 +1193,9 @@ const DeliveryReceiptUnitModal = ({
                     <button className="dr-btn" onClick={handleAddItem}>
                       Add
                     </button>
-                    <button className="dr-btn" onClick={handleLoadOldSystem}>
+                    {/* <button className="dr-btn" onClick={handleLoadOldSystem}>
                       Load Old System
-                    </button>
+                    </button> */}
                   </div>
                 )}
 
@@ -1335,9 +1335,9 @@ const DeliveryReceiptUnitModal = ({
               </div>
 
               <div className="dr-modal-footer">
-                <button className="dr-btn dr-btn--link" disabled>
+                {/* <button className="dr-btn dr-btn--link" disabled>
                   Modification History
-                </button>
+                </button> */}
                 <button
                   className="dr-btn"
                   onClick={handleOpenCamera}

@@ -691,8 +691,8 @@ const IncomingCalib = () => {
           <option value={100}>100</option>
         </select>
 
-        <button>Re-Log</button>
-        <button>Quick Log</button>
+        {/* <button>Re-Log</button>
+        <button>Quick Log</button> */}
         <button onClick={handleRefresh}>Refresh</button>
       </div>
 
