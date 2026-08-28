@@ -218,9 +218,9 @@ const CalibrationProcedureLookupModal = ({
         </div>
 
         <div className="cpl-modal-footer">
-          <button type="button" onClick={onCancel}>
+          {/* <button type="button" onClick={onCancel}>
             Close
-          </button>
+          </button> */}
         </div>
       </div>
     </div>,

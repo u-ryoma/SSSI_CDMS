@@ -173,6 +173,7 @@ select.cdms-underline-input {
   outline: none !important;
   box-shadow: none !important;
   -webkit-appearance: none !important;
+  appearance: none !important;
   transition:
     border-color 0.18s ease,
     box-shadow 0.18s ease,
@@ -300,19 +301,23 @@ button.btn-for-calibration:active {
   text-transform: uppercase !important;
 }
 
-/* ---------- FOOTER LINK BUTTONS ---------- */
-/* These now live inline inside .cdms-bottom-actions alongside the
-   outline buttons, so they're sized to their content rather than
-   stretching to 100% width as they did when stacked vertically. */
-button.btn-link {
-  display: inline-block !important;
+/* ---------- FOOTER BUTTONS ---------- */
+/* Rectangular (not pill) with a light border, matching the screenshot's
+   gray toolbar. btn-link and btn-outline now share the same visual
+   language — btn-primary layers a solid black fill on top for Save/
+   Update, same pattern as the other cdms/qtn toolbars in this app. */
+button.btn-link,
+button.btn-outline {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   width: auto !important;
   height: auto !important;
-  padding: 9px 20px !important;
+  padding: 9px 16px !important;
   margin: 0 !important;
   background: #ffffff !important;
-  border: 1px solid #1a1a1a !important;
-  border-radius: 20px !important;
+  border: 1.5px solid #c4c4c4 !important;
+  border-radius: 6px !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   color: #1a1a1a !important;
@@ -320,25 +325,56 @@ button.btn-link {
   text-align: center !important;
   white-space: nowrap !important;
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
     background-color 0.15s ease,
-    color 0.15s ease !important;
+    color 0.15s ease,
+    border-color 0.15s ease !important;
 }
 
-button.btn-link:hover {
-  background: #1a1a1a !important;
-  color: #ffffff !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
+button.btn-link:hover,
+button.btn-outline:hover {
+  background: #f4f4f5 !important;
+  color: #1a1a1a !important;
+  border-color: #a1a1aa !important;
 }
 
-button.btn-link:active {
-  transform: translateY(0) !important;
+button.btn-link:active,
+button.btn-outline:active {
+  transform: none !important;
   box-shadow: none !important;
 }
 
-/* ---------- BOTTOM ACTIONS (footer) ---------- */
+/* Primary — solid black fill, used for Save / Update */
+button.btn-primary {
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+button.btn-primary:hover {
+  background: #333333 !important;
+  border-color: #333333 !important;
+  color: #ffffff !important;
+}
+
+/* Danger — solid red fill, used for Exit */
+button.btn-danger {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+button.btn-danger:hover {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+/* ---------- BOTTOM ACTIONS (footer) / TOOLBAR ---------- */
+/* ---------- BOTTOM ACTIONS (footer) / TOOLBAR ----------
+   Now a direct sibling of .cdms-modal-body in the JSX (moved out of
+   the form's padded body wrapper), so it naturally spans the full
+   modal width without needing negative margins to fight the parent's
+   padding. */
 .cdms-bottom-actions {
   display: flex !important;
   flex-direction: row !important;
@@ -346,46 +382,29 @@ button.btn-link:active {
   align-items: center !important;
   gap: 12px !important;
   margin: 32px 0 0 0 !important;
-  padding: 20px 0 0 0 !important;
-  border-top: 1px solid #e5e5e3 !important;
+  padding: 20px 32px !important;
+  border-top: 1px solid #cfcfcf !important;
+  background: #e0e0e0 !important;
 }
 
-/* Push the Update / Exit pair (and everything after the two outline
-   buttons) to the right side of the footer row */
-.cdms-bottom-actions button.btn-link:first-of-type {
+/* Now that the footer is a direct sibling of .cdms-modal-body (see
+   JSX), pushing .cdms-toolbar-right to the far edge with margin-left:
+   auto is safe again — the earlier whitespace bug was caused by
+   padding inheritance, not by this rule itself. */
+.cdms-toolbar {
+  justify-content: flex-start !important;
+}
+
+.cdms-toolbar-left,
+.cdms-toolbar-right {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+.cdms-toolbar-right {
   margin-left: auto !important;
-}
-
-button.btn-outline {
-  display: inline-block !important;
-  width: auto !important;
-  height: auto !important;
-  padding: 9px 20px !important;
-  margin: 0 !important;
-  background: #ffffff !important;
-  border: 1px solid #1a1a1a !important;
-  border-radius: 20px !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  color: #1a1a1a !important;
-  cursor: pointer !important;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease,
-    background-color 0.15s ease,
-    color 0.15s ease !important;
-}
-
-button.btn-outline:hover {
-  background: #1a1a1a !important;
-  color: #ffffff !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18) !important;
-}
-
-button.btn-outline:active {
-  transform: translateY(0) !important;
-  box-shadow: none !important;
 }
 
 /* ---------- RESPONSIVE ---------- */
@@ -399,7 +418,7 @@ button.btn-outline:active {
     grid-column: 1 / -1 !important;
   }
 
-  .cdms-bottom-actions button.btn-link:first-of-type {
+  .cdms-toolbar-right {
     margin-left: 0 !important;
   }
 }

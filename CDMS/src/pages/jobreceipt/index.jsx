@@ -788,7 +788,7 @@
 
 // export default JobReceipt;
 import React, { useState, useEffect, useMemo } from "react";
-import "../jobreceipt.css";
+import "./jobreceipt.css";
 import AddReceiptModal from "./AddReceiptModal";
 import CustomerLookupModal from "./CustomerLookupModal";
 import JobNumberModal from "./JobNumberModal";

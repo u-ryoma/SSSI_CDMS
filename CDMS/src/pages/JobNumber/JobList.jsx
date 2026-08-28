@@ -389,7 +389,7 @@
 
 // export default JobNumber;
 import React, { useState, useEffect, useMemo } from "react";
-import "../jobnumber.css";
+import "./jobnumber.css";
 import JobNumberDetailsModal from "./JobNumberDetailsModal";
 
 const API = import.meta.env.VITE_API_URL;

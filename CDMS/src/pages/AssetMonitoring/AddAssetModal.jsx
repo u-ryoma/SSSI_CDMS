@@ -4,6 +4,7 @@
 // import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
 // import CameraModal from "./CameraModal";
 // import ViewFilesModal from "./ViewFilesModal";
+// import StandardQrCodeDisplay from "./standardQrCodeDisplay";
 
 // const AddAssetModal = ({
 //   isOpen,
@@ -342,7 +343,8 @@
 //                 </button>
 //               </div>
 
-//               {/* IMAGE VIEWER */}
+//               {/* IMAGE VIEWER — QR is nested below it so it shares the
+//                   same grid cell instead of taking its own column/row */}
 //               <div className="cdms-image-viewer">
 //                 <div className="cdms-section-title">Asset Photo</div>
 //                 <div className="cdms-image-frame">
@@ -358,6 +360,21 @@
 //                     {isEditingExisting ? "Update" : "Save"}
 //                   </div>
 //                 )}
+
+//                 {/* QR PREVIEW */}
+//                 <div className="cdms-qr-viewer">
+//                   <div className="cdms-section-title">Standard QR</div>
+//                   {formData.standardId ? (
+//                     <StandardQrCodeDisplay
+//                       standard={{ ...formData, code: formData.standardId }}
+//                       size={140}
+//                     />
+//                   ) : (
+//                     <div className="cdms-qr-placeholder">
+//                       Enter a Standard ID to generate a QR.
+//                     </div>
+//                   )}
+//                 </div>
 //               </div>
 //             </div>
 
@@ -542,6 +559,11 @@ const AddAssetModal = ({
           onClose={onClose}
         />
 
+        {/* The form now wraps BOTH the padded body and the full-bleed
+            footer, so Save/Update (type="submit") still trigger
+            handleFormSubmit. Only the footer's position moved — it's no
+            longer nested inside .cdms-modal-body, so it doesn't inherit
+            that container's left/right/bottom padding anymore. */}
         <form onSubmit={handleFormSubmit}>
           <div className="cdms-modal-body">
             <div className="cdms-form-grid">
@@ -777,13 +799,13 @@ const AddAssetModal = ({
                     <option value="Expired">Expired</option>
                   </select>
                 </div>
-                <button
+                {/* <button
                   type="button"
                   className="btn-for-calibration btn-for-calibration-stacked"
                   onClick={onForCalibration}
                 >
                   For Calibration
-                </button>
+                </button> */}
               </div>
 
               {/* IMAGE VIEWER — QR is nested below it so it shares the
@@ -820,9 +842,14 @@ const AddAssetModal = ({
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* BOTTOM ACTIONS - all footer buttons now live together, inline */}
-            <div className="cdms-bottom-actions">
+          {/* BOTTOM ACTIONS — moved out of .cdms-modal-body so it no
+              longer inherits that container's side/bottom padding. It's
+              still inside <form>, so the submit buttons below keep
+              working exactly as before. */}
+          <div className="cdms-bottom-actions cdms-toolbar">
+            <div className="cdms-toolbar-left">
               <button
                 type="button"
                 className="btn-outline"
@@ -837,50 +864,48 @@ const AddAssetModal = ({
               >
                 View Files
               </button>
-              <button
+              {/* <button
                 type="button"
-                className="btn-link"
+                className="btn-outline"
                 onClick={onShowAssetHistory}
               >
                 Show Asset History
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 type="button"
-                className="btn-link"
+                className="btn-outline"
                 onClick={onModificationHistory}
               >
                 Modification History
-              </button>
+              </button> */}
+            </div>
 
+            <div className="cdms-toolbar-right">
               {/* Only ONE of these ever shows: "Save" for a brand-new
                   standard (Add New), "Update" for an existing one (row
                   click). Both are type="submit" so either one triggers
                   the same onSubmit/handleSubmit — only the label and
                   visibility differ based on isEditingExisting. */}
               {!isEditingExisting && (
-                <button type="submit" className="btn-link">
+                <button type="submit" className="btn-link btn-primary">
                   Save
                 </button>
               )}
               {isEditingExisting && (
-                <button type="submit" className="btn-link">
+                <button type="submit" className="btn-link btn-primary">
                   Update
                 </button>
               )}
 
               <button
                 type="button"
-                className="btn-link"
+                className="btn-link btn-danger"
                 onClick={onExit || onClose}
               >
                 Exit
               </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                style={{ display: "none" }}
-              />
             </div>
+            <input type="file" ref={fileInputRef} style={{ display: "none" }} />
           </div>
         </form>
 

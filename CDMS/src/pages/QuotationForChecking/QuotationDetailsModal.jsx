@@ -22,11 +22,28 @@
 //  *
 //  * Pipeline (per real backend routes):
 //  *   AddQuotation (create + attach template) -> status "For Checking"
-//  *     staffFileUrl/staffFileName set by PUT /:id/upload-template
-//  *   Qtn For Check: re-upload signed file + Save -> status "For Sending"
-//  *     signedFileUrl/signedFileName set by PUT /:id/upload-signed
-//  *     (requires x-user-role: admin|clerk; server reads x-user-name
-//  *     into checkedBy)
+//  *     staffFileUrl/staffFileName set by PUT /:id/upload-template.
+//  *     This is a ONE-TIME docxtemplater render — the "Approved by" tags
+//  *     in the master template use [[ ]] delimiters specifically so this
+//  *     first render (which uses default { } delimiters) does NOT touch
+//  *     them, leaving them alive for a later second pass.
+//  *   Qtn For Check:
+//  *     - Download Template here fetches the REAL uploaded file as-is
+//  *       (staffFileUrl / signedFileUrl) — never re-rendered — so
+//  *       whatever the staff actually typed into the table/fields is
+//  *       what you see. No signature yet unless already approved.
+//  *     - Re-upload Template + Save: manual override path, uploads
+//  *       whatever file you pick via PUT /:id/upload-signed -> status
+//  *       "For Sending". Still supported for cases where the checker
+//  *       wants to hand-edit the file themselves.
+//  *     - "Approve & Generate Signed Copy" (new): picks up whichever
+//  *       file currently represents the real content (signedFileUrl if
+//  *       it exists, otherwise staffFileUrl), runs a SECOND docxtemplater
+//  *       pass using [[ ]] delimiters against just the approvedBy /
+//  *       adminSignature tags, and re-uploads the result — so the real
+//  *       content the staff typed stays completely untouched while the
+//  *       approver's name + signature get inserted automatically.
+//  *       PUT /:id/apply-approval -> status "For Sending".
 //  *   Qtn For Send: "Mark as Sent" -> status "Sent"
 //  *     PUT /:id/mark-sent, body { sentBy } -> sets sentBy + sentAt
 //  *
@@ -34,8 +51,19 @@
 //  * { success, quotationId } — NOT the updated document — per server
 //  * code. So after a plain save (no file involved) we merge `form` into
 //  * the existing `quotation` locally before calling onSaved. When a file
-//  * upload route fires instead, ITS response body is the full updated
-//  * document, so that's used directly.
+//  * upload / apply-approval route fires instead, ITS response body is
+//  * the full updated document, so that's used directly.
+//  *
+//  * Approver selection (check stage only): the checker doesn't have to be
+//  * the one whose name/signature appears as "Approved by" on the final
+//  * document. GET /api/users is fetched and filtered down to admin +
+//  * technician accounts; whichever one is selected is used either by
+//  * "Approve & Generate Signed Copy" (apply-approval route) or, if a file
+//  * is staged via Re-upload Template, sent along with that upload as
+//  * approverUsername/approverName so the server stores those as
+//  * checkedBy/checkedByUsername too. Assumes GET /api/users returns
+//  * objects shaped like { username, name, role } — matches the actual
+//  * users collection schema (confirmed via authRoutes.js's /register).
 //  *
 //  * "View Files" — there is no GET /:id/files route on the server. All
 //  * file URLs already live directly on the quotation document
@@ -44,8 +72,8 @@
 //  *
 //  * Download filenames: prefer the real extension from staffFileName /
 //  * signedFileName (saved server-side as of this version). Falls back to
-//  * parsing the extension off the file URL for older records uploaded
-//  * before signedFileName existed — those may still come through
+//  * parsing the extension off the file URL for older records that predate
+//  * signedFileName existing — those may still come through
 //  * extension-less if the original Cloudinary asset itself has none.
 //  *
 //  * Logged-in user info lives in sessionStorage (confirmed keys):
@@ -101,7 +129,41 @@
 //   const [showFiles, setShowFiles] = useState(false);
 //   const [markingSent, setMarkingSent] = useState(false);
 
+//   // --- Approver selection (check stage only) --------------------------
+//   // Who actually gets credited/signed as "Approved by" on the final
+//   // document — not necessarily whoever is logged in doing the upload.
+//   const [approvers, setApprovers] = useState([]);
+//   const [loadingApprovers, setLoadingApprovers] = useState(false);
+//   const [selectedApproverUsername, setSelectedApproverUsername] = useState("");
+
+//   // --- Approve & Generate Signed Copy (second render pass) -----------
+//   const [approving, setApproving] = useState(false);
+
 //   const templateInputRef = useRef(null);
+
+//   // Fetch accounts eligible to approve (admin + technician roles), only
+//   // needed on the "check" stage where the checker picks who's signing.
+//   useEffect(() => {
+//     if (stage !== "check") return;
+//     const fetchApprovers = async () => {
+//       setLoadingApprovers(true);
+//       try {
+//         const res = await fetch(`${API}/api/users`);
+//         if (!res.ok) throw new Error("Failed to load approvers");
+//         const all = await res.json();
+//         const eligible = (Array.isArray(all) ? all : []).filter(
+//           (u) => u.role === "admin" || u.role === "technician",
+//         );
+//         setApprovers(eligible);
+//       } catch (err) {
+//         console.error("Failed to fetch approvers:", err);
+//         setApprovers([]);
+//       } finally {
+//         setLoadingApprovers(false);
+//       }
+//     };
+//     fetchApprovers();
+//   }, [stage]);
 
 //   useEffect(() => {
 //     if (!quotation) return;
@@ -116,6 +178,9 @@
 //       remarks: quotation.remarks || "",
 //     });
 //     setPendingTemplateFile(null);
+//     // Pre-select if this record was already checked before (re-opening
+//     // a "For Sending" record), otherwise starts blank.
+//     setSelectedApproverUsername(quotation.checkedByUsername || "");
 //   }, [quotation]);
 
 //   if (!quotation) return null;
@@ -125,6 +190,10 @@
 //   const displayFileUrl = quotation[config.displayFileField] || "";
 //   const displayFileName = quotation[config.displayFileNameField] || "";
 //   const templateUploaded = Boolean(displayFileUrl);
+
+//   const selectedApprover = approvers.find(
+//     (a) => a.username === selectedApproverUsername,
+//   );
 
 //   const knownFiles = [
 //     {
@@ -162,6 +231,16 @@
 //   const handleSave = async () => {
 //     setSaving(true);
 //     setError("");
+
+//     // On the check stage, an approver must be picked before the signed
+//     // file goes up — that's who the "Approved by" name/signature on the
+//     // final document will be.
+//     if (stage === "check" && pendingTemplateFile && !selectedApproverUsername) {
+//       setError("Please select who is approving this quotation before saving.");
+//       setSaving(false);
+//       return;
+//     }
+
 //     try {
 //       const res = await fetch(`${API}/api/quotations/${idPath}`, {
 //         method: "PUT",
@@ -174,6 +253,14 @@
 //       if (pendingTemplateFile && config.uploadRoute) {
 //         const formData = new FormData();
 //         formData.append(config.uploadField, pendingTemplateFile);
+
+//         if (selectedApprover) {
+//           formData.append("approverUsername", selectedApprover.username);
+//           formData.append(
+//             "approverName",
+//             selectedApprover.name || selectedApprover.username,
+//           );
+//         }
 
 //         const headers = {};
 //         if (config.requiresRoleHeader) {
@@ -208,6 +295,62 @@
 //     }
 //   };
 
+//   // Runs the second docxtemplater pass (server-side) against whichever
+//   // file currently holds the real content, inserting only the selected
+//   // approver's name + signature via [[ ]]-delimited tags. Leaves
+//   // everything the staff typed completely untouched.
+//   const handleApprove = async () => {
+//     if (!selectedApprover) {
+//       setError("Please select who is approving this quotation.");
+//       return;
+//     }
+//     setApproving(true);
+//     setError("");
+//     try {
+//       const res = await fetch(
+//         `${API}/api/quotations/${idPath}/apply-approval`,
+//         {
+//           method: "PUT",
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({
+//             approverUsername: selectedApprover.username,
+//             approverName: selectedApprover.name || selectedApprover.username,
+//           }),
+//         },
+//       );
+//       if (!res.ok) throw new Error("Failed to apply approval");
+//       const result = await res.json();
+//       if (!result.success)
+//         throw new Error(result.message || "Failed to apply approval");
+
+//       // Immediately download the newly generated signed copy so there's
+//       // a visible result instead of the modal just quietly closing.
+//       const signedUrl = result.quotation?.signedFileUrl;
+//       if (signedUrl) {
+//         const fileRes = await fetch(signedUrl);
+//         if (fileRes.ok) {
+//           const blob = await fileRes.blob();
+//           const blobUrl = window.URL.createObjectURL(blob);
+//           const link = document.createElement("a");
+//           link.href = blobUrl;
+//           link.download = `${quotation.quotationId.replace(/\//g, "-")}-SIGNED.docx`;
+//           document.body.appendChild(link);
+//           link.click();
+//           link.remove();
+//           window.URL.revokeObjectURL(blobUrl);
+//         }
+//       }
+
+//       onSaved?.(result.quotation);
+//       onClose();
+//     } catch (err) {
+//       console.error("Failed to apply approval:", err);
+//       setError(err.message || "Failed to apply approval. Please try again.");
+//     } finally {
+//       setApproving(false);
+//     }
+//   };
+
 //   // Prefer the real extension from the saved original filename.
 //   // Falls back to parsing the file URL for older records that predate
 //   // staffFileName/signedFileName being stored.
@@ -229,6 +372,10 @@
 //     return `${base}${ext}`;
 //   };
 
+//   // Downloads the REAL uploaded file as-is (staffFileUrl / signedFileUrl)
+//   // — never re-rendered here — so whatever the staff actually typed
+//   // into the document is exactly what you get. Signature only appears
+//   // once "Approve & Generate Signed Copy" has actually run.
 //   const handleDownloadTemplate = async () => {
 //     if (!displayFileUrl) {
 //       setError("No file has been uploaded for this quotation yet.");
@@ -382,6 +529,30 @@
 //                   readOnly
 //                 />
 //               </div>
+
+//               {stage === "check" && (
+//                 <div className="qtn-field">
+//                   <label>Approved By</label>
+//                   <select
+//                     value={selectedApproverUsername}
+//                     onChange={(e) =>
+//                       setSelectedApproverUsername(e.target.value)
+//                     }
+//                     disabled={loadingApprovers}
+//                   >
+//                     <option value="">
+//                       {loadingApprovers
+//                         ? "Loading..."
+//                         : "-- Select approver --"}
+//                     </option>
+//                     {approvers.map((a) => (
+//                       <option key={a.username} value={a.username}>
+//                         {a.name || a.username} ({a.role})
+//                       </option>
+//                     ))}
+//                   </select>
+//                 </div>
+//               )}
 //             </div>
 
 //             <div className="qtn-details-divider" />
@@ -427,7 +598,12 @@
 //           <button
 //             className="qtn-btn qtn-btn-primary"
 //             onClick={handleSave}
-//             disabled={saving}
+//             disabled={
+//               saving ||
+//               (stage === "check" &&
+//                 pendingTemplateFile &&
+//                 !selectedApproverUsername)
+//             }
 //           >
 //             {saving
 //               ? "Saving..."
@@ -435,6 +611,21 @@
 //                 ? config.savingLabel
 //                 : "Save"}
 //           </button>
+
+//           {stage === "check" && (
+//             <button
+//               className="qtn-btn qtn-btn-primary"
+//               onClick={handleApprove}
+//               disabled={approving || !selectedApproverUsername}
+//               title={
+//                 !selectedApproverUsername
+//                   ? "Select an approver first"
+//                   : "Insert the approver's name and signature into the uploaded file"
+//               }
+//             >
+//               {approving ? "Approving..." : "Approve & Generate Signed Copy"}
+//             </button>
+//           )}
 
 //           {config.showMarkSent && (
 //             <button
@@ -1098,78 +1289,85 @@ const QuotationDetailsModal = ({
           onChange={handleTemplateFileSelected}
         />
 
-        <div className="qtn-modal-footer">
-          <button
-            className="qtn-btn qtn-btn-primary"
-            onClick={handleSave}
-            disabled={
-              saving ||
-              (stage === "check" &&
-                pendingTemplateFile &&
-                !selectedApproverUsername)
-            }
-          >
-            {saving
-              ? "Saving..."
-              : pendingTemplateFile
-                ? config.savingLabel
-                : "Save"}
-          </button>
-
-          {stage === "check" && (
+        {/* FOOTER — qtn-toolbar layout: primary actions (Save / Approve /
+            Mark as Sent) pinned left, file actions pinned right, matching
+            the same gray action-bar pattern as AddQuotationModal */}
+        <div className="qtn-modal-footer qtn-toolbar">
+          <div className="qtn-toolbar-left">
             <button
               className="qtn-btn qtn-btn-primary"
-              onClick={handleApprove}
-              disabled={approving || !selectedApproverUsername}
-              title={
-                !selectedApproverUsername
-                  ? "Select an approver first"
-                  : "Insert the approver's name and signature into the uploaded file"
+              onClick={handleSave}
+              disabled={
+                saving ||
+                (stage === "check" &&
+                  pendingTemplateFile &&
+                  !selectedApproverUsername)
               }
             >
-              {approving ? "Approving..." : "Approve & Generate Signed Copy"}
+              {saving
+                ? "Saving..."
+                : pendingTemplateFile
+                  ? config.savingLabel
+                  : "Save"}
             </button>
-          )}
 
-          {config.showMarkSent && (
+            {stage === "check" && (
+              <button
+                className="qtn-btn qtn-btn-primary"
+                onClick={handleApprove}
+                disabled={approving || !selectedApproverUsername}
+                title={
+                  !selectedApproverUsername
+                    ? "Select an approver first"
+                    : "Insert the approver's name and signature into the uploaded file"
+                }
+              >
+                {approving ? "Approving..." : "Approve & Generate Signed Copy"}
+              </button>
+            )}
+
+            {config.showMarkSent && (
+              <button
+                className="qtn-btn qtn-btn-primary"
+                onClick={handleMarkAsSent}
+                disabled={markingSent}
+              >
+                {markingSent ? "Marking..." : "Mark as Sent"}
+              </button>
+            )}
+          </div>
+
+          <div className="qtn-toolbar-right">
+            <button className="qtn-btn" onClick={() => setShowFiles(true)}>
+              View Files
+            </button>
+
             <button
-              className="qtn-btn qtn-btn-primary"
-              onClick={handleMarkAsSent}
-              disabled={markingSent}
+              className="qtn-btn"
+              onClick={handleDownloadTemplate}
+              disabled={downloadingTemplate || !displayFileUrl}
+              title={
+                !displayFileUrl
+                  ? "No file uploaded yet"
+                  : "Download the current file for this stage"
+              }
             >
-              {markingSent ? "Marking..." : "Mark as Sent"}
+              {downloadingTemplate ? "Downloading..." : "Download Template"}
             </button>
-          )}
 
-          <button className="qtn-btn" onClick={() => setShowFiles(true)}>
-            View Files
-          </button>
+            <button className="qtn-btn" onClick={handleReuploadTemplate}>
+              Re-upload Template
+            </button>
 
-          <button
-            className="qtn-btn"
-            onClick={handleDownloadTemplate}
-            disabled={downloadingTemplate || !displayFileUrl}
-            title={
-              !displayFileUrl
-                ? "No file uploaded yet"
-                : "Download the current file for this stage"
-            }
-          >
-            {downloadingTemplate ? "Downloading..." : "Download Template"}
-          </button>
-
-          <button className="qtn-btn" onClick={handleReuploadTemplate}>
-            Re-upload Template
-          </button>
-
-          {pendingTemplateFile && (
-            <span className="qtn-template-pending">
-              📎 {pendingTemplateFile.name} — will upload on Save
-            </span>
-          )}
-          {templateUploaded && !pendingTemplateFile && (
-            <span className="qtn-template-uploaded">✓ Template uploaded</span>
-          )}
+            {pendingTemplateFile && (
+              <span className="qtn-template-pending">
+                📎 {pendingTemplateFile.name} — will upload on Save
+              </span>
+            )}
+            {templateUploaded && !pendingTemplateFile && (
+              <span className="qtn-template-uploaded">✓ Template uploaded</span>
+            )}
+          </div>
 
           {/* <button className="qtn-btn" onClick={onClose}>
             Cancel

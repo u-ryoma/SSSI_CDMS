@@ -145,16 +145,33 @@
   font-size: 14px;
 }
 
-/* ---- Footer: one line, pill buttons ---- */
+/* ---- Footer / Toolbar: primary actions pinned left, file actions
+   pinned right, matching the gray action-bar screenshot ---- */
 .qtn-modal-footer {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   padding: 14px 20px;
-  background: #dde3ea;
-  border-top: 1px solid #c7d0da;
+  background: #e0e0e0;
+  border-top: 1px solid #cfcfcf;
   overflow-x: auto;
+}
+
+.qtn-toolbar {
+  justify-content: space-between;
+}
+
+.qtn-toolbar-left,
+.qtn-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.qtn-toolbar-right {
+  margin-left: auto;
 }
 
 .qtn-btn {
@@ -166,19 +183,21 @@
   font-size: 13px;
   font-weight: 600;
   padding: 9px 16px;
-  border: 1.5px solid #1a1a1a;
-  border-radius: 999px;
+  border: 1.5px solid #c4c4c4;
+  border-radius: 6px; /* rectangular w/ soft corners, matches screenshot */
   background: #ffffff;
   color: #1a1a1a;
   cursor: pointer;
   white-space: nowrap;
   transition:
     background 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .qtn-btn:hover:not(:disabled) {
-  background: #f0f0f0;
+  background: #f4f4f5;
+  border-color: #a1a1aa;
 }
 
 .qtn-btn:disabled {
@@ -194,6 +213,7 @@
 
 .qtn-btn-primary:hover:not(:disabled) {
   background: #333333;
+  border-color: #333333;
 }
 
 .qtn-files-panel {
@@ -224,4 +244,14 @@
 /* "Template uploaded" text removed as requested */
 .qtn-template-uploaded {
   display: none;
+}
+
+@media (max-width: 640px) {
+  .qtn-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .qtn-toolbar-right {
+    margin-left: 0;
+  }
 }

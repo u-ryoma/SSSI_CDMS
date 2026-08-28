@@ -91,3 +91,10 @@
   background: #efefef;
   font-weight: bold;
 }
+
+/* Row hover — light blue highlight, applies to any clickable data row
+   (the "no-data"/loading row has no jobNumber-based onClick, so this
+   only ever visually activates on real, clickable rows). */
+.calibration-table tbody tr:hover {
+  background: #eaf2fc;
+}

@@ -64,71 +64,14 @@
   position: relative;
 }
 
-.scm-technician-picker {
-  position: relative;
-}
-
-.scm-technician-trigger {
-  width: 100%;
-  text-align: left;
+.scm-technician-select {
   border: 1px solid #c7c7c7;
   border-radius: 4px;
   padding: 7px 10px;
   font-size: 13.5px;
   background: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  width: 100%;
   box-sizing: border-box;
-}
-
-.scm-technician-trigger:hover {
-  background: #f7f7f7;
-}
-
-.scm-technician-caret {
-  color: #666;
-  margin-left: 8px;
-}
-
-.scm-technician-dropdown {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background: #fff;
-  border: 1px solid #c7c7c7;
-  border-radius: 4px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-  max-height: 180px;
-  overflow-y: auto;
-  z-index: 20;
-  padding: 4px 0;
-}
-
-.scm-technician-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 12px;
-  cursor: pointer;
-  font-size: 13.5px;
-}
-
-.scm-technician-option:hover {
-  background: #f2f5fb;
-}
-
-.scm-technician-initials {
-  color: #777;
-  font-size: 12.5px;
-}
-
-.scm-technician-empty {
-  padding: 10px 12px;
-  color: #888;
-  font-size: 13px;
 }
 
 .scm-label {
@@ -341,4 +284,30 @@
   border-radius: 2px;
   padding: 6px 12px;
   cursor: pointer;
+}
+.scm-required {
+  color: #d32f2f;
+  margin-left: 2px;
+}
+
+.scm-field-error input,
+.scm-field-error textarea,
+.scm-field-error select {
+  border-color: #d32f2f !important;
+}
+
+.scm-error-text {
+  display: block;
+  color: #d32f2f;
+  font-size: 11.5px;
+  margin-top: 4px;
+}
+.scm-form-error-banner {
+  background: #fdecea;
+  color: #d32f2f;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
 }

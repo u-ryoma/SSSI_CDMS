@@ -1,7 +1,7 @@
 .jd-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,41 +10,45 @@
 }
 
 .jd-modal {
-  width: 900px;
-  max-width: 100%;
+  width: 1100px;
+  max-width: 96vw;
   max-height: 92vh;
   overflow-y: auto;
-  background: #f4f4f2;
-  border-radius: 6px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  background: #ffffff;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.35),
+    0 2px 8px rgba(15, 23, 42, 0.12);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 12px;
-  color: #222;
+  font-size: 12.5px;
+  color: #1e293b;
 }
 
 .jd-body {
-  padding: 14px 16px 16px;
+  padding: 24px 28px 24px;
 }
 
-/* ---- bordered panel replicating the legacy fieldset ---- */
+/* ---- bordered panel replicating the legacy fieldset, modernized ---- */
 .jd-panel {
-  border: 1px solid #8b8b8b;
-  border-radius: 2px;
-  background: #fbfbfa;
-  padding: 12px 12px 10px;
-  margin-bottom: 12px;
+  border: 1px solid #101010;
+  border-radius: 8px;
+  background: #fafbfc;
+  padding: 16px 16px 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .jd-top-row {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .jd-top-fields {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   width: 260px;
 }
 
@@ -57,23 +61,27 @@
 
 .jd-field-inline label {
   font-weight: 600;
-  color: #333;
+  color: #475569;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .jd-main {
   display: flex;
-  gap: 14px;
+  gap: 24px;
   align-items: flex-start;
+  min-width: 0;
 }
 
 /* ---- the big field grid ---- */
 .jd-grid {
   flex: 1;
+  min-width: 0;
   display: grid;
-  grid-template-columns: 92px 1fr 68px 118px 68px 118px;
-  grid-auto-rows: minmax(22px, auto);
-  row-gap: 5px;
-  column-gap: 6px;
+  grid-template-columns: 100px minmax(0, 1fr) 80px 150px 80px 150px;
+  grid-auto-rows: minmax(26px, auto);
+  row-gap: 12px;
+  column-gap: 12px;
   align-items: center;
   grid-template-areas:
     "compLbl  compVal  oicLbl   oicVal   .        .       "
@@ -88,9 +96,11 @@
 
 .jd-label {
   font-weight: 600;
-  color: #333;
+  color: #475569;
+  font-size: 12px;
   align-self: start;
   padding-top: 3px;
+  letter-spacing: 0.01em;
 }
 
 .jd-label-top {
@@ -101,18 +111,30 @@
 .jd-select-like,
 .jd-textarea {
   background: #ffffff;
-  border: 1px solid #7f7f7f;
-  border-radius: 1px;
-  padding: 3px 6px;
-  min-height: 20px;
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.08);
+  border: 1px solid #cbd2db;
+  border-radius: 5px;
+  padding: 6px 10px;
+  min-height: 22px;
+  min-width: 0;
+  box-shadow: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #1e293b;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.jd-input:hover,
+.jd-select-like:hover,
+.jd-textarea:hover {
+  border-color: #a7b1bd;
 }
 
 .jd-input-static {
-  background: #f0f0ee;
+  background: #f1f3f5;
+  color: #475569;
 }
 
 .jd-select-like {
@@ -131,7 +153,7 @@
 
 .jd-caret {
   font-size: 9px;
-  color: #555;
+  color: #8a94a3;
   flex-shrink: 0;
 }
 
@@ -143,39 +165,58 @@
 
 .jd-input-with-icon {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   align-items: stretch;
 }
 
 .jd-input-with-icon .jd-input,
 .jd-input-with-icon .jd-select-like {
   flex: 1;
+  min-width: 0;
 }
 
 .jd-icon-btn {
-  width: 24px;
+  width: 26px;
   flex-shrink: 0;
-  border: 1px solid #7f7f7f;
-  background: #eceae4;
-  border-radius: 1px;
+  border: 1px solid #cbd2db;
+  background: #ffffff;
+  border-radius: 5px;
   cursor: pointer;
   font-size: 11px;
   line-height: 1;
+  color: #475569;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .jd-icon-btn:hover {
-  background: #ddd9d0;
+  background: #f1f3f5;
+  border-color: #a7b1bd;
 }
 
-/* ---- photo box ---- */
+/* ---- photo box ----
+   !important added to guarantee this fixed size wins over any other
+   .jd-photo-box rule elsewhere (this modal is reused by both
+   ConcernIncoming and ConcernOutgoing, which may each pull in their
+   own page-level CSS that also touches this class). */
 .jd-photo-box {
-  width: 170px;
-  align-self: stretch;
-  border: 1px solid #7f7f7f;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 210px !important;
+  height: 230px !important;
+  min-height: 0 !important;
+  max-height: 230px !important;
+  align-self: flex-start !important;
+  flex-shrink: 0 !important;
+  border: 1px solid #e2e5ea !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  box-shadow:
+    inset 0 0 0 3px #ffffff,
+    inset 0 0 0 4px #eef0f3 !important;
 }
 
 .jd-photo-placeholder {
@@ -186,28 +227,30 @@
     45deg,
     #ffffff,
     #ffffff 10px,
-    #f4f4f2 10px,
-    #f4f4f2 20px
+    #f4f5f6 10px,
+    #f4f5f6 20px
   );
 }
 
 .jd-photo-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
 }
 
 /* ---- address / contact blocks ---- */
 .jd-field-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 8px;
+  gap: 5px;
+  margin-bottom: 10px;
 }
 
 .jd-field-block label {
   font-weight: 600;
-  color: #333;
+  color: #475569;
+  font-size: 12px;
+  letter-spacing: 0.01em;
 }
 
 .jd-textarea-wide {
@@ -237,29 +280,35 @@
 
 /* ---- action buttons ---- */
 .jd-actions {
-  margin-top: 10px;
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
 .jd-btn {
-  border: 1px solid #6f6f6f;
-  background: linear-gradient(#fdfdfc, #e7e5e0);
-  border-radius: 3px;
-  padding: 6px 14px;
+  border: 1.5px solid #c4c4c4;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 8px 16px;
   font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  color: #222;
+  color: #1a1a1a;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .jd-btn:hover {
-  background: linear-gradient(#ffffff, #ded9d0);
+  background: #f4f4f5;
+  border-color: #a1a1aa;
 }
 
 .jd-btn:active {
-  background: #d8d4cb;
+  background: #ebebec;
 }
 
 .jd-btn-print {
@@ -268,18 +317,19 @@
 
 .jd-actions-row2 {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .jd-btn-primary {
-  background: linear-gradient(#4a90d9, #2f6fb8);
-  border-color: #2a5f9e;
-  color: #fff;
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
   font-weight: 600;
 }
 
 .jd-btn-primary:hover {
-  background: linear-gradient(#5a9ce0, #3878c2);
+  background: #1d4ed8;
+  border-color: #1d4ed8;
 }
 
 @media (max-width: 720px) {

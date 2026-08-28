@@ -457,9 +457,9 @@ const ReleaseCertificateModal = ({
             >
               Log
             </button>
-            <button className="dr-btn" onClick={handleQuickLog}>
+            {/* <button className="dr-btn" onClick={handleQuickLog}>
               Quick Log
-            </button>
+            </button> */}
 
             <div className="dr-release-toolbar-spacer" />
 

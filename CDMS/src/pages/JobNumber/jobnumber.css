@@ -2,8 +2,11 @@
 
 .job-container {
   width: 100%;
-  height: 100vh;
-  overflow-y: auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: #f3f3f3;
 }
 
@@ -12,6 +15,7 @@
   background: black;
   color: white;
   padding: 15px 20px;
+  flex-shrink: 0;
 }
 
 .job-header h1 {
@@ -29,6 +33,7 @@
   display: flex;
   background: #efefef;
   border-bottom: 1px solid #ccc;
+  flex-shrink: 0;
 }
 
 .job-tabs button {
@@ -53,6 +58,7 @@
   padding: 15px 20px;
   background: #f9f9f9;
   border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
 }
 
 .search-bar select,
@@ -68,21 +74,61 @@
   cursor: pointer;
 }
 
+/* SEARCH RESULTS INFO */
+.search-results-info {
+  padding: 6px 20px;
+  font-size: 13px;
+  color: #555;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.search-results-info strong {
+  color: #2563eb;
+}
+
+.clear-search-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+  margin-left: 4px;
+}
+
+.clear-search-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
 /* TABLE */
 .table-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: auto;
-  padding: 10px 20px 20px;
+  padding: 0 20px 20px;
 }
 
 .job-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: white;
+  margin-top: 10px;
 }
 
 .job-table th,
 .job-table td {
   border: 1px solid #dcdcdc;
+  border-top: none;
   padding: 10px;
   font-size: 13px;
   text-align: left;
@@ -91,6 +137,22 @@
 .job-table th {
   background: #efefef;
   font-weight: bold;
+  border-top: 1px solid #dcdcdc;
+}
+
+.job-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.clickable-row:hover {
+  background-color: #f0f7ff;
 }
 
 /* FORM CARD */
@@ -138,44 +200,4 @@
   background: #2563eb;
   color: white;
   cursor: pointer;
-}
-.search-results-info {
-  padding: 6px 20px;
-  font-size: 13px;
-  color: #555;
-  background: #f9f9f9;
-  border-bottom: 1px solid #e0e0e0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.search-results-info strong {
-  color: #2563eb;
-}
-
-.clear-search-btn {
-  background: none;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 2px 8px;
-  cursor: pointer;
-  font-size: 12px;
-  color: #666;
-  margin-left: 4px;
-}
-
-.clear-search-btn:hover {
-  background: #f0f0f0;
-  color: #333;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.clickable-row:hover {
-  background-color: #f0f7ff;
 }

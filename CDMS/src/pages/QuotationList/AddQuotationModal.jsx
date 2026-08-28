@@ -3,6 +3,7 @@
 // import CustomerLookupModal from "../jobreceipt/CustomerLookupModal";
 // import AddContactSubModal from "../jobreceipt/AddContactSubModal";
 // import AdminPasswordModal from "../jobreceipt/AdminPasswordModal";
+// import ViewFilesModal from "./ViewFilesModal";
 // import "./AddQuotationModal.css";
 
 // const API = import.meta.env.VITE_API_URL;
@@ -60,12 +61,13 @@
 //  * the template, this never gates Save — it's optional supporting
 //  * evidence, not a required deliverable.
 //  *
-//  * View Files: no fetch needed — every file URL this modal knows about
-//  * (the staff template, the client-proof PDF) is already sitting in local
-//  * state (staffFileUrl/staffFileName, clientProofUrl/clientProofName),
-//  * either from initialData or from a just-completed upload. Clicking it
-//  * just toggles a small panel listing whichever of those are present,
-//  * each as a direct link to the Cloudinary file.
+//  * View Files: opens a small read-only modal (ViewFilesModal) listing
+//  * every file URL this modal already knows about (the staff template,
+//  * the client-proof PDF) from local state (staffFileUrl/staffFileName,
+//  * clientProofUrl/clientProofName), either from initialData or from a
+//  * just-completed upload. No fetch needed — the modal just renders
+//  * whichever of those are present, each as a direct link to the
+//  * Cloudinary file.
 //  *
 //  * Props:
 //  * - currentUser: the logged-in user, e.g. { name: "Avelyn G. Que-loy" }.
@@ -183,6 +185,7 @@
 
 //   // --- View Files -----------------------------------------------------
 //   // No fetch involved — everything needed is already in local state.
+//   // Now opens a modal (ViewFilesModal) instead of an inline panel.
 //   const [showFiles, setShowFiles] = useState(false);
 
 //   // Attach to onFocus for inputs/textareas, and onMouseDown + onFocus for
@@ -262,8 +265,10 @@
 //     quotationId: idForRecord,
 //     date: date.toISOString().slice(0, 10),
 //     preparedBy,
+//     preparedByUsername: isEditMode
+//       ? initialData?.preparedByUsername || ""
+//       : currentUser?.username || "",
 //   });
-
 //   // Silently POSTs the current form as a new quotation record, without
 //   // closing the modal or touching the parent's selectedQuotation state.
 //   // Returns the server-generated quotationId. Used by Download Template
@@ -354,12 +359,12 @@
 //     setPendingClientProofFile(file);
 //   };
 
-//   // Toggles the small "attached files" panel. No fetch — every URL/name
-//   // it needs (staff template, client proof) is already in local state,
-//   // either seeded from initialData or set right after a successful
-//   // upload in handleSaveClick.
+//   // Opens the View Files modal. No fetch — every URL/name it needs
+//   // (staff template, client proof) is already in local state, either
+//   // seeded from initialData or set right after a successful upload in
+//   // handleSaveClick.
 //   const handleViewFiles = () => {
-//     setShowFiles((prev) => !prev);
+//     setShowFiles(true);
 //   };
 
 //   // Save now does everything in one user-facing action:
@@ -494,13 +499,19 @@
 //     day: "2-digit",
 //   });
 
-//   // Files known to this modal, ready to render in the View Files panel.
+//   // Files known to this modal, ready to render in the ViewFilesModal.
 //   // Built directly from local state — no backend call.
+//   // NEW
 //   const attachedFiles = [
 //     staffFileUrl && {
 //       label: "Quotation Template",
 //       name: staffFileName || "template file",
 //       url: staffFileUrl,
+//     },
+//     initialData?.signedFileUrl && {
+//       label: "Signed Quotation",
+//       name: initialData.signedFileName || "signed file",
+//       url: initialData.signedFileUrl,
 //     },
 //     clientProofUrl && {
 //       label: "Client Proof",
@@ -508,7 +519,6 @@
 //       url: clientProofUrl,
 //     },
 //   ].filter(Boolean);
-
 //   return (
 //     <div className="cdms-overlay" role="dialog" aria-modal="true">
 //       <div className="cdms-modal">
@@ -673,24 +683,6 @@
 //           </div>
 //         </div>
 
-//         {showFiles && (
-//           <div className="cdms-files-panel">
-//             {attachedFiles.length === 0 ? (
-//               <div>No files attached to this quotation yet.</div>
-//             ) : (
-//               <ul>
-//                 {attachedFiles.map((f) => (
-//                   <li key={f.url}>
-//                     <a href={f.url} target="_blank" rel="noreferrer">
-//                       {f.label}: {f.name}
-//                     </a>
-//                   </li>
-//                 ))}
-//               </ul>
-//             )}
-//           </div>
-//         )}
-
 //         <div className="cdms-modal-footer">
 //           <div className="cdms-footer-left">
 //             <button
@@ -723,7 +715,7 @@
 //                   className="cdms-btn"
 //                   onClick={handleViewFiles}
 //                 >
-//                   {showFiles ? "Hide Files" : "View Files"}
+//                   View Files
 //                 </button>
 //                 <button
 //                   type="button"
@@ -782,16 +774,16 @@
 //                 )}
 //               </div>
 //             </div>
-//             <button className="cdms-btn" onClick={onClose}>
+//             {/* <button className="cdms-btn" onClick={onClose}>
 //               Cancel
-//             </button>
-//             <button className="cdms-btn">Print</button>
-//           </div>
-//           <div className="cdms-footer-right">
+//             </button> */}
+//             {/* <button className="cdms-btn">Print</button>
+//           </div> */}
+//             {/* <div className="cdms-footer-right">
 //             <button className="cdms-btn">Back</button>
 //             <button className="cdms-btn" onClick={onClose}>
 //               Exit
-//             </button>
+//             </button> */}
 //           </div>
 //         </div>
 //       </div>
@@ -818,6 +810,13 @@
 //             setAdminVerified(true);
 //             setShowAdminModal(false);
 //           }}
+//         />
+//       )}
+
+//       {showFiles && (
+//         <ViewFilesModal
+//           files={attachedFiles}
+//           onClose={() => setShowFiles(false)}
 //         />
 //       )}
 //     </div>
@@ -1510,8 +1509,10 @@ const AddQuotationModal = ({
           </div>
         </div>
 
-        <div className="cdms-modal-footer">
-          <div className="cdms-footer-left">
+        {/* FOOTER — cdms-toolbar layout: Save pinned left, file actions +
+            status pinned right, matching the Job Receipt action bar */}
+        <div className="cdms-modal-footer cdms-toolbar">
+          <div className="cdms-toolbar-left">
             <button
               className="cdms-btn cdms-btn-primary"
               onClick={handleSaveClick}
@@ -1524,94 +1525,91 @@ const AddQuotationModal = ({
             >
               {saving ? "Saving..." : "Save"}
             </button>
-            <div className="cdms-field">
-              <div className="cdms-select-row">
-                <button
-                  type="button"
-                  className="cdms-btn"
-                  onClick={handleUploadPdfClick}
-                  disabled={saving}
-                  title="Attach proof of client communication, e.g. a printed/scanned email (uploads when you click Save)"
-                >
-                  {pendingClientProofFile
-                    ? "Change Selected PDF"
-                    : "Upload PDF"}
-                </button>
-                <button
-                  type="button"
-                  className="cdms-btn"
-                  onClick={handleViewFiles}
-                >
-                  View Files
-                </button>
-                <button
-                  type="button"
-                  className="cdms-btn"
-                  onClick={handleDownloadTemplate}
-                  disabled={downloading}
-                  title="Download filled Word template"
-                >
-                  {downloading ? "Downloading..." : "Download Template"}
-                </button>
-                <button
-                  type="button"
-                  className="cdms-btn"
-                  onClick={handleReuploadClick}
-                  disabled={saving}
-                  title="Attach the filled-in quotation template (uploads when you click Save)"
-                >
-                  {pendingFile ? "Change Selected File" : "Re-upload Template"}
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  style={{ display: "none" }}
-                  accept=".doc,.docx,.pdf"
-                  onChange={handleFileSelected}
-                />
-                <input
-                  type="file"
-                  ref={pdfInputRef}
-                  style={{ display: "none" }}
-                  accept="application/pdf"
-                  onChange={handleClientProofFileSelected}
-                />
-                {pendingFile && (
-                  <span className="cdms-upload-status" title={pendingFile.name}>
-                    📎 {pendingFile.name} (will upload on Save)
-                  </span>
-                )}
-                {!pendingFile && hasUploadedFile && (
-                  <span className="cdms-upload-status" title={staffFileUrl}>
-                    ✓ Template uploaded
-                  </span>
-                )}
-                {pendingClientProofFile && (
-                  <span
-                    className="cdms-upload-status"
-                    title={pendingClientProofFile.name}
-                  >
-                    📎 {pendingClientProofFile.name} (will upload on Save)
-                  </span>
-                )}
-                {!pendingClientProofFile && hasClientProof && (
-                  <span className="cdms-upload-status" title={clientProofUrl}>
-                    ✓ Client proof uploaded
-                  </span>
-                )}
-              </div>
-            </div>
-            {/* <button className="cdms-btn" onClick={onClose}>
+          </div>
+
+          <div className="cdms-toolbar-right">
+            <button
+              type="button"
+              className="cdms-btn"
+              onClick={handleUploadPdfClick}
+              disabled={saving}
+              title="Attach proof of client communication, e.g. a printed/scanned email (uploads when you click Save)"
+            >
+              {pendingClientProofFile ? "Change Selected PDF" : "Upload PDF"}
+            </button>
+            <button
+              type="button"
+              className="cdms-btn"
+              onClick={handleViewFiles}
+            >
+              View Files
+            </button>
+            <button
+              type="button"
+              className="cdms-btn"
+              onClick={handleDownloadTemplate}
+              disabled={downloading}
+              title="Download filled Word template"
+            >
+              {downloading ? "Downloading..." : "Download Template"}
+            </button>
+            <button
+              type="button"
+              className="cdms-btn"
+              onClick={handleReuploadClick}
+              disabled={saving}
+              title="Attach the filled-in quotation template (uploads when you click Save)"
+            >
+              {pendingFile ? "Change Selected File" : "Re-upload Template"}
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: "none" }}
+              accept=".doc,.docx,.pdf"
+              onChange={handleFileSelected}
+            />
+            <input
+              type="file"
+              ref={pdfInputRef}
+              style={{ display: "none" }}
+              accept="application/pdf"
+              onChange={handleClientProofFileSelected}
+            />
+            {pendingFile && (
+              <span className="cdms-upload-status" title={pendingFile.name}>
+                📎 {pendingFile.name} (will upload on Save)
+              </span>
+            )}
+            {!pendingFile && hasUploadedFile && (
+              <span className="cdms-upload-status" title={staffFileUrl}>
+                ✓ Template uploaded
+              </span>
+            )}
+            {pendingClientProofFile && (
+              <span
+                className="cdms-upload-status"
+                title={pendingClientProofFile.name}
+              >
+                📎 {pendingClientProofFile.name} (will upload on Save)
+              </span>
+            )}
+            {!pendingClientProofFile && hasClientProof && (
+              <span className="cdms-upload-status" title={clientProofUrl}>
+                ✓ Client proof uploaded
+              </span>
+            )}
+          </div>
+          {/* <button className="cdms-btn" onClick={onClose}>
               Cancel
             </button> */}
-            {/* <button className="cdms-btn">Print</button>
+          {/* <button className="cdms-btn">Print</button>
           </div> */}
-            {/* <div className="cdms-footer-right">
+          {/* <div className="cdms-footer-right">
             <button className="cdms-btn">Back</button>
             <button className="cdms-btn" onClick={onClose}>
               Exit
             </button> */}
-          </div>
         </div>
       </div>
 

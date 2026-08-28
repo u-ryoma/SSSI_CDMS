@@ -420,7 +420,7 @@ const ForCheckingSig = () => {
                 oicBy: job.oicBy || "",
                 // Audit stamp of who actually performed the OIC check
                 // (separate from oicBy, the originally assigned OIC).
-                oicCheckedBy: job.oicCheckedBy || "",
+                // oicCheckedBy: job.oicCheckedBy || "",
                 priority: job.priority || "Normal",
                 // from receipt — falls back to the job's own date/companyName
                 // for jobs that have no jobReceiptID (e.g. jobs added from

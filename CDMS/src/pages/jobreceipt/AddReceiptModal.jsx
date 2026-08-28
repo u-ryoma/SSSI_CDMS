@@ -990,7 +990,7 @@ const AddReceiptModal = ({
                     </button>
                   </div>
                 </div>
-                <button className="jr-pdf-btn">Upload PDF</button>
+                {/* <button className="jr-pdf-btn">Upload PDF</button> */}
               </div>
 
               {/* FORM BODY */}
@@ -1148,12 +1148,12 @@ const AddReceiptModal = ({
                 <button className="jr-add-btn" onClick={onOpenJobNumber}>
                   Add
                 </button>
-                <button className="jr-reserve-btn">Reserve Job Numbers</button>
+                {/* <button className="jr-reserve-btn">Reserve Job Numbers</button> */}
               </div>
               <div className="jr-modal-actions-right">
-                <button className="jr-action-btn" disabled>
-                  Modification History
-                </button>
+                {/* <button className="jr-action-btn" disabled>
+                    Modification History
+                  </button> */}
                 {/* <button className="jr-action-btn">Open Camera</button> */}
 
                 {/* OPEN FOLDER — shows every file (equipment photos +

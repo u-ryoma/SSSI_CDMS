@@ -6,10 +6,10 @@ import "./App.css";
 
 import Login from "./login/login.jsx";
 import AdminLayout from "./layout/AdminLayout";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import Customer from "./pages/Customer/Customer";
 import JobList from "./pages/JobNumber/JobList";
-import AccountSettings from "./pages/AccountSettings.jsx";
+import AccountSettings from "./pages/Account/AccountSettings.jsx";
 import AssetMonitoring from "./pages/AssetMonitoring/AssetMonitoring";
 import ConcernIncoming from "./pages/IncomingConcern/ConcernIncoming";
 import ConcernOut from "./pages/OutgoingConcern/ConcernOutgoing";

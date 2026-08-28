@@ -210,26 +210,39 @@
   cursor: default;
 }
 
-/* ---- Footer: everything on one line ---- */
+/* ---- Footer / Toolbar ----
+   FIX: this file previously had "justify-content: space-between" on
+   .cdms-toolbar plus "margin-left: auto" on .cdms-toolbar-right, same
+   as AddAssetModal.css. Because both modals share these global class
+   names, whichever stylesheet mounted later in the DOM was winning the
+   tie (identical specificity on both sides) and silently overriding the
+   fix applied in AddAssetModal.css. Aligning both files to the same
+   flex-start layout removes the gap and keeps them in sync. */
 .cdms-modal-footer {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   padding: 14px 20px;
-  background: #f4f6f8;
-  border-top: 1px solid #dde5ec;
+  background: #e0e0e0;
+  border-top: 1px solid #cfcfcf;
   overflow-x: auto;
 }
 
-/* Unwrap these container divs so every button becomes a direct item
-   in the same single-row flex flow. */
-.cdms-footer-left,
-.cdms-footer-right,
-.cdms-footer-left > .cdms-field,
-.cdms-footer-left > .cdms-field .cdms-select-row {
-  display: contents;
+.cdms-toolbar {
+  justify-content: flex-start;
 }
+
+.cdms-toolbar-left,
+.cdms-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+/* margin-left: auto removed from .cdms-toolbar-right — that was the
+   other half of what created the whitespace gap. */
 
 /* Hides the upload/status text (e.g. "Template uploaded") next to the
    upload buttons. Note: this is one shared class used for all such
@@ -247,19 +260,21 @@
   font-size: 13px;
   font-weight: 600;
   padding: 9px 16px;
-  border: 1.5px solid #1a1a1a;
+  border: 1.5px solid #c4c4c4;
   background: #ffffff;
   color: #1a1a1a;
-  border-radius: 999px;
+  border-radius: 6px; /* rectangular w/ soft corners, matches screenshot */
   cursor: pointer;
   white-space: nowrap;
   transition:
     background 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .cdms-btn:hover:not(:disabled) {
-  background: #f0f0f0;
+  background: #f4f4f5;
+  border-color: #a1a1aa;
 }
 
 .cdms-btn:disabled {
@@ -275,6 +290,7 @@
 
 .cdms-btn-primary:hover:not(:disabled) {
   background: #333333;
+  border-color: #333333;
 }
 
 @media (max-width: 640px) {
@@ -293,5 +309,13 @@
     width: auto;
     flex: none;
     padding-top: 0;
+  }
+
+  .cdms-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .cdms-toolbar-right {
+    margin-left: 0;
   }
 }

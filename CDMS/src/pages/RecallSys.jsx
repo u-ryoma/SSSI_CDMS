@@ -495,7 +495,7 @@
 // export default RecallSys;
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import "./jobnumber.css";
+import "./JobNumber/jobnumber.css";
 
 const API = import.meta.env.VITE_API_URL;
 

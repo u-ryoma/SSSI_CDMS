@@ -99,6 +99,11 @@
   background: #e8e8e8;
   cursor: pointer;
   padding: 0 8px;
+  transition: background 0.15s ease;
+}
+
+.foc-lookup-btn:hover:not(:disabled) {
+  background: #d3d3d3;
 }
 
 .foc-lookup-btn:disabled {
@@ -159,6 +164,11 @@
   border: 1px solid #999;
   background: #e8e8e8;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.foc-camera-actions button:hover:not(:disabled) {
+  background: #d3d3d3;
 }
 
 .foc-mid-section {
@@ -207,6 +217,11 @@
   border: 1px solid #999;
   background: #e8e8e8;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.foc-footer-row button:hover:not(:disabled) {
+  background: #d3d3d3;
 }
 
 .foc-footer-row button:disabled {
@@ -221,8 +236,9 @@
   color: #fff;
   font-weight: 700;
   border-radius: 3px;
+  transition: background 0.15s ease;
 }
 
-.foc-primary-btn:hover {
+.foc-primary-btn:hover:not(:disabled) {
   background: #255fd6;
 }

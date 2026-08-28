@@ -1,9 +1,12 @@
 /* CONTAINER */
 .receipt-container {
   width: 100%;
-  height: 100vh;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background: #f5f5f5;
-  overflow-y: auto;
 }
 
 /* HEADER */
@@ -11,6 +14,7 @@
   background: black;
   color: white;
   padding: 15px 20px;
+  flex-shrink: 0;
 }
 
 .receipt-header h1 {
@@ -32,6 +36,7 @@
   background: #f4f4f4;
   border-bottom: 1px solid #dcdcdc;
   padding-left: 10px;
+  flex-shrink: 0;
 }
 
 .receipt-tabs button {
@@ -73,6 +78,7 @@
   background: white;
   border-bottom: 1px solid #dcdcdc;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .search-bar select,
@@ -104,9 +110,11 @@
 
 /* TABLE WRAPPER */
 .table-wrapper {
+  flex: 0 1 auto; /* was: flex: 1 — no longer force-stretches to fill height */
+  max-height: 100%; /* new — still caps it so it scrolls instead of pushing the page when there ARE many rows */
+  min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 60vh;
   margin: 20px;
   background: white;
   border-radius: 6px;
@@ -1166,6 +1174,7 @@
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .search-results-info strong {
