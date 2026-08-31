@@ -1750,6 +1750,18 @@ const IncomingCalibDetailsModal = ({
     e.target.value = "";
     if (!file) return;
 
+    const isXlsx =
+      file.name?.toLowerCase().endsWith(".xlsx") ||
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (!isXlsx) {
+      showError(
+        "Invalid File Type",
+        "Only .xlsx files are accepted for the calibration procedure template.",
+      );
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", file);
     formData.append("jobNumber", form.jobNumber);
@@ -2253,6 +2265,7 @@ const IncomingCalibDetailsModal = ({
                   <input
                     type="file"
                     ref={reuploadInputRef}
+                    accept=".xlsx"
                     className="icd-hidden-file-input"
                     onChange={handleReuploadFileChange}
                   />

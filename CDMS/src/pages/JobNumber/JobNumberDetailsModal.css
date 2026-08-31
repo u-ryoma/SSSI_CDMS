@@ -45,14 +45,58 @@
   gap: 10px;
 }
 
+/* BOX — header (toggle) + collapsible content area */
 .jnd-box {
   border: 1px solid #0d0d0e;
   background: #fbfbfc;
   border-radius: 6px;
-  padding: 9px 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.jnd-box-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: #f3f4f6;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 7px 10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+  position: relative; /* establishes stacking context */
+  z-index: 60; /* sits above .jnd-lock-overlay (z-index: 50) so
+                           the toggle is clickable even while locked */
+}
+
+.jnd-box-toggle:hover {
+  background: #e9eaec;
+}
+
+.jnd-box-chevron {
+  font-size: 11px;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.jnd-box-chevron.open {
+  transform: rotate(180deg);
+}
+
+.jnd-box-content {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  padding: 9px 10px;
 }
 
 /* FIELDS */
@@ -239,4 +283,43 @@
   z-index: 50;
   cursor: pointer;
   background: rgba(0, 0, 0, 0.03);
+}
+
+/* MOBILE — stack the 3-column grid into a single column */
+@media (max-width: 768px) {
+  .jnd-modal-overlay {
+    padding: 12px 8px;
+  }
+
+  .jnd-modal-wrapper {
+    max-width: 100%;
+    font-size: 13px;
+  }
+
+  .jnd-modal-body {
+    padding: 12px 12px 8px;
+  }
+
+  .jnd-grid {
+    grid-template-columns: 1fr; /* stack columns */
+    gap: 10px;
+  }
+
+  .jnd-field-row {
+    flex-direction: column; /* stack side-by-side fields too */
+    gap: 6px;
+  }
+
+  .jnd-modal-footer {
+    justify-content: center;
+  }
+
+  .jnd-btn {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+}
+.jnd-field-always-editable {
+  position: relative;
+  z-index: 60;
 }

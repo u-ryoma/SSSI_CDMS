@@ -2,6 +2,7 @@
   width: 100%;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #f3f3f3;
 }
 
@@ -15,11 +16,17 @@
 .outgoing-header h1 {
   font-size: 14px;
   margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .outgoing-header h2 {
   font-size: 28px;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* TABS */
@@ -46,6 +53,7 @@
 /* SEARCH BAR */
 .outgoing-search {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   padding: 15px 20px;
@@ -55,7 +63,8 @@
 
 .outgoing-search select,
 .outgoing-search input {
-  flex: 1; /* dropdown and search bar same width */
+  flex: 1 1 140px; /* dropdown and search bar same width, but can shrink/wrap */
+  min-width: 0;
   padding: 8px;
   border: 1px solid #ccc;
 }
@@ -75,6 +84,7 @@
 
 .outgoing-table {
   width: 100%;
+  min-width: 700px; /* forces the wrapper to scroll instead of squeezing columns */
   border-collapse: collapse;
   background: white;
 }
@@ -90,4 +100,18 @@
 .outgoing-table th {
   background: #efefef;
   font-weight: bold;
+}
+
+/* MOBILE — stack the search bar instead of squeezing it */
+@media (max-width: 480px) {
+  .outgoing-search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .outgoing-search select,
+  .outgoing-search input,
+  .outgoing-search button {
+    width: 100%;
+  }
 }

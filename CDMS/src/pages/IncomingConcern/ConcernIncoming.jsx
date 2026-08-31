@@ -323,7 +323,7 @@
 
 // export default ConcernIncoming;
 import React, { useState, useEffect, useMemo } from "react";
-import "../concernout.css";
+import "./concernout.css";
 import ConcernInDetailModal from "./ConcernInDetailModal";
 // TODO: confirm this relative path matches where ConfirmDialog actually
 // lives in your tree (mirrors the "../../components/ConfirmDialog"

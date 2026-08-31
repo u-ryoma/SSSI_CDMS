@@ -6,6 +6,7 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  padding: 12px; /* keeps the modal off the screen edges on small viewports */
 }
 
 .dr-modal {
@@ -16,10 +17,12 @@
   display: flex;
   flex-direction: column;
   max-height: 92vh;
+  overflow-x: hidden; /* stop the modal itself from ever scrolling sideways */
 }
 
 .dr-modal--small {
   width: 320px;
+  max-width: 95vw;
 }
 
 .dr-modal--large {
@@ -46,7 +49,7 @@
 /* Step 2: unit form */
 .dr-form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 0 20px;
   margin-bottom: 12px;
 }
@@ -54,12 +57,14 @@
 .dr-form-col {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .dr-field {
   display: flex;
   flex-direction: column;
   margin-bottom: 10px;
+  min-width: 0;
 }
 
 .dr-field label {
@@ -77,12 +82,16 @@
   font-size: 13px;
   background: #fff;
   resize: vertical;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dr-field--inline {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .dr-field--inline label {
@@ -93,6 +102,7 @@
 .dr-field--inline input,
 .dr-field--inline select {
   flex: 1;
+  min-width: 0;
 }
 
 .dr-field--right label {
@@ -106,12 +116,14 @@
   border-radius: 2px;
   padding: 2px 6px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .dr-modal-actions {
   display: flex;
   gap: 8px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .dr-modal-actions--right {
@@ -124,11 +136,13 @@
   border: 1px solid #aaa;
   max-height: 220px;
   overflow-y: auto;
+  overflow-x: auto; /* let the table scroll sideways instead of squeezing the modal */
   margin-bottom: 12px;
 }
 
 .dr-table {
   width: 100%;
+  min-width: 640px; /* keeps columns readable; wrapper handles the scroll */
   border-collapse: collapse;
   font-size: 13px;
 }
@@ -138,6 +152,7 @@
   border: 1px solid #ccc;
   padding: 4px 6px;
   text-align: left;
+  white-space: nowrap;
 }
 
 .dr-table th {
@@ -164,6 +179,7 @@
   padding: 10px 20px;
   border-top: 1px solid #ccc;
   background: #e8e8e8;
+  flex-wrap: wrap;
 }
 
 .dr-modal-footer-spacer {
@@ -255,6 +271,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .dr-release-toolbar select {
@@ -331,4 +348,33 @@
   background-color: #f0f0f0;
   color: #999;
   cursor: default;
+}
+
+/* MOBILE — stack the 2-column form and let the table scroll instead of
+   forcing the whole modal wider than the viewport */
+@media (max-width: 700px) {
+  .dr-modal--large,
+  .dr-modal--small {
+    width: 100%;
+  }
+
+  .dr-form-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .dr-field--right label,
+  .dr-field--inline label {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .dr-field--inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dr-modal-footer {
+    justify-content: center;
+  }
 }

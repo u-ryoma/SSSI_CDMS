@@ -18,6 +18,7 @@
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 .ftd-modal-scroll {
@@ -47,11 +48,16 @@
 
 .ftd-meta-row input {
   width: 160px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .ftd-body {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 0.65fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(
+      0,
+      0.65fr
+    ) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -59,12 +65,20 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 7px;
+  min-width: 0;
 }
 
 .ftd-field label {
   font-size: 11.5px;
   font-weight: 600;
   margin-bottom: 2px;
+}
+
+.ftd-field input,
+.ftd-field textarea {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ftd-inline-field {
@@ -82,6 +96,7 @@
 
 .ftd-inline-field input {
   flex: 1;
+  min-width: 0;
 }
 
 .ftd-input-with-btn {
@@ -92,6 +107,7 @@
 .ftd-input-with-btn input,
 .ftd-input-with-btn textarea {
   flex: 1;
+  min-width: 0;
 }
 
 .ftd-lookup-btn {
@@ -100,6 +116,7 @@
   cursor: pointer;
   padding: 0 8px;
   transition: background 0.15s ease;
+  flex-shrink: 0;
 }
 
 .ftd-lookup-btn:hover:not(:disabled) {
@@ -120,6 +137,7 @@ textarea:disabled {
 .ftd-col-standard {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .ftd-box-title {
@@ -139,17 +157,19 @@ textarea:disabled {
 
 .ftd-standard-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .ftd-standard-cell {
   display: flex;
   gap: 4px;
+  min-width: 0;
 }
 
 .ftd-standard-cell input {
   flex: 1;
+  min-width: 0;
 }
 
 .ftd-camera-actions {
@@ -157,6 +177,7 @@ textarea:disabled {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 .ftd-camera-actions button {
@@ -173,7 +194,7 @@ textarea:disabled {
 
 .ftd-mid-section {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   gap: 12px;
   margin-top: 4px;
   margin-bottom: 10px;
@@ -185,6 +206,7 @@ textarea:disabled {
   border-radius: 4px;
   padding: 7px 10px;
   background: #fff;
+  min-width: 0;
 }
 
 .ftd-radio-label {
@@ -200,6 +222,8 @@ textarea:disabled {
   position: relative;
   border-top: 1px solid #ccc;
   padding-top: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .ftd-primary-btn {
@@ -234,4 +258,52 @@ textarea:disabled {
 
 .ftd-footer-right button:hover:not(:disabled) {
   background: #d3d3d3;
+}
+
+/* MOBILE — stack everything to one column and let the footer's
+   absolutely-positioned right group wrap instead of overlapping */
+@media (max-width: 760px) {
+  .ftd-modal-overlay {
+    padding: 12px 0;
+  }
+
+  .ftd-top-meta {
+    align-items: stretch;
+  }
+
+  .ftd-meta-row {
+    justify-content: space-between;
+  }
+
+  .ftd-meta-row input {
+    width: 160px;
+  }
+
+  .ftd-body {
+    grid-template-columns: 1fr;
+  }
+
+  .ftd-mid-section {
+    grid-template-columns: 1fr;
+  }
+
+  .ftd-standard-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ftd-footer {
+    flex-direction: column;
+    align-items: stretch;
+    padding-bottom: 8px;
+  }
+
+  .ftd-footer-right {
+    position: static;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .ftd-primary-btn {
+    order: -1; /* main action first on mobile */
+  }
 }

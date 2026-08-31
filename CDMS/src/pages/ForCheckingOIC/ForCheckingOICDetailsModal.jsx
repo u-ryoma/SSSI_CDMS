@@ -813,6 +813,20 @@ const ForCheckingOICDetailsModal = ({
     e.target.value = "";
     if (!file) return;
 
+    // Enforce .xlsx only — `accept` on the <input> can be bypassed via
+    // "All Files" in the OS picker, so this is the real gate.
+    const isXlsx =
+      file.name?.toLowerCase().endsWith(".xlsx") ||
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    if (!isXlsx) {
+      showError(
+        "Invalid File Type",
+        "Only .xlsx files are accepted for the reviewed report.",
+      );
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -1223,7 +1237,7 @@ const ForCheckingOICDetailsModal = ({
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileSelected}
-                    accept=".xlsx,.xls,.doc,.docx,.pdf"
+                    accept=".xlsx"
                     style={{ display: "none" }}
                   />
                   <button

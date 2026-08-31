@@ -337,7 +337,7 @@
 
 // export default ConcernOutgoing;
 import React, { useState, useEffect, useMemo } from "react";
-import "../concernout.css";
+import "../IncomingConcern/concernout.css";
 import ConcernInDetailModal from "../IncomingConcern/ConcernInDetailModal";
 // Same dialog used in ConcernIncoming.jsx — replaces window.confirm/alert.
 import ConfirmDialog from "../../components/ConfirmDialog";

@@ -1,6 +1,6 @@
 // import { useEffect, useState } from "react";
 
-// export default function Header({ onMenuToggle }) {
+// export default function Header({ onMenuToggle, children }) {
 //   const [now, setNow] = useState(new Date());
 
 //   useEffect(() => {
@@ -38,9 +38,17 @@
 //         />
 //         <span>Scientific Standard Services</span>
 //       </div>
-//       <div className="header-right" style={{ textAlign: "right" }}>
-//         <div style={{ fontSize: "0.85rem", fontWeight: 500 }}>{dateLabel}</div>
-//         <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{timeLabel}</div>
+//       <div
+//         className="header-right"
+//         style={{ display: "flex", alignItems: "center", gap: 14 }}
+//       >
+//         {children}
+//         <div style={{ textAlign: "right" }}>
+//           <div style={{ fontSize: "0.85rem", fontWeight: 500 }}>
+//             {dateLabel}
+//           </div>
+//           <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{timeLabel}</div>
+//         </div>
 //       </div>
 //     </header>
 //   );
@@ -76,25 +84,21 @@ export default function Header({ onMenuToggle, children }) {
     <header className="header">
       <div className="logo">
         <button className="menu-btn" onClick={onMenuToggle}>
-          <i className="fas fa-bars"></i>☰ Menu
+          <span className="menu-icon">☰</span>
+          <span className="menu-label">Menu</span>
         </button>
         <img
           src="/images/SSSi-Logo.png"
           alt="SSSI Logo"
           className="header-logo"
         />
-        <span>Scientific Standard Services</span>
+        <span className="header-title">Scientific Standard Services</span>
       </div>
-      <div
-        className="header-right"
-        style={{ display: "flex", alignItems: "center", gap: 14 }}
-      >
+      <div className="header-right">
         {children}
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "0.85rem", fontWeight: 500 }}>
-            {dateLabel}
-          </div>
-          <div style={{ fontSize: "0.8rem", opacity: 0.7 }}>{timeLabel}</div>
+        <div className="header-datetime">
+          <div className="header-date">{dateLabel}</div>
+          <div className="header-time">{timeLabel}</div>
         </div>
       </div>
     </header>

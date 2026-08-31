@@ -2,6 +2,7 @@
   width: 100%;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: #f3f3f3;
 }
 
@@ -15,11 +16,17 @@
 .calibration-header h1 {
   font-size: 14px;
   margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .calibration-header h2 {
   font-size: 28px;
   font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* TABS */
@@ -46,6 +53,7 @@
 /* SEARCH BAR */
 .calibration-search {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   align-items: center;
   padding: 15px 20px;
@@ -55,7 +63,8 @@
 
 .calibration-search select,
 .calibration-search input {
-  flex: 1; /* same width for dropdown and search bar */
+  flex: 1 1 140px;
+  min-width: 0;
   padding: 8px;
   border: 1px solid #ccc;
 }
@@ -97,4 +106,18 @@
    only ever visually activates on real, clickable rows). */
 .calibration-table tbody tr:hover {
   background: #eaf2fc;
+}
+
+/* MOBILE — stack the search bar instead of squeezing it */
+@media (max-width: 480px) {
+  .calibration-search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .calibration-search select,
+  .calibration-search input,
+  .calibration-search button {
+    width: 100%;
+  }
 }

@@ -3,7 +3,20 @@
 // import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader"; // adjust path as needed
 // import AdminPasswordModal from "../jobreceipt/AdminPasswordModal";
 // import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
+// // Adjust this path to wherever CameraCaptureModal actually lives in your
+// // tree (same component the other stage modals use).
+// import CameraCaptureModal from "../jobreceipt/CameraCaptureModal";
 // import "./JobNumberDetailsModal.css";
+
+// const API = import.meta.env.VITE_API_URL;
+
+// // Converts a base64 dataURL (what CameraCaptureModal produces, from
+// // either canvas.toDataURL or FileReader.readAsDataURL) into a Blob, so it
+// // can be sent as multipart/form-data to the equipment-photo upload route.
+// const dataUrlToBlob = async (dataUrl) => {
+//   const res = await fetch(dataUrl);
+//   return res.blob();
+// };
 
 // // Determine MOR (mode of receipt / "Reception") based on the dedicated
 // // onSite flag (set in JobNumberModal / stamped true by default for every
@@ -85,6 +98,63 @@
 
 //   const handleOpenFolderClick = () => {
 //     setShowFolder(true);
+//   };
+
+//   // --- Equipment photo capture ---------------------------------------
+//   // Same pattern as ForCheckingSigDetailsModal / ForPrintFinalDetails-
+//   // Modal: this modal owns the full open -> capture -> upload chain
+//   // itself. Unlike those two, this screen has no ConfirmDialog/showError
+//   // component wired up (only AdminPasswordModal), so errors here fall
+//   // back to window.alert — swap in a real dialog if/when one gets added
+//   // to this modal. No local photoUrls array is kept here — captured
+//   // photos are only ever viewed via "Open Folder" above.
+//   const [showCamera, setShowCamera] = useState(false);
+//   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+
+//   const handleOpenCameraClick = () => {
+//     if (!job.jobNumber) {
+//       window.alert(
+//         "This record has no job number yet, so a photo can't be saved.",
+//       );
+//       return;
+//     }
+//     setShowCamera(true);
+//   };
+
+//   const handleCameraCapture = async (photos) => {
+//     setShowCamera(false);
+//     if (!photos || photos.length === 0) return;
+
+//     setIsUploadingPhotos(true);
+//     try {
+//       for (const dataUrl of photos) {
+//         const blob = await dataUrlToBlob(dataUrl);
+//         const formData = new FormData();
+//         formData.append("photo", blob, `photo_${Date.now()}.jpg`);
+
+//         const res = await fetch(
+//           `${API}/api/uploads/equipment-photo/${encodeURIComponent(
+//             job.jobNumber,
+//           )}`,
+//           { method: "POST", body: formData },
+//         );
+//         const data = await res.json().catch(() => ({}));
+//         if (!res.ok || data.success === false) {
+//           throw new Error(data?.message || "Photo upload failed");
+//         }
+//       }
+//     } catch (err) {
+//       console.error("Failed to upload captured photo(s):", err);
+//       window.alert(
+//         "One or more captured photos could not be saved. Please try taking the photo again.",
+//       );
+//     } finally {
+//       setIsUploadingPhotos(false);
+//     }
+//   };
+
+//   const handleCameraClose = () => {
+//     setShowCamera(false);
 //   };
 
 //   const handleUpdateClick = async () => {
@@ -650,7 +720,13 @@
 //               >
 //                 Open Folder
 //               </button>
-//               <button className="jnd-btn">Open Camera</button>
+//               <button
+//                 className="jnd-btn"
+//                 onClick={handleOpenCameraClick}
+//                 disabled={isUploadingPhotos}
+//               >
+//                 {isUploadingPhotos ? "Saving Photo..." : "Open Camera"}
+//               </button>
 //               {/* <button className="jnd-btn">Print Folder</button>
 //               <button className="jnd-btn">Open Report</button> */}
 //               <button
@@ -683,6 +759,18 @@
 //         <ReceiptFolderModal
 //           jobNumber={job.jobNumber}
 //           onClose={() => setShowFolder(false)}
+//         />
+//       )}
+
+//       {/* CAMERA MODAL — captures 1+ photos, each uploaded straight to
+//           this job's Cloudinary equipment-photos folder on capture (see
+//           handleCameraCapture above). Captured photos are visible
+//           afterward via "Open Folder" above. */}
+//       {showCamera && (
+//         <CameraCaptureModal
+//           onClose={handleCameraClose}
+//           onCapture={handleCameraCapture}
+//           contextLabel={job.jobNumber}
 //         />
 //       )}
 //     </>
@@ -749,6 +837,28 @@ const formatTimestamp = (iso) => {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleString();
+};
+
+// Collapsible field-group wrapper. Click the header to expand/collapse.
+// defaultOpen controls initial state per-section — primary/edit-heavy
+// sections default open, secondary/read-only sections default closed
+// to shorten the initial scroll on mobile.
+const CollapsibleBox = ({ title, defaultOpen = true, children }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="jnd-box">
+      <button
+        type="button"
+        className="jnd-box-toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <span className={`jnd-box-chevron ${open ? "open" : ""}`}>▾</span>
+      </button>
+      {open && <div className="jnd-box-content">{children}</div>}
+    </div>
+  );
 };
 
 const JobNumberDetailsModal = ({
@@ -878,6 +988,10 @@ const JobNumberDetailsModal = ({
         dateDue: form.dateDue,
         sig: form.sig,
         typedBy: form.typedBy,
+        // Staff-entered identifiers — confirm the backend PATCH/PUT
+        // route for jobnumbers accepts and persists these two fields.
+        siId: form.siId,
+        orId: form.orId,
       });
     } finally {
       setSaving(false);
@@ -913,7 +1027,7 @@ const JobNumberDetailsModal = ({
               <div className="jnd-grid">
                 {/* LEFT COLUMN */}
                 <div className="jnd-col">
-                  <div className="jnd-box">
+                  <CollapsibleBox title="Job Details" defaultOpen={true}>
                     <div className="jnd-field">
                       <label>Description</label>
                       <textarea
@@ -991,11 +1105,13 @@ const JobNumberDetailsModal = ({
                         />
                       </div>
                     </div>
-                  </div>
+                  </CollapsibleBox>
 
-                  {/* EVAL OUT / DO SECTION — boxed group, fills the space
-                      beneath the job detail box above */}
-                  <div className="jnd-box">
+                  {/* EVAL OUT / DO SECTION */}
+                  <CollapsibleBox
+                    title="Eval Out / DO Details"
+                    defaultOpen={false}
+                  >
                     <div className="jnd-field-row">
                       <div className="jnd-field">
                         <label>Eval Out</label>
@@ -1056,12 +1172,15 @@ const JobNumberDetailsModal = ({
                         />
                       </div>
                     </div>
-                  </div>
+                  </CollapsibleBox>
                 </div>
 
                 {/* MIDDLE COLUMN */}
                 <div className="jnd-col">
-                  <div className="jnd-box">
+                  <CollapsibleBox
+                    title="Calibration Details"
+                    defaultOpen={true}
+                  >
                     <div className="jnd-field">
                       <label>Range</label>
                       <textarea
@@ -1130,10 +1249,10 @@ const JobNumberDetailsModal = ({
                         />
                       </div>
                     </div>
-                  </div>
+                  </CollapsibleBox>
 
-                  {/* REPORT TRACKING SECTION — its own box */}
-                  <div className="jnd-box">
+                  {/* REPORT TRACKING SECTION */}
+                  <CollapsibleBox title="Report Tracking" defaultOpen={false}>
                     <div className="jnd-field">
                       <label>Report Typed By</label>
                       <input type="text" value={form.typedBy || ""} disabled />
@@ -1205,12 +1324,12 @@ const JobNumberDetailsModal = ({
                         disabled
                       />
                     </div>
-                  </div>
+                  </CollapsibleBox>
                 </div>
 
                 {/* RIGHT COLUMN */}
                 <div className="jnd-col jnd-col-right">
-                  <div className="jnd-box">
+                  <CollapsibleBox title="Job Info" defaultOpen={true}>
                     <div className="jnd-field-row">
                       <div className="jnd-field">
                         <label>JR ID</label>
@@ -1259,9 +1378,9 @@ const JobNumberDetailsModal = ({
                         <input type="text" value={getMOR(job)} disabled />
                       </div>
                     </div>
-                  </div>
+                  </CollapsibleBox>
 
-                  <div className="jnd-box">
+                  <CollapsibleBox title="Company Info" defaultOpen={false}>
                     {/* Joined from the parent job receipt (see JobNumber.jsx
                         fetchJobs) — read-only here since editing wouldn't
                         update the source receipt. */}
@@ -1314,16 +1433,23 @@ const JobNumberDetailsModal = ({
                         disabled={locked}
                       />
                     </div>
-                  </div>
+                  </CollapsibleBox>
 
-                  <div className="jnd-box">
-                    {/* GUESS — SI ID / OR ID not confirmed yet */}
+                  <CollapsibleBox title="SI/OR & Priority" defaultOpen={false}>
                     <div className="jnd-field-row">
-                      <div className="jnd-field">
+                      <div className="jnd-field jnd-field-always-editable">
+                        {/* Staff-entered identifier — editable regardless of the
+        admin lock, since staff need to fill this in during normal
+        workflow without requiring admin verification. */}
                         <label>SI ID</label>
-                        <input type="text" value={form.siId || ""} disabled />
+                        <input
+                          type="text"
+                          value={form.siId || ""}
+                          onChange={handleChange("siId")}
+                        />
                       </div>
                       <div className="jnd-field">
+                        {/* System timestamp — stays read-only */}
                         <label>Tag</label>
                         <input
                           type="text"
@@ -1333,9 +1459,15 @@ const JobNumberDetailsModal = ({
                       </div>
                     </div>
                     <div className="jnd-field-row">
-                      <div className="jnd-field">
+                      <div className="jnd-field jnd-field-always-editable">
+                        {/* Staff-entered identifier — editable regardless of the
+        admin lock */}
                         <label>OR ID</label>
-                        <input type="text" value={form.orId || ""} disabled />
+                        <input
+                          type="text"
+                          value={form.orId || ""}
+                          onChange={handleChange("orId")}
+                        />
                       </div>
                       <div className="jnd-field">
                         <label>Priority</label>
@@ -1350,12 +1482,12 @@ const JobNumberDetailsModal = ({
                         </select>
                       </div>
                     </div>
-                  </div>
+                  </CollapsibleBox>
                 </div>
               </div>
 
               <div className="jnd-field">
-                <label>Remarks Re...</label>
+                <label>Remarks </label>
                 <textarea
                   rows={2}
                   value={form.remarksRe || ""}

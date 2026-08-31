@@ -353,3 +353,78 @@
     width: 100%;
   }
 }
+@media (max-width: 720px) {
+  .jd-modal {
+    width: 100%;
+  }
+
+  .jd-body {
+    padding: 16px;
+  }
+
+  .jd-top-fields {
+    width: 100%;
+  }
+
+  .jd-main {
+    flex-direction: column;
+  }
+
+  .jd-photo-box {
+    width: 100% !important;
+    min-height: 140px;
+  }
+
+  /* Stack every field to a single column instead of keeping the
+     6-column desktop layout at narrower widths — the field pairs
+     no longer sit side-by-side once there's only ~340px to work with. */
+  .jd-grid {
+    grid-template-columns: 1fr;
+    row-gap: 10px;
+    grid-template-areas:
+      "compLbl"
+      "compVal"
+      "oicLbl"
+      "oicVal"
+      "sigLbl"
+      "sigVal"
+      "dcalLbl"
+      "dcalVal"
+      "descLbl"
+      "descVal"
+      "freqLbl"
+      "freqVal"
+      "priLbl"
+      "priVal"
+      "ccertLbl"
+      "ccertVal"
+      "ddueLbl"
+      "ddueVal"
+      "brandLbl"
+      "brandVal"
+      "uncLbl"
+      "uncVal"
+      "modelLbl"
+      "modelVal"
+      "rangeLbl"
+      "rangeVal"
+      "snLbl"
+      "snVal"
+      "conLbl"
+      "conVal"
+      "remLbl"
+      "remVal";
+  }
+
+  .jd-field-inline {
+    grid-template-columns: 90px 1fr;
+  }
+
+  .jd-contact-row {
+    flex-direction: column;
+  }
+
+  .jd-field-narrow {
+    width: 100%;
+  }
+}
