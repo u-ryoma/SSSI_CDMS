@@ -1090,7 +1090,7 @@ const ForCheckingSigDetailsModal = ({
                 <div className="fcs-col fcs-col-mid">
                   <div className="fcs-inline-field">
                     <label>OIC</label>
-                    <input type="text" value={jobForm.evalBy || ""} disabled />
+                    <input type="text" value={jobForm.oicBy || ""} disabled />
                   </div>
                   <div className="fcs-inline-field">
                     <label>SIG</label>
@@ -1249,9 +1249,9 @@ const ForCheckingSigDetailsModal = ({
                   </button>
                 </div>
                 <div className="fcs-footer-row fcs-footer-row-secondary">
-                  <button type="button" onClick={handleLogForRetypingClick}>
+                  {/* <button type="button" onClick={handleLogForRetypingClick}>
                     Log for Re-Typing
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>
