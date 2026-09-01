@@ -19,8 +19,10 @@
 // // item list and clears the selection (rows already added show
 // // "(added)" and can't be re-selected).
 // //
-// // Evaluated By is always the currently logged-in user (sessionStorage
-// // "name", set at login - see Login.jsx) and is not editable here.
+// // Evaluated By is a dropdown of users with role === "technician",
+// // fetched from /api/accounts when the modal opens. Defaults to the
+// // currently logged-in user (sessionStorage "name") if that user is
+// // itself a technician, otherwise starts blank.
 // //
 // // TODO: "Quick Log" is still stubbed - no reference yet for what that
 // // screen should show.
@@ -34,13 +36,33 @@
 //   const [rows, setRows] = useState([]);
 //   const [loading, setLoading] = useState(false);
 //   const [pageSize, setPageSize] = useState(26);
+//   const [technicians, setTechnicians] = useState([]);
 //   const [evaluatedBy, setEvaluatedBy] = useState("");
 //   const [loadError, setLoadError] = useState("");
 //   const [selectedIds, setSelectedIds] = useState([]);
 
 //   useEffect(() => {
 //     if (!isOpen) return;
-//     setEvaluatedBy(sessionStorage.getItem("username") || "");
+
+//     const loggedInName = sessionStorage.getItem("name") || "";
+
+//     fetch(`${API}/api/accounts`)
+//       .then((res) => res.json())
+//       .then((accounts) => {
+//         const techs = Array.isArray(accounts)
+//           ? accounts.filter((acc) => acc.role === "technician")
+//           : [];
+//         setTechnicians(techs);
+//         // Default to the logged-in user only if they're a technician;
+//         // otherwise leave the select on its placeholder.
+//         setEvaluatedBy(
+//           techs.some((t) => t.name === loggedInName) ? loggedInName : "",
+//         );
+//       })
+//       .catch((err) => {
+//         console.error("Failed to load technicians:", err);
+//         setTechnicians([]);
+//       });
 //   }, [isOpen]);
 
 //   const handleLoad = async () => {
@@ -178,15 +200,25 @@
 //             >
 //               Log
 //             </button>
-//             <button className="dr-btn" onClick={handleQuickLog}>
+//             {/* <button className="dr-btn" onClick={handleQuickLog}>
 //               Quick Log
-//             </button>
+//             </button> */}
 
 //             <div className="dr-release-toolbar-spacer" />
 
 //             <label className="dr-release-evaluated-by">
 //               Evaluated By :
-//               <input type="text" value={evaluatedBy} disabled />
+//               <select
+//                 value={evaluatedBy}
+//                 onChange={(e) => setEvaluatedBy(e.target.value)}
+//               >
+//                 <option value="">Select technician</option>
+//                 {technicians.map((tech) => (
+//                   <option key={tech._id || tech.username} value={tech.name}>
+//                     {tech.name}
+//                   </option>
+//                 ))}
+//               </select>
 //             </label>
 //           </div>
 
@@ -272,7 +304,7 @@ const PAGE_SIZE_OPTIONS = [10, 26, 50, 100];
 // there.
 //
 // Flow: click Load -> fetches completed jobs (forDeliveryTagged ===
-// true, delivered !== true) for the selected customer from the
+// true, unitDelivered !== true) for the selected customer from the
 // database and renders them with full details. Click row(s) to select
 // (toggle highlight, multi-select). Click Log -> pulls the full detail
 // of every selected, not-yet-added row into the delivery receipt's
@@ -352,11 +384,19 @@ const ReleaseUnitModal = ({
       const completedForCustomer = Array.isArray(jobs)
         ? jobs
             .filter(
-              (job) => job.forDeliveryTagged === true && job.delivered !== true,
+              (job) =>
+                job.forDeliveryTagged === true && job.unitDelivered !== true,
             )
             .filter((job) => {
+              // Jobs created via Job Receipt carry a jobReceiptID, so the
+              // customer lives on the linked jobreceipts doc. Jobs created
+              // via Add Site Calibration never go through Job Receipt —
+              // they have no jobReceiptID — but they DO have customerId
+              // stamped directly on the jobnumbers doc itself. Check both
+              // so both flows resolve correctly.
               const receipt = receiptsMap[job.jobReceiptID];
-              return receipt?.customerID === customerId;
+              const jobCustomerId = job.customerId || receipt?.customerID;
+              return jobCustomerId === customerId;
             })
             .map((job) => ({
               jobNumber: job.jobNumber,

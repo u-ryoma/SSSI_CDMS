@@ -1,4 +1,4 @@
-// import React, { useState } from "react";
+// import React, { useState, useEffect } from "react";
 // import ReactDOM from "react-dom";
 // import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
 // import "./DeliveryReceiptModals.css";
@@ -20,6 +20,11 @@
 // // -> pulls full details of every selected row into the delivery
 // // receipt's item list and clears the selection.
 // //
+// // Evaluated By is a dropdown of users with role === "technician",
+// // fetched from /api/accounts when the modal opens. Defaults to the
+// // currently logged-in user (sessionStorage "name") if that user is
+// // itself a technician, otherwise starts blank.
+// //
 // // TODO: "Quick Log" is still stubbed - no reference yet for what that
 // // screen should show.
 // const ReleaseCertificateModal = ({
@@ -32,13 +37,33 @@
 //   const [rows, setRows] = useState([]);
 //   const [loading, setLoading] = useState(false);
 //   const [pageSize, setPageSize] = useState(26);
+//   const [technicians, setTechnicians] = useState([]);
 //   const [evaluatedBy, setEvaluatedBy] = useState("");
 //   const [loadError, setLoadError] = useState("");
 //   const [selectedIds, setSelectedIds] = useState([]);
 
-//   React.useEffect(() => {
+//   useEffect(() => {
 //     if (!isOpen) return;
-//     setEvaluatedBy(sessionStorage.getItem("username") || "");
+
+//     const loggedInName = sessionStorage.getItem("name") || "";
+
+//     fetch(`${API}/api/accounts`)
+//       .then((res) => res.json())
+//       .then((accounts) => {
+//         const techs = Array.isArray(accounts)
+//           ? accounts.filter((acc) => acc.role === "technician")
+//           : [];
+//         setTechnicians(techs);
+//         // Default to the logged-in user only if they're a technician;
+//         // otherwise leave the select on its placeholder.
+//         setEvaluatedBy(
+//           techs.some((t) => t.name === loggedInName) ? loggedInName : "",
+//         );
+//       })
+//       .catch((err) => {
+//         console.error("Failed to load technicians:", err);
+//         setTechnicians([]);
+//       });
 //   }, [isOpen]);
 
 //   const handleLoad = async () => {
@@ -175,15 +200,25 @@
 //             >
 //               Log
 //             </button>
-//             <button className="dr-btn" onClick={handleQuickLog}>
+//             {/* <button className="dr-btn" onClick={handleQuickLog}>
 //               Quick Log
-//             </button>
+//             </button> */}
 
 //             <div className="dr-release-toolbar-spacer" />
 
 //             <label className="dr-release-evaluated-by">
 //               Evaluated By :
-//               <input type="text" value={evaluatedBy} disabled />
+//               <select
+//                 value={evaluatedBy}
+//                 onChange={(e) => setEvaluatedBy(e.target.value)}
+//               >
+//                 <option value="">Select technician</option>
+//                 {technicians.map((tech) => (
+//                   <option key={tech._id || tech.username} value={tech.name}>
+//                     {tech.name}
+//                   </option>
+//                 ))}
+//               </select>
 //             </label>
 //           </div>
 
@@ -355,8 +390,15 @@ const ReleaseCertificateModal = ({
                 job.certificateDelivered !== true,
             )
             .filter((job) => {
+              // Jobs created via Job Receipt carry a jobReceiptID, so the
+              // customer lives on the linked jobreceipts doc. Jobs created
+              // via Add Site Calibration never go through Job Receipt —
+              // they have no jobReceiptID — but they DO have customerId
+              // stamped directly on the jobnumbers doc itself. Check both
+              // so both flows resolve correctly.
               const receipt = receiptsMap[job.jobReceiptID];
-              return receipt?.customerID === customerId;
+              const jobCustomerId = job.customerId || receipt?.customerID;
+              return jobCustomerId === customerId;
             })
             .map((job) => ({
               jobNumber: job.jobNumber,

@@ -1457,6 +1457,15 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
             date,
             dateRec: date,
             companyName,
+            // Site Calibration jobs never go through Job Receipt, so they
+            // have no jobReceiptID and therefore no linked jobreceipts doc
+            // for downstream screens (Delivery Receipt List, Release Unit,
+            // Release Certificate) to pull companyAddress/contactInfo/
+            // contactName/customerId from. Stamp all of it directly on the
+            // job so those screens work without needing a receipt lookup.
+            companyAddress: address,
+            contactInfo,
+            contactName,
             customerId,
             // Site Calibration jobs skip Incoming Calibration and
             // On-Going Calibration and go straight to For Typing.
