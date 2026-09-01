@@ -267,3 +267,56 @@
   background: #fde8e8;
   border-color: #e9a3a3;
 }
+
+/* ---------- Responsive: stack columns on narrow screens ---------- */
+@media (max-width: 768px) {
+  .pfc-modal-wrapper {
+    width: 100%;
+    max-width: 100vw;
+    max-height: 100vh;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .pfc-modal-scroll {
+    padding: 16px 14px 8px;
+  }
+
+  .pfc-top-meta {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .pfc-meta-row {
+    flex: 1 1 100%;
+  }
+
+  .pfc-meta-row input {
+    width: 100%;
+    flex: 1;
+  }
+
+  .pfc-body {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: none;
+  }
+
+  .pfc-col {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .pfc-footer {
+    padding: 14px 16px;
+  }
+
+  .pfc-footer-row {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .pfc-footer-row button {
+    flex: 1;
+  }
+}

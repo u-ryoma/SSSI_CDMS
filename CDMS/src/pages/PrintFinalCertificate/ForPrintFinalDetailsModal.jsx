@@ -1067,7 +1067,7 @@ const ForPrintFinalDetailsModal = ({
                   >
                     {isDownloading
                       ? "Preparing PDF..."
-                      : "Print Final Certificate & Print PDF File"}
+                      : "Print  Certificate & PDF File"}
                   </button>
 
                   {/* Hidden file input — opened by the visible Update
@@ -1092,9 +1092,9 @@ const ForPrintFinalDetailsModal = ({
                   </button>
                 </div>
                 <div className="pfc-footer-row pfc-footer-row-secondary">
-                  <button type="button" onClick={handleLogForRetypingClick}>
+                  {/* <button type="button" onClick={handleLogForRetypingClick}>
                     Log for Re-Typing
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>

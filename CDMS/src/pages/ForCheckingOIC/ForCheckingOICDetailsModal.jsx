@@ -1253,9 +1253,9 @@ const ForCheckingOICDetailsModal = ({
                   </button>
                 </div>
                 <div className="foc-footer-row foc-footer-row-secondary">
-                  <button type="button" onClick={handleLogForRetypingClick}>
+                  {/* <button type="button" onClick={handleLogForRetypingClick}>
                     Log for Re-Typing
-                  </button>
+                  </button> */}
                 </div>
               </div>
             </div>

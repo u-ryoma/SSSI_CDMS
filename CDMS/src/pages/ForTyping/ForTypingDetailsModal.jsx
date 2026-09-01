@@ -1499,7 +1499,7 @@ const ForTypingDetailsModal = ({
                             : "No technicians found"}
                         </option>
                         {technicianOptions.map((tech) => {
-                          const label = tech.name || tech.username;
+                          const label = tech.username;
                           return (
                             <option
                               key={tech._id || tech.username}
