@@ -1,4 +1,4 @@
-.scm-overlay {
+/* .scm-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
@@ -310,4 +310,436 @@
   padding: 10px 14px;
   font-size: 13px;
   margin-bottom: 16px;
+} */
+.scm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.scm-modal {
+  background: #eeeeee;
+  border-radius: 6px;
+  width: 1000px;
+  max-width: 96vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  font-size: 13.5px;
+}
+
+.scm-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  background: #eeeeee;
+}
+
+.scm-top-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+}
+
+.scm-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.scm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scm-field-grow {
+  flex: 1;
+}
+
+.scm-row-inline {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.scm-row-inline .scm-field:last-child {
+  flex: 0 0 170px;
+}
+
+.scm-technician-field {
+  position: relative;
+}
+
+.scm-technician-select {
+  border: 1px solid #c7c7c7;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scm-label {
+  font-weight: 600;
+  color: #222;
+  font-size: 13.5px;
+}
+
+.scm-field input[type="text"],
+.scm-field input[type="date"],
+.scm-field select,
+.scm-field textarea,
+.scm-inline-group input[type="text"],
+.scm-inline-group select {
+  border: 1px solid #c7c7c7;
+  border-radius: 4px;
+  padding: 7px 10px;
+  font-size: 13.5px;
+  background: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scm-field textarea {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.scm-readonly {
+  background: #e2e2e2 !important;
+  color: #555;
+}
+
+.scm-inline-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.scm-inline-group select,
+.scm-inline-group input {
+  flex: 1;
+}
+
+.scm-icon-btn {
+  flex: 0 0 auto;
+  border: 1px solid #a9bde0;
+  background: #dbe6fb;
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.scm-icon-btn:hover {
+  background: #c8d9f7;
+}
+
+.scm-jobs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.scm-jobs-toolbar-spacer {
+  flex: 1;
+}
+
+.scm-add-btn {
+  background: #fff;
+  border: 1px solid #b9b9b9;
+  border-radius: 4px;
+  padding: 7px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.scm-add-btn:hover {
+  background: #f4f4f4;
+}
+
+.scm-radio {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.scm-ghost-btn {
+  background: #fff;
+  border: 1px solid #b9b9b9;
+  border-radius: 4px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.scm-ghost-btn:hover {
+  background: #f4f4f4;
+}
+
+.scm-update-btn {
+  background: #111;
+  color: #fff;
+  border: 1px solid #111;
+  border-radius: 4px;
+  padding: 7px 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.scm-update-btn:hover {
+  background: #000;
+}
+
+.scm-update-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scm-jobs-table-wrapper {
+  margin-top: 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  max-height: 260px;
+  overflow: auto;
+  background: #fff;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scm-jobs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.scm-jobs-table thead th {
+  position: sticky;
+  top: 0;
+  background: #dde5f4;
+  border-bottom: 1px solid #b7c3dc;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.scm-jobs-table td {
+  border-bottom: 1px solid #ececec;
+  padding: 4px 8px;
+}
+
+.scm-jobs-table input {
+  width: 100%;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 5px 6px;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
+.scm-jobs-table input:focus {
+  border: 1px solid #a9bde0;
+  background: #fff;
+}
+
+.scm-type-cell {
+  color: #333;
+}
+
+.scm-row-remove {
+  border: none;
+  background: transparent;
+  color: #b33;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.scm-no-jobs {
+  text-align: center;
+  color: #888;
+  padding: 16px;
+}
+
+.scm-picker-stub {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+  padding: 20px;
+  z-index: 1100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  max-width: 320px;
+  text-align: center;
+}
+
+.scm-picker-stub p {
+  margin-bottom: 12px;
+}
+
+.scm-picker-stub button {
+  margin: 0 4px;
+  border: 1px solid #999;
+  background: #f7f7f7;
+  border-radius: 2px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.scm-required {
+  color: #d32f2f;
+  margin-left: 2px;
+}
+
+.scm-field-error input,
+.scm-field-error textarea,
+.scm-field-error select {
+  border-color: #d32f2f !important;
+}
+
+.scm-error-text {
+  display: block;
+  color: #d32f2f;
+  font-size: 11.5px;
+  margin-top: 4px;
+}
+.scm-form-error-banner {
+  background: #fdecea;
+  color: #d32f2f;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/* ==========================================================
+   MOBILE RESPONSIVE FIXES
+   The rules above were written for a fixed 1000px desktop
+   modal with no breakpoints, which is why the layout gets
+   cramped/misordered on phones. This section:
+   - Lets the modal fill the viewport instead of overflowing it
+   - Collapses the two-column grid to a single column, and
+     re-orders it with flex so fields read top-to-bottom
+     logically instead of interleaving left/right columns
+   - Bumps input font-size to 16px to stop iOS auto-zoom
+   - Makes buttons/toolbar stack and become full-width, touch-
+     friendly targets
+   - Lets the jobs table scroll horizontally instead of
+     squeezing columns
+   ========================================================== */
+@media (max-width: 640px) {
+  .scm-overlay {
+    padding: 0;
+  }
+
+  .scm-modal {
+    width: 100%;
+    max-width: 100vw;
+    height: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .scm-body {
+    padding: 14px 16px 24px;
+  }
+
+  /* Collapse to a single column. .scm-col gets display:contents so
+     its fields become direct flex items of .scm-top-grid — that lets
+     us use `order` below to pull specific fields (Site Calibration ID,
+     Date) out of the second column and up to the top of the mobile
+     stack, instead of just following raw DOM order. */
+  .scm-top-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .scm-col {
+    display: contents;
+  }
+
+  /* Site Calibration ID + Date live together inside the .scm-row-inline
+     wrapper (right column, first child) — push that whole wrapper to
+     the very top of the mobile stack. */
+  .scm-col:nth-of-type(2) > .scm-row-inline {
+    order: -2;
+  }
+
+  .scm-row-inline {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .scm-row-inline .scm-field:last-child {
+    flex: 1 1 auto;
+  }
+
+  /* Prevent iOS Safari from auto-zooming into 13.5px inputs */
+  .scm-field input[type="text"],
+  .scm-field input[type="date"],
+  .scm-field select,
+  .scm-field textarea,
+  .scm-inline-group input[type="text"],
+  .scm-inline-group select,
+  .scm-technician-select {
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  .scm-inline-group {
+    flex-wrap: wrap;
+  }
+
+  .scm-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .scm-jobs-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .scm-jobs-toolbar-spacer {
+    flex-basis: 100%;
+    height: 0;
+  }
+
+  .scm-add-btn,
+  .scm-ghost-btn,
+  .scm-update-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+
+  .scm-jobs-table-wrapper {
+    max-height: 220px;
+    overflow-x: auto;
+  }
+
+  .scm-jobs-table {
+    min-width: 480px;
+  }
+
+  .scm-picker-stub {
+    width: 90vw;
+    max-width: 320px;
+  }
 }

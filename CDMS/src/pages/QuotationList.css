@@ -1,7 +1,18 @@
+.quotation-container,
+.quotation-container *,
+.quotation-container *::before,
+.quotation-container *::after {
+  box-sizing: border-box;
+}
+
 .quotation-container {
   width: 100%;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden; /* the table-wrapper below handles its own
+                          horizontal scrolling — this stops a wide
+                          table (or padding overflow) from dragging
+                          the whole page sideways */
   background: #f3f3f3;
 }
 
@@ -27,6 +38,8 @@
   display: flex;
   background: #efefef;
   border-bottom: 1px solid #ccc;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .quotation-tabs button {
@@ -35,6 +48,8 @@
   padding: 14px 24px;
   cursor: pointer;
   font-size: 15px;
+  white-space: nowrap;
+  flex: 0 0 auto;
 }
 
 .quotation-tabs button.active {
@@ -51,6 +66,7 @@
   padding: 15px 20px;
   background: #f9f9f9;
   border-bottom: 1px solid #ddd;
+  flex-wrap: wrap;
 }
 
 .quotation-search select,
@@ -70,6 +86,7 @@
 /* TABLE */
 .quotation-table-wrapper {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 10px 20px 20px;
 }
 
@@ -85,6 +102,9 @@
   padding: 10px;
   font-size: 13px;
   text-align: left;
+  white-space: nowrap; /* keeps columns readable — the wrapper above
+                           scrolls horizontally instead of squeezing
+                           or wrapping cell text mid-word */
 }
 
 .quotation-table th {
@@ -102,4 +122,50 @@
 }
 .qtn-row-sent td {
   color: #166534;
+}
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 640px) {
+  .quotation-header {
+    padding: 12px 16px;
+  }
+
+  .quotation-header h2 {
+    font-size: 22px;
+  }
+
+  .quotation-tabs button {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+
+  .quotation-search {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  /* Stack the dropdown and search input full-width; keep the two
+     action buttons side by side below them instead of squeezing
+     everything into one cramped row. */
+  .quotation-search select,
+  .quotation-search input {
+    flex: 1 1 100%;
+    font-size: 16px; /* stops iOS Safari zooming in on focus */
+    padding: 10px;
+  }
+
+  .quotation-search button {
+    flex: 1 1 auto;
+    padding: 10px 12px;
+  }
+
+  .quotation-table-wrapper {
+    padding: 10px 16px 16px;
+  }
+
+  .quotation-table th,
+  .quotation-table td {
+    padding: 8px;
+    font-size: 12.5px;
+  }
 }

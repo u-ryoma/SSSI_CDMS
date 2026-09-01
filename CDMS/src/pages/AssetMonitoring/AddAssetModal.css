@@ -422,6 +422,109 @@ button.btn-danger:hover {
     margin-left: 0 !important;
   }
 }
+
+/* ---------- PHONE-WIDTH RESPONSIVE ----------
+   The 800px breakpoint above still leaves two label+input columns
+   side by side, which doesn't have room on an actual phone (84px
+   fixed-width labels + underline inputs + 56px column-gap don't fit
+   in ~360-400px). This breakpoint collapses everything to a single
+   stacked column, stacks each field's label above its input instead
+   of beside it, bumps input font-size to 16px to stop iOS Safari's
+   zoom-on-focus, and stacks the footer buttons full-width. */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0 !important;
+  }
+
+  .cdms-modal {
+    width: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100dvh !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  .cdms-modal-body {
+    padding: 16px 16px 12px !important;
+  }
+
+  .cdms-form-grid {
+    grid-template-columns: 1fr !important;
+    row-gap: 22px !important;
+  }
+
+  .cdms-form-column {
+    gap: 18px !important;
+  }
+
+  /* The vertical divider between columns doesn't make sense once
+     columns are stacked — swap it for a horizontal rule instead. */
+  .cdms-form-column:not(:last-child)::after {
+    top: auto !important;
+    right: 0 !important;
+    left: 0 !important;
+    bottom: -9px !important;
+    width: auto !important;
+    height: 1px !important;
+    background: linear-gradient(
+      to right,
+      transparent,
+      #d5d5d3 15%,
+      #d5d5d3 85%,
+      transparent
+    ) !important;
+  }
+
+  .cdms-image-viewer {
+    grid-column: auto !important;
+  }
+
+  /* Label above input instead of beside it — the fixed 84px label
+     column is what was crushing the input on narrow screens. */
+  .cdms-field,
+  .cdms-field-inline {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    row-gap: 4px !important;
+    column-gap: 0 !important;
+  }
+
+  .cdms-field-label {
+    flex: 0 0 auto !important;
+    padding: 0 0 2px 0 !important;
+  }
+
+  input.cdms-underline-input,
+  select.cdms-underline-input {
+    font-size: 16px !important;
+    padding: 6px 2px 8px 2px !important;
+  }
+
+  .cdms-image-frame {
+    height: 200px !important;
+  }
+
+  .cdms-bottom-actions {
+    padding: 14px 16px !important;
+    margin-top: 20px !important;
+  }
+
+  .cdms-toolbar-left,
+  .cdms-toolbar-right {
+    width: 100% !important;
+  }
+
+  .cdms-toolbar-left button,
+  .cdms-toolbar-right button {
+    flex: 1 1 auto !important;
+  }
+
+  button.btn-link,
+  button.btn-outline {
+    padding: 11px 16px !important;
+    font-size: 13px !important;
+  }
+}
 /* Add this to AddAssetModal.css — styles the Code field's show/hide toggle */
 
 .cdms-input-with-toggle {
