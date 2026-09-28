@@ -683,8 +683,10 @@
 //           </div>
 //         </div>
 
-//         <div className="cdms-modal-footer">
-//           <div className="cdms-footer-left">
+//         {/* FOOTER — cdms-toolbar layout: Save pinned left, file actions +
+//             status pinned right, matching the Job Receipt action bar */}
+//         <div className="cdms-modal-footer cdms-toolbar">
+//           <div className="cdms-toolbar-left">
 //             <button
 //               className="cdms-btn cdms-btn-primary"
 //               onClick={handleSaveClick}
@@ -697,94 +699,91 @@
 //             >
 //               {saving ? "Saving..." : "Save"}
 //             </button>
-//             <div className="cdms-field">
-//               <div className="cdms-select-row">
-//                 <button
-//                   type="button"
-//                   className="cdms-btn"
-//                   onClick={handleUploadPdfClick}
-//                   disabled={saving}
-//                   title="Attach proof of client communication, e.g. a printed/scanned email (uploads when you click Save)"
-//                 >
-//                   {pendingClientProofFile
-//                     ? "Change Selected PDF"
-//                     : "Upload PDF"}
-//                 </button>
-//                 <button
-//                   type="button"
-//                   className="cdms-btn"
-//                   onClick={handleViewFiles}
-//                 >
-//                   View Files
-//                 </button>
-//                 <button
-//                   type="button"
-//                   className="cdms-btn"
-//                   onClick={handleDownloadTemplate}
-//                   disabled={downloading}
-//                   title="Download filled Word template"
-//                 >
-//                   {downloading ? "Downloading..." : "Download Template"}
-//                 </button>
-//                 <button
-//                   type="button"
-//                   className="cdms-btn"
-//                   onClick={handleReuploadClick}
-//                   disabled={saving}
-//                   title="Attach the filled-in quotation template (uploads when you click Save)"
-//                 >
-//                   {pendingFile ? "Change Selected File" : "Re-upload Template"}
-//                 </button>
-//                 <input
-//                   type="file"
-//                   ref={fileInputRef}
-//                   style={{ display: "none" }}
-//                   accept=".doc,.docx,.pdf"
-//                   onChange={handleFileSelected}
-//                 />
-//                 <input
-//                   type="file"
-//                   ref={pdfInputRef}
-//                   style={{ display: "none" }}
-//                   accept="application/pdf"
-//                   onChange={handleClientProofFileSelected}
-//                 />
-//                 {pendingFile && (
-//                   <span className="cdms-upload-status" title={pendingFile.name}>
-//                     📎 {pendingFile.name} (will upload on Save)
-//                   </span>
-//                 )}
-//                 {!pendingFile && hasUploadedFile && (
-//                   <span className="cdms-upload-status" title={staffFileUrl}>
-//                     ✓ Template uploaded
-//                   </span>
-//                 )}
-//                 {pendingClientProofFile && (
-//                   <span
-//                     className="cdms-upload-status"
-//                     title={pendingClientProofFile.name}
-//                   >
-//                     📎 {pendingClientProofFile.name} (will upload on Save)
-//                   </span>
-//                 )}
-//                 {!pendingClientProofFile && hasClientProof && (
-//                   <span className="cdms-upload-status" title={clientProofUrl}>
-//                     ✓ Client proof uploaded
-//                   </span>
-//                 )}
-//               </div>
-//             </div>
-//             {/* <button className="cdms-btn" onClick={onClose}>
+//           </div>
+
+//           <div className="cdms-toolbar-right">
+//             <button
+//               type="button"
+//               className="cdms-btn"
+//               onClick={handleUploadPdfClick}
+//               disabled={saving}
+//               title="Attach proof of client communication, e.g. a printed/scanned email (uploads when you click Save)"
+//             >
+//               {pendingClientProofFile ? "Change Selected PDF" : "Upload PDF"}
+//             </button>
+//             <button
+//               type="button"
+//               className="cdms-btn"
+//               onClick={handleViewFiles}
+//             >
+//               View Files
+//             </button>
+//             <button
+//               type="button"
+//               className="cdms-btn"
+//               onClick={handleDownloadTemplate}
+//               disabled={downloading}
+//               title="Download filled Word template"
+//             >
+//               {downloading ? "Downloading..." : "Download Template"}
+//             </button>
+//             <button
+//               type="button"
+//               className="cdms-btn"
+//               onClick={handleReuploadClick}
+//               disabled={saving}
+//               title="Attach the filled-in quotation template (uploads when you click Save)"
+//             >
+//               {pendingFile ? "Change Selected File" : "Re-upload Template"}
+//             </button>
+//             <input
+//               type="file"
+//               ref={fileInputRef}
+//               style={{ display: "none" }}
+//               accept=".doc,.docx,.pdf"
+//               onChange={handleFileSelected}
+//             />
+//             <input
+//               type="file"
+//               ref={pdfInputRef}
+//               style={{ display: "none" }}
+//               accept="application/pdf"
+//               onChange={handleClientProofFileSelected}
+//             />
+//             {pendingFile && (
+//               <span className="cdms-upload-status" title={pendingFile.name}>
+//                 📎 {pendingFile.name} (will upload on Save)
+//               </span>
+//             )}
+//             {!pendingFile && hasUploadedFile && (
+//               <span className="cdms-upload-status" title={staffFileUrl}>
+//                 ✓ Template uploaded
+//               </span>
+//             )}
+//             {pendingClientProofFile && (
+//               <span
+//                 className="cdms-upload-status"
+//                 title={pendingClientProofFile.name}
+//               >
+//                 📎 {pendingClientProofFile.name} (will upload on Save)
+//               </span>
+//             )}
+//             {!pendingClientProofFile && hasClientProof && (
+//               <span className="cdms-upload-status" title={clientProofUrl}>
+//                 ✓ Client proof uploaded
+//               </span>
+//             )}
+//           </div>
+//           {/* <button className="cdms-btn" onClick={onClose}>
 //               Cancel
 //             </button> */}
-//             {/* <button className="cdms-btn">Print</button>
+//           {/* <button className="cdms-btn">Print</button>
 //           </div> */}
-//             {/* <div className="cdms-footer-right">
+//           {/* <div className="cdms-footer-right">
 //             <button className="cdms-btn">Back</button>
 //             <button className="cdms-btn" onClick={onClose}>
 //               Exit
 //             </button> */}
-//           </div>
 //         </div>
 //       </div>
 
@@ -834,6 +833,24 @@ import "./AddQuotationModal.css";
 
 const API = import.meta.env.VITE_API_URL;
 
+// Small red asterisk shown next to every required field's label.
+const Required = () => <span className="cdms-required-mark">*</span>;
+
+// Every field on this form is required except the three read-only /
+// auto-filled ones (Quotation ID, Date, Prepared By), which the user
+// never types into. Keyed the same as `form` so validateForm() can
+// walk it directly.
+const REQUIRED_FIELDS = [
+  { key: "customerId", label: "Customer ID" },
+  { key: "companyName", label: "Company Name" },
+  { key: "address", label: "Address" },
+  { key: "contactInfo", label: "Contact Info" },
+  { key: "contactName", label: "Contact Name" },
+  { key: "reference", label: "Reference" },
+  { key: "poNumber", label: "Purchase Order" },
+  { key: "remarks", label: "Remarks" },
+];
+
 /**
  * AddQuotationModal
  *
@@ -841,6 +858,15 @@ const API = import.meta.env.VITE_API_URL;
  * the branded title bar, with a light, flat form body (matching the Job
  * Receipt screen's layout): a top row with Quotation ID / Date / Customer
  * ID search, then a two-column field grid below.
+ *
+ * FORM LAYOUT: Company Name, Address, and Contact Info are single-line
+ * <input>s (previously Address/Contact Info were <textarea>s) so every
+ * row in the two-column grid lines up on one consistent height/baseline.
+ * Remarks is the only remaining <textarea> (it's genuinely multi-line
+ * free text), and gets its own alignment rule (see
+ * .cdms-field--textarea in AddQuotationModal.css) so its label still
+ * sits flush with the first line instead of being vertically centered
+ * against the whole box.
  *
  * Admin lock: when editing an existing quotation (isEditMode), every
  * field starts locked. The first attempt to interact with any field pops
@@ -953,6 +979,10 @@ const AddQuotationModal = ({
   const [contacts, setContacts] = useState([]);
   const [showAddContact, setShowAddContact] = useState(false);
 
+  // Validation — maps field key -> true when that field is currently
+  // missing. Populated by validateForm() right before Save.
+  const [errors, setErrors] = useState({});
+
   // --- Admin lock ---------------------------------------------------
   // Fields are locked only when editing a saved quotation. New
   // quotations are always "verified" (i.e. unlocked). Note this stays
@@ -1063,8 +1093,31 @@ const AddQuotationModal = ({
     }
   };
 
-  const update = (field) => (e) =>
+  const update = (field) => (e) => {
     setForm((f) => ({ ...f, [field]: e.target.value }));
+    // Clear that field's error as soon as the user starts fixing it,
+    // rather than waiting for the next Save attempt to re-validate.
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: false } : prev));
+  };
+
+  // Checks all required fields (see REQUIRED_FIELDS). Returns true when
+  // the form is valid; otherwise populates `errors` so each field shows
+  // its own inline message, and returns false.
+  const validateForm = () => {
+    const newErrors = {};
+    let hasMissing = false;
+
+    REQUIRED_FIELDS.forEach(({ key }) => {
+      const value = form[key];
+      if (!value || !String(value).trim()) {
+        newErrors[key] = true;
+        hasMissing = true;
+      }
+    });
+
+    setErrors(newErrors);
+    return !hasMissing;
+  };
 
   const handleContactAdded = (newContact) => {
     const name = newContact.contactName;
@@ -1208,6 +1261,7 @@ const AddQuotationModal = ({
   //      true edit-mode record) or by deferring to the parent's onSave
   //      (true edit-mode, where the parent owns the PUT).
   const handleSaveClick = async () => {
+    if (!validateForm()) return;
     setSaving(true);
     try {
       let idToUse = localQuotationId;
@@ -1371,7 +1425,9 @@ const AddQuotationModal = ({
             </div>
 
             <div className="cdms-top-field cdms-top-field-customer">
-              <label>Customer ID</label>
+              <label>
+                Customer ID <Required />
+              </label>
               <div className="cdms-search-row">
                 <input
                   value={form.customerId}
@@ -1382,6 +1438,7 @@ const AddQuotationModal = ({
                   }
                   readOnly={fieldsLocked}
                   placeholder="Type or search..."
+                  className={errors.customerId ? "cdms-input-error" : ""}
                 />
                 {/* Lookup button is a button — left ungated per requirements */}
                 <button
@@ -1393,6 +1450,11 @@ const AddQuotationModal = ({
                   🔍
                 </button>
               </div>
+              {errors.customerId && (
+                <span className="cdms-field-error-text">
+                  This field is required.
+                </span>
+              )}
             </div>
           </div>
 
@@ -1400,69 +1462,107 @@ const AddQuotationModal = ({
           <div className="cdms-form-columns">
             <div className="cdms-column">
               <div className="cdms-field">
-                <label>Company Name</label>
-                <input
-                  value={form.companyName}
-                  onChange={update("companyName")}
-                  onFocus={guardField}
-                  readOnly={fieldsLocked}
-                />
-              </div>
-
-              <div className="cdms-field">
-                <label>Address</label>
-                <textarea
-                  rows={3}
-                  value={form.address}
-                  onChange={update("address")}
-                  onFocus={guardField}
-                  readOnly={fieldsLocked}
-                />
-              </div>
-
-              <div className="cdms-field">
-                <label>Contact Info</label>
-                <textarea
-                  rows={3}
-                  value={form.contactInfo}
-                  onChange={update("contactInfo")}
-                  onFocus={guardField}
-                  readOnly={fieldsLocked}
-                />
-              </div>
-
-              <div className="cdms-field">
-                <label>Contact Name</label>
-                <div className="cdms-select-row">
-                  <select
-                    name="contactName"
-                    value={form.contactName}
-                    onChange={update("contactName")}
-                    onMouseDown={guardField}
+                <label>
+                  Company Name <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <input
+                    value={form.companyName}
+                    onChange={update("companyName")}
                     onFocus={guardField}
-                    disabled={contacts.length === 0}
-                  >
-                    <option value="">
-                      {contacts.length === 0
-                        ? "-- No customer selected --"
-                        : "-- Select Contact --"}
-                    </option>
-                    {contacts.map((name, idx) => (
-                      <option key={idx} value={name}>
-                        {name}
+                    readOnly={fieldsLocked}
+                    className={errors.companyName ? "cdms-input-error" : ""}
+                  />
+                  {errors.companyName && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="cdms-field">
+                <label>
+                  Address <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <input
+                    value={form.address}
+                    onChange={update("address")}
+                    onFocus={guardField}
+                    readOnly={fieldsLocked}
+                    className={errors.address ? "cdms-input-error" : ""}
+                  />
+                  {errors.address && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="cdms-field">
+                <label>
+                  Contact Info <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <input
+                    value={form.contactInfo}
+                    onChange={update("contactInfo")}
+                    onFocus={guardField}
+                    readOnly={fieldsLocked}
+                    className={errors.contactInfo ? "cdms-input-error" : ""}
+                  />
+                  {errors.contactInfo && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="cdms-field">
+                <label>
+                  Contact Name <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <div className="cdms-select-row">
+                    <select
+                      name="contactName"
+                      value={form.contactName}
+                      onChange={update("contactName")}
+                      onMouseDown={guardField}
+                      onFocus={guardField}
+                      disabled={contacts.length === 0}
+                      className={errors.contactName ? "cdms-input-error" : ""}
+                    >
+                      <option value="">
+                        {contacts.length === 0
+                          ? "-- No customer selected --"
+                          : "-- Select Contact --"}
                       </option>
-                    ))}
-                  </select>
-                  {/* Add-contact button — left ungated per requirements */}
-                  <button
-                    type="button"
-                    className="cdms-add-btn"
-                    title="Add contact"
-                    disabled={!form.customerId?.trim()}
-                    onClick={() => setShowAddContact(true)}
-                  >
-                    +
-                  </button>
+                      {contacts.map((name, idx) => (
+                        <option key={idx} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                    {/* Add-contact button — left ungated per requirements */}
+                    <button
+                      type="button"
+                      className="cdms-add-btn"
+                      title="Add contact"
+                      disabled={!form.customerId?.trim()}
+                      onClick={() => setShowAddContact(true)}
+                    >
+                      +
+                    </button>
+                  </div>
+                  {errors.contactName && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1476,34 +1576,64 @@ const AddQuotationModal = ({
 
             <div className="cdms-column">
               <div className="cdms-field">
-                <label>Reference</label>
-                <input
-                  value={form.reference}
-                  onChange={update("reference")}
-                  onFocus={guardField}
-                  readOnly={fieldsLocked}
-                />
+                <label>
+                  Reference <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <input
+                    value={form.reference}
+                    onChange={update("reference")}
+                    onFocus={guardField}
+                    readOnly={fieldsLocked}
+                    className={errors.reference ? "cdms-input-error" : ""}
+                  />
+                  {errors.reference && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="cdms-field">
-                <label>Purchase Order</label>
-                <input
-                  value={form.poNumber}
-                  onChange={update("poNumber")}
-                  onFocus={guardField}
-                  readOnly={fieldsLocked}
-                />
+                <label>
+                  Purchase Order <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <input
+                    value={form.poNumber}
+                    onChange={update("poNumber")}
+                    onFocus={guardField}
+                    readOnly={fieldsLocked}
+                    className={errors.poNumber ? "cdms-input-error" : ""}
+                  />
+                  {errors.poNumber && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="cdms-field">
-                <label>Remarks</label>
-                <textarea
-                  rows={6}
-                  value={form.remarks}
-                  onChange={update("remarks")}
-                  onFocus={guardField}
-                  readOnly={fieldsLocked}
-                />
+              <div className="cdms-field cdms-field--textarea">
+                <label>
+                  Remarks <Required />
+                </label>
+                <div className="cdms-field-control">
+                  <textarea
+                    rows={6}
+                    value={form.remarks}
+                    onChange={update("remarks")}
+                    onFocus={guardField}
+                    readOnly={fieldsLocked}
+                    className={errors.remarks ? "cdms-input-error" : ""}
+                  />
+                  {errors.remarks && (
+                    <span className="cdms-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

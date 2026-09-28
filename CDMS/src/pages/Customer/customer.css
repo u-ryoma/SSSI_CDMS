@@ -67,30 +67,78 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
 }
 
-/* FORM GROUP */
+/* ===== ADD CUSTOMER FORM ===== */
+
+.customer-form {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+/* TWO-COLUMN LAYOUT */
+.form-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 48px;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* FORM GROUP — label stacked above its field */
 .form-group {
   display: flex;
-  align-items: flex-start;
-  margin-bottom: 18px;
-  gap: 20px;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 0;
 }
 
 /* LABEL */
 .form-group label {
-  width: 180px;
-  font-weight: 600;
-  color: #333;
-  padding-top: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #1f2937;
+}
+
+.required-mark {
+  color: #dc2626;
+  font-weight: 700;
 }
 
 /* INPUT */
 .form-group input,
 .form-group textarea {
-  flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #cfcfcf;
-  border-radius: 4px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
   font-size: 14px;
+  font-family: inherit;
+  color: #111827;
+  background: #f4f5f6;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #9ca3af;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-group input:required:invalid {
+  box-shadow: none;
 }
 
 /* TEXTAREA */
@@ -113,50 +161,80 @@
 .contact-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   align-items: center;
 }
 
+.contact-row .contact-input {
+  margin-bottom: 0;
+}
+
 .remove-contact-btn {
-  background: #ff4d4d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 8px;
+  background: #fff;
+  color: #dc2626;
+  border: 1px solid #f3c6c6;
+  border-radius: 6px;
+  padding: 8px 11px;
   cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.remove-contact-btn:hover {
+  background: #fef2f2;
 }
 
 /* ADD CONTACT BUTTON */
 .add-contact-btn {
-  padding: 10px 14px;
-  border: none;
-  background: #16a34a;
-  color: white;
-  border-radius: 4px;
+  padding: 9px 14px;
+  border: 1px dashed #16a34a;
+  background: #f0fdf4;
+  color: #15803d;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 4px;
+  transition: background 0.15s ease;
 }
 
 .add-contact-btn:hover {
-  background: #15803d;
+  background: #dcfce7;
+}
+
+/* FORM FOOTER */
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #ececec;
+}
+
+.required-note {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
 }
 
 /* BUTTON WRAPPER */
 .button-wrapper {
-  margin-left: 200px;
   display: flex;
   gap: 10px;
 }
 
 /* SAVE BUTTON */
 .save-btn {
-  padding: 12px 22px;
+  padding: 12px 26px;
   border: none;
   background: #2563eb;
   color: white;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s ease;
 }
 
 .save-btn:hover {
@@ -169,9 +247,11 @@
   border: none;
   background: #ff4d4d;
   color: white;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s ease;
 }
 
 .delete-btn:hover {
@@ -366,18 +446,25 @@
     max-height: 90vh;
   }
 
-  .form-group {
-    flex-direction: column;
-    gap: 6px;
+  .form-columns {
+    grid-template-columns: 1fr;
+    gap: 22px;
   }
 
-  .form-group label {
-    width: 100%;
-    padding-top: 0;
+  .form-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .button-wrapper {
     margin-left: 0;
+    width: 100%;
+  }
+
+  .save-btn,
+  .delete-btn {
+    flex: 1;
   }
 
   .modal-actions {

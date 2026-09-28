@@ -152,8 +152,10 @@
 //     <div className="sm-container">
 //       <div className="sm-topline">
 //         <div>
-//           <span className="sm-eyebrow">Field Operations</span>
-//           <h1>Schedule Monitoring</h1>
+//           {/* <span className="sm-eyebrow">Field Operations</span> */}
+//           <div className="sm-banner">
+//             <h1>On-Site Operations</h1>
+//           </div>
 //         </div>
 //       </div>
 
@@ -258,6 +260,7 @@
 // }
 import { useEffect, useState, useCallback } from "react";
 import AssignTechnicianModal from "./AssignTechnicianModal";
+import AutoScheduleModal from "./AutoScheduleModal";
 import "./SchedMonitor.css";
 
 const API_BASE = "/api/schedule"; // adjust if your axios instance uses a different base
@@ -304,6 +307,7 @@ export default function SchedMonitor() {
   const [assignments, setAssignments] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [showAutoSchedule, setShowAutoSchedule] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const days =
@@ -423,19 +427,36 @@ export default function SchedMonitor() {
           <span className="sm-header-label">{headerLabel}</span>
         </div>
 
-        <div className="sm-view-toggle">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
-            className={viewMode === "month" ? "active" : ""}
-            onClick={() => setViewMode("month")}
+            onClick={() => setShowAutoSchedule(true)}
+            style={{
+              background: "#0a0a0a",
+              color: "#fff",
+              border: "none",
+              borderRadius: 6,
+              padding: "8px 14px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
           >
-            Month
+            Auto-Schedule
           </button>
-          <button
-            className={viewMode === "week" ? "active" : ""}
-            onClick={() => setViewMode("week")}
-          >
-            Week
-          </button>
+
+          <div className="sm-view-toggle">
+            <button
+              className={viewMode === "month" ? "active" : ""}
+              onClick={() => setViewMode("month")}
+            >
+              Month
+            </button>
+            <button
+              className={viewMode === "week" ? "active" : ""}
+              onClick={() => setViewMode("week")}
+            >
+              Week
+            </button>
+          </div>
         </div>
       </div>
 
@@ -511,6 +532,14 @@ export default function SchedMonitor() {
           onAssign={handleAssign}
           onRemove={handleRemove}
           onClose={() => setSelectedDate(null)}
+        />
+      )}
+
+      {showAutoSchedule && (
+        <AutoScheduleModal
+          apiBase={API_BASE}
+          onClose={() => setShowAutoSchedule(false)}
+          onConfirmed={fetchAssignments}
         />
       )}
     </div>

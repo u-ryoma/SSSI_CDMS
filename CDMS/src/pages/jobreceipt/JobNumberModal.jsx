@@ -668,24 +668,20 @@
 //                 )}
 //               </div>
 
-//               {/* ON-SITE TOGGLE — bound to the independent `onSite` field
-//                   (mode of receipt), which JobNumber.jsx's getMOR() reads.
-//                   This is deliberately separate from `tagged`, a pipeline-
-//                   stage flag set elsewhere once the job passes Instrument
-//                   Tagging. Checking this box only records how the unit was
-//                   received; it does not by itself change what stage the
-//                   job is in. */}
-//               <div className="jn-type-row">
-//                 <label className="jr-radio-label">
-//                   <input
-//                     type="checkbox"
-//                     name="onSite"
-//                     checked={!!jobForm.onSite}
-//                     onChange={onOnSiteChange}
-//                   />{" "}
-//                   On-Site Calibration
-//                 </label>
-//               </div>
+//               {/* ON-SITE STATUS — no manual checkbox here anymore. Whether
+//                   a job is in-house or on-site is now decided entirely by
+//                   which flow opened this modal, not by a toggle a user
+//                   could accidentally flip mid-edit:
+//                     - Opened from Job Receipt (JobReceipt.jsx)  -> in-house
+//                       (jobForm.onSite defaults to false via emptyJobForm,
+//                       and nothing in that flow ever sets it true).
+//                     - Opened from Site Calibration
+//                       (AddSiteCalibrationModal.jsx) -> on-site
+//                       (handleOpenJobNumber force-sets onSite: true,
+//                       tagged: true before this modal even opens).
+//                   onOnSiteChange is still accepted as a prop for backward
+//                   compatibility but is no longer wired to any control in
+//                   this modal. */}
 //             </div>
 //           </div>
 
@@ -905,6 +901,9 @@ import AddContactSubModal from "./AddContactSubModal";
 import ReceiptFolderModal from "./ReceiptFolderModal"; // was JobFolderModal — retired, see ReceiptFolderModal.jsx
 
 const API = import.meta.env.VITE_API_URL;
+
+// Small red asterisk shown next to every required field's label.
+const Required = () => <span className="jr-required-mark">*</span>;
 
 const JobNumberModal = ({
   onClose,
@@ -1286,7 +1285,7 @@ const JobNumberModal = ({
             <div className="jn-form-left">
               <div className="jr-field-row">
                 <label>
-                  Description{" "}
+                  Description <Required />{" "}
                   {errors.description && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1313,7 +1312,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Brand{" "}
+                  Brand <Required />{" "}
                   {errors.brand && <span className="jr-error">*required</span>}
                 </label>
                 <input
@@ -1326,7 +1325,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Model{" "}
+                  Model <Required />{" "}
                   {errors.model && <span className="jr-error">*required</span>}
                 </label>
                 <input
@@ -1339,7 +1338,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Serial No.{" "}
+                  Serial No. <Required />{" "}
                   {errors.serialNo && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1354,7 +1353,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Remarks{" "}
+                  Remarks <Required />{" "}
                   {errors.remarks && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1369,7 +1368,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Concern{" "}
+                  Concern <Required />{" "}
                   {errors.concern && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1387,7 +1386,7 @@ const JobNumberModal = ({
             <div className="jn-form-right">
               <div className="jr-field-row">
                 <label>
-                  Range{" "}
+                  Range <Required />{" "}
                   {errors.range && <span className="jr-error">*required</span>}
                 </label>
                 <textarea
@@ -1400,7 +1399,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Uncertainty{" "}
+                  Uncertainty <Required />{" "}
                   {errors.uncertainty && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1415,7 +1414,7 @@ const JobNumberModal = ({
               </div>
               <div className="jr-field-row">
                 <label>
-                  Contact Cert{" "}
+                  Contact Cert <Required />{" "}
                   {errors.contactCert && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1455,7 +1454,7 @@ const JobNumberModal = ({
               </div>
               <div className="jn-inline-row">
                 <label>
-                  Frequency{" "}
+                  Frequency <Required />{" "}
                   {errors.frequency && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1473,7 +1472,7 @@ const JobNumberModal = ({
                   <option>3 Years</option>
                 </select>
                 <label>
-                  ETA{" "}
+                  ETA <Required />{" "}
                   {errors.eta && (
                     <span className="jr-error">*{errors.eta}</span>
                   )}
@@ -1488,7 +1487,7 @@ const JobNumberModal = ({
               </div>
               <div className="jn-inline-row">
                 <label>
-                  Eval By{" "}
+                  Eval By <Required />{" "}
                   {errors.evalBy && <span className="jr-error">*required</span>}
                 </label>
                 <select
@@ -1502,7 +1501,7 @@ const JobNumberModal = ({
                   <option>SSSI</option>
                 </select>
                 <label>
-                  Priority{" "}
+                  Priority <Required />{" "}
                   {errors.priority && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1521,7 +1520,7 @@ const JobNumberModal = ({
               </div>
               <div className="jn-inline-row">
                 <label>
-                  Voltage{" "}
+                  Voltage <Required />{" "}
                   {errors.voltage && (
                     <span className="jr-error">*required</span>
                   )}
@@ -1539,6 +1538,9 @@ const JobNumberModal = ({
               </div>
               {/* TYPE SELECTOR */}
               <div className="jn-type-row">
+                <span className="jr-type-label">
+                  Type <Required />
+                </span>
                 <label className="jr-radio-label">
                   <input
                     type="radio"

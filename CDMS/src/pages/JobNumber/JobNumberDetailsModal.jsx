@@ -1542,7 +1542,7 @@ const JobNumberDetailsModal = ({
                     : undefined
                 }
               >
-                Open Folder
+                View Files
               </button>
               <button
                 className="jnd-btn"

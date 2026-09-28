@@ -26,6 +26,7 @@ const scheduleRoutes = require("./routes/scheduleRoutes");
 const statsRoutes = require("./routes/statsRoutes");
 const siteCalibrationRoutes = require("./routes/siteCalibrationRoutes");
 const systemAlertRoutes = require("./routes/systemAlertRoutes");
+const predictionRoutes = require("./routes/predictionRoutes");
 const app = express();
 
 app.use(
@@ -70,6 +71,7 @@ app.use("/api/schedule", scheduleRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/sitecalibrations", siteCalibrationRoutes);
 app.use("/api/system-alerts", systemAlertRoutes);
+app.use("/api/predictions", predictionRoutes);
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, closing DB connection");

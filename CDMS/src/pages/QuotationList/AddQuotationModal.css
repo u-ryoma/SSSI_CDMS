@@ -152,7 +152,11 @@
 }
 
 /* Label-left layout, scoped to the actual form grid so every input
-   (both columns) starts at the exact same x position. */
+   (both columns) starts at the exact same x position. Top-aligned
+   (rather than centered) so the label always sits flush with the
+   input's first line — including when an inline "This field is
+   required." error message makes the field's control block taller
+   than the label. */
 .cdms-form-columns .cdms-field {
   flex-direction: row;
   align-items: flex-start;
@@ -168,13 +172,38 @@
 
 .cdms-form-columns .cdms-field > input,
 .cdms-form-columns .cdms-field > textarea,
-.cdms-form-columns .cdms-field > .cdms-select-row {
+.cdms-form-columns .cdms-field > .cdms-select-row,
+.cdms-form-columns .cdms-field > .cdms-field-control {
   flex: 1;
   min-width: 0;
 }
 
 .cdms-form-columns .cdms-field > .cdms-select-row {
   gap: 6px;
+}
+
+/* Wraps an input/select-row together with its inline error message, so
+   the error sits directly under the field while the label stays put
+   to the left of the whole block. */
+.cdms-field-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cdms-required-mark {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.cdms-input-error {
+  border-color: #dc2626 !important;
+  background: #fff5f5 !important;
+}
+
+.cdms-field-error-text {
+  color: #dc2626;
+  font-size: 11px;
 }
 
 .cdms-field input,
@@ -301,11 +330,14 @@
     display: none;
   }
 
-  .cdms-form-columns .cdms-field {
+  .cdms-form-columns .cdms-field,
+  .cdms-form-columns .cdms-field--textarea {
     flex-direction: column;
+    align-items: stretch;
   }
 
-  .cdms-form-columns .cdms-field > label {
+  .cdms-form-columns .cdms-field > label,
+  .cdms-form-columns .cdms-field--textarea > label {
     width: auto;
     flex: none;
     padding-top: 0;

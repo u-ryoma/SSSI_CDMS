@@ -1,186 +1,9 @@
-// import React, { useState, useEffect } from "react";
+// import React, { useState } from "react";
 // import { createPortal } from "react-dom";
 // import ConfirmDialog from "../../components/ConfirmDialog";
 // import AdminPasswordModal from "./AdminPasswordModal";
-
-// const API = import.meta.env.VITE_API_URL;
-
-// // =====================
-// // INLINE ADD CONTACT MODAL
-// // =====================
-// const AddContactSubModal = ({ customerID, onClose, onContactAdded }) => {
-//   const [contactID, setContactID] = useState("");
-//   const [reserving, setReserving] = useState(true);
-//   const [contactName, setContactName] = useState("");
-//   const [contactType, setContactType] = useState("");
-//   const [remarks, setRemarks] = useState("");
-//   const [error, setError] = useState("");
-//   const [saving, setSaving] = useState(false);
-
-//   useEffect(() => {
-//     reserveContactID();
-//   }, []);
-
-//   const reserveContactID = async () => {
-//     setReserving(true);
-//     try {
-//       const res = await fetch(`${API}/api/contacts/reserve`, {
-//         method: "POST",
-//       });
-//       const data = await res.json();
-//       if (data.success) {
-//         setContactID(data.contactID);
-//       } else {
-//         setError("Failed to reserve a Contact ID.");
-//       }
-//     } catch (err) {
-//       console.error("Failed to reserve contact ID:", err);
-//       setError("Failed to reserve a Contact ID.");
-//     } finally {
-//       setReserving(false);
-//     }
-//   };
-
-//   const handleSave = async () => {
-//     if (!contactName.trim()) {
-//       setError("Contact Name is required.");
-//       return;
-//     }
-//     if (!contactType) {
-//       setError("Contact Type is required.");
-//       return;
-//     }
-//     if (!remarks.trim()) {
-//       setError("Remarks is required.");
-//       return;
-//     }
-//     setError("");
-//     setSaving(true);
-
-//     try {
-//       const res = await fetch(`${API}/api/contacts`, {
-//         method: "POST",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify({
-//           contactID,
-//           customerID,
-//           contactName,
-//           contactType,
-//           remarks,
-//         }),
-//       });
-//       const data = await res.json();
-
-//       if (data.success) {
-//         onContactAdded(data.contact);
-//         onClose();
-//       } else {
-//         setError(data.message || "Failed to save contact.");
-//       }
-//     } catch (err) {
-//       console.error("Failed to save contact:", err);
-//       setError("Failed to save contact.");
-//     } finally {
-//       setSaving(false);
-//     }
-//   };
-
-//   return createPortal(
-//     <div className="jr-modal-overlay" onClick={onClose}>
-//       <div className="ac-modal-wrapper" onClick={(e) => e.stopPropagation()}>
-//         <div className="jr-modal-header">
-//           <div className="jr-modal-header-left">
-//             <div className="jr-cdms-logo">CDMS</div>
-//             <div className="jr-modal-title">
-//               <span className="jr-modal-title-main">
-//                 CONTACT INFORMATION DETAILS
-//               </span>
-//             </div>
-//           </div>
-//           <button className="jr-modal-close" onClick={onClose}>
-//             ✕
-//           </button>
-//         </div>
-
-//         <div className="ac-content">
-//           <div className="ac-id-row">
-//             <div className="ac-id-field">
-//               <label>Contact ID</label>
-//               <input
-//                 type="text"
-//                 value={reserving ? "Reserving..." : contactID}
-//                 disabled
-//                 className="jr-input-auto"
-//               />
-//             </div>
-//             <div className="ac-id-field">
-//               <label>Customer ID</label>
-//               <input
-//                 type="text"
-//                 value={customerID}
-//                 disabled
-//                 className="jr-input-auto"
-//               />
-//             </div>
-//           </div>
-
-//           {error && <p className="ac-error">{error}</p>}
-
-//           <div className="ac-field-row">
-//             <label>Contact Name</label>
-//             <input
-//               type="text"
-//               value={contactName}
-//               onChange={(e) => setContactName(e.target.value)}
-//               autoFocus
-//             />
-//           </div>
-
-//           <div className="ac-field-row">
-//             <label>Contact Type</label>
-//             <select
-//               value={contactType}
-//               onChange={(e) => setContactType(e.target.value)}
-//             >
-//               <option value="">-- Select --</option>
-//               <option value="Primary">Primary</option>
-//               <option value="Billing">Billing</option>
-//               <option value="Technical">Technical</option>
-//               <option value="Other">Other</option>
-//             </select>
-//           </div>
-
-//           <div className="ac-field-row ac-field-row-textarea">
-//             <label>Remarks</label>
-//             <textarea
-//               rows={4}
-//               value={remarks}
-//               onChange={(e) => setRemarks(e.target.value)}
-//             />
-//           </div>
-
-//           <div className="ac-footer">
-//             <button
-//               className="jr-save-btn"
-//               onClick={handleSave}
-//               disabled={saving || reserving}
-//             >
-//               {saving ? "Saving..." : "Save"}
-//             </button>
-//             <button
-//               className="jr-action-btn"
-//               onClick={onClose}
-//               disabled={saving}
-//             >
-//               Exit
-//             </button>
-//           </div>
-//         </div>
-//       </div>
-//     </div>,
-//     document.body,
-//   );
-// };
+// import AddContactSubModal from "./AddContactSubModal";
+// import ReceiptFolderModal from "./ReceiptFolderModal";
 
 // // =====================
 // // MAIN ADD / EDIT RECEIPT MODAL
@@ -203,6 +26,13 @@
 // }) => {
 //   const [errors, setErrors] = useState({});
 //   const [showAddContact, setShowAddContact] = useState(false);
+
+//   // OPEN FOLDER — shows every file (equipment photos + documents) stored
+//   // under each job number attached to this receipt, grouped by job
+//   // number. Reuses the same /api/uploads/job-folder/:jobNumber/files
+//   // route that JobNumberModal's per-job "Open Folder" already calls —
+//   // this just loops it across every job number in `jobNumbers`.
+//   const [showReceiptFolder, setShowReceiptFolder] = useState(false);
 
 //   // FIELD LOCK — existing receipts (isEditMode) open locked; a correct admin
 //   // password unlocks the receipt detail fields for the rest of this modal
@@ -439,7 +269,7 @@
 //                     </button>
 //                   </div>
 //                 </div>
-//                 <button className="jr-pdf-btn">Upload PDF</button>
+//                 {/* <button className="jr-pdf-btn">Upload PDF</button> */}
 //               </div>
 
 //               {/* FORM BODY */}
@@ -597,14 +427,37 @@
 //                 <button className="jr-add-btn" onClick={onOpenJobNumber}>
 //                   Add
 //                 </button>
-//                 <button className="jr-reserve-btn">Reserve Job Numbers</button>
+//                 {/* <button className="jr-reserve-btn">Reserve Job Numbers</button> */}
 //               </div>
 //               <div className="jr-modal-actions-right">
-//                 <button className="jr-action-btn" disabled>
-//                   Modification History
+//                 {/* <button className="jr-action-btn" disabled>
+//                     Modification History
+//                   </button> */}
+//                 {/* <button className="jr-action-btn">Open Camera</button> */}
+
+//                 {/* OPEN FOLDER — shows every file (equipment photos +
+//                     documents) uploaded under every job number attached to
+//                     this receipt, grouped by job number. Disabled until at
+//                     least one job number has been added, since there's
+//                     nothing to show otherwise. */}
+//                 <button
+//                   className="jr-action-btn"
+//                   onClick={() => setShowReceiptFolder(true)}
+//                   disabled={jobNumbers.length === 0}
+//                   title={
+//                     jobNumbers.length === 0
+//                       ? "Add at least one Job Number first"
+//                       : "View files for all job numbers on this receipt"
+//                   }
+//                   style={
+//                     jobNumbers.length === 0
+//                       ? { opacity: 0.5, cursor: "not-allowed" }
+//                       : {}
+//                   }
+//                 >
+//                   Open Folder
 //                 </button>
-//                 <button className="jr-action-btn">Open Camera</button>
-//                 <button className="jr-action-btn">Open Folder</button>
+
 //                 <button
 //                   className="jr-action-btn"
 //                   onClick={handlePrintClick}
@@ -704,7 +557,7 @@
 //         document.body,
 //       )}
 
-//       {/* ADD CONTACT MODAL (inline sub-component, separate portal) */}
+//       {/* ADD CONTACT MODAL (shared component, separate portal) */}
 //       {showAddContact && (
 //         <AddContactSubModal
 //           customerID={formData.customerID}
@@ -712,6 +565,15 @@
 //           onContactAdded={(newContact) => {
 //             onContactAdded(newContact.contactName);
 //           }}
+//         />
+//       )}
+
+//       {/* RECEIPT FOLDER MODAL — shows files for every job number on this
+//           receipt, grouped by job number */}
+//       {showReceiptFolder && (
+//         <ReceiptFolderModal
+//           jobNumbers={jobNumbers}
+//           onClose={() => setShowReceiptFolder(false)}
 //         />
 //       )}
 //     </>
@@ -725,6 +587,9 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 import AdminPasswordModal from "./AdminPasswordModal";
 import AddContactSubModal from "./AddContactSubModal";
 import ReceiptFolderModal from "./ReceiptFolderModal";
+
+// Small red asterisk shown next to every required field's label.
+const Required = () => <span className="jr-required-mark">*</span>;
 
 // =====================
 // MAIN ADD / EDIT RECEIPT MODAL
@@ -951,9 +816,9 @@ const AddReceiptModal = ({
                 </div>
                 <div className="jr-top-field">
                   <label>
-                    Date{" "}
+                    Date <Required />{" "}
                     {errors.date && (
-                      <span className="jr-error">*{errors.date}</span>
+                      <span className="jr-error">{errors.date}</span>
                     )}
                   </label>
                   <input
@@ -966,9 +831,9 @@ const AddReceiptModal = ({
                 </div>
                 <div className="jr-top-field">
                   <label>
-                    Customer ID{" "}
+                    Customer ID <Required />{" "}
                     {errors.customerID && (
-                      <span className="jr-error">*{errors.customerID}</span>
+                      <span className="jr-error">{errors.customerID}</span>
                     )}
                   </label>
                   <div className="jr-input-with-btn">
@@ -998,7 +863,7 @@ const AddReceiptModal = ({
                 <div className="jr-form-left">
                   <div className="jr-field-row">
                     <label>
-                      Company Name{" "}
+                      Company Name <Required />{" "}
                       {errors.companyName && (
                         <span className="jr-error">*required</span>
                       )}
@@ -1013,7 +878,7 @@ const AddReceiptModal = ({
                   </div>
                   <div className="jr-field-row">
                     <label>
-                      Address{" "}
+                      Address <Required />{" "}
                       {errors.companyAddress && (
                         <span className="jr-error">*required</span>
                       )}
@@ -1027,7 +892,7 @@ const AddReceiptModal = ({
                   </div>
                   <div className="jr-field-row">
                     <label>
-                      Contact Info{" "}
+                      Contact Info <Required />{" "}
                       {errors.contactInfo && (
                         <span className="jr-error">*required</span>
                       )}
@@ -1041,7 +906,7 @@ const AddReceiptModal = ({
                   </div>
                   <div className="jr-field-row">
                     <label>
-                      VAT{" "}
+                      VAT <Required />{" "}
                       {errors.vat && (
                         <span className="jr-error">*required</span>
                       )}
@@ -1056,7 +921,7 @@ const AddReceiptModal = ({
                   </div>
                   <div className="jr-field-row">
                     <label>
-                      Contact Name{" "}
+                      Contact Name <Required />{" "}
                       {errors.contactName && (
                         <span className="jr-error">*required</span>
                       )}
@@ -1110,7 +975,7 @@ const AddReceiptModal = ({
                 <div className="jr-form-right">
                   <div className="jr-field-row">
                     <label>
-                      Reference{" "}
+                      Reference <Required />{" "}
                       {errors.reference && (
                         <span className="jr-error">*required</span>
                       )}
@@ -1125,7 +990,7 @@ const AddReceiptModal = ({
                   </div>
                   <div className="jr-field-row">
                     <label>
-                      Remarks{" "}
+                      Remarks <Required />{" "}
                       {errors.remarks && (
                         <span className="jr-error">*required</span>
                       )}

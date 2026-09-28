@@ -1124,6 +1124,15 @@ export default function Sidebar({ isOpen, onClose }) {
             System Activity
           </NavLink>
         )}
+        {(role === "admin" || role === "owner") && (
+          <NavLink
+            className={navLinkClass}
+            to="/admin/predictions"
+            onClick={onClose}
+          >
+            Predictions
+          </NavLink>
+        )}
       </nav>
 
       <div className="sidebar-footer">

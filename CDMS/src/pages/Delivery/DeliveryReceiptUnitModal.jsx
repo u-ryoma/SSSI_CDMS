@@ -6,6 +6,8 @@
 // import "./DeliveryReceiptModals.css";
 // import ReleaseUnitModal from "./ReleaseUnitModal";
 // import PrintDeliveryReceiptModal from "./PrintDeliveryReceiptModal";
+// import CameraCaptureModal from "../jobreceipt/CameraCaptureModal"; // adjust path if it lives elsewhere
+// import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal"; // adjust path if it lives elsewhere
 
 // const API = import.meta.env.VITE_API_URL;
 
@@ -58,6 +60,24 @@
 // // `return null` guard, or closing the form (which performSave does
 // // right after setting printReceipt) will also prevent the print modal
 // // from ever rendering.
+// //
+// // CAMERA / FOLDER: "Open Camera" opens CameraCaptureModal with a
+// // contextLabel of "DELIVERY RECEIPT (UNIT) #<DRID>" so photos taken
+// // here are visibly distinguished from photos taken anywhere else in the
+// // app (job receipt, incoming calibration, certificate release, etc).
+// // Captured photos accumulate in `photos` state, ride along in the save
+// // payload, and are also handed to ReceiptFolderModal as
+// // `unitPhotoUrls` so "Open Folder" shows them alongside each logged
+// // job's existing Cloudinary files. Photos are session-only until Save;
+// // they're cleared in performClose() same as form/items.
+// //
+// // PHOTO UPLOAD FAILURES: the backend uploads each captured photo to
+// // Cloudinary before inserting the receipt; if some/all fail, the
+// // receipt still saves but the response carries a photoUploadWarning
+// // string. That's surfaced here via the same ConfirmDialog used
+// // elsewhere in this modal (info-style, single OK button) right after
+// // a successful save, so a partial photo failure isn't silently
+// // indistinguishable from a clean save.
 // const DeliveryReceiptUnitModal = ({
 //   isOpen,
 //   onClose,
@@ -74,6 +94,9 @@
 //   const [saving, setSaving] = useState(false);
 //   const [saveError, setSaveError] = useState("");
 //   const [printReceipt, setPrintReceipt] = useState(null);
+//   const [showCamera, setShowCamera] = useState(false);
+//   const [showFolder, setShowFolder] = useState(false);
+//   const [photos, setPhotos] = useState([]);
 
 //   const readOnly = !!viewRecord;
 
@@ -104,6 +127,21 @@
 //     });
 //   };
 
+//   // Info/warning message, single OK button, no Cancel — used for the
+//   // post-save photoUploadWarning notice.
+//   const showNotice = (title, message) => {
+//     setDialog({
+//       show: true,
+//       title,
+//       message,
+//       onConfirm: hideDialog,
+//       onCancel: null,
+//       confirmLabel: "OK",
+//       cancelLabel: "Cancel",
+//       type: "default",
+//     });
+//   };
+
 //   useEffect(() => {
 //     if (!isOpen) return;
 
@@ -126,6 +164,7 @@
 //       setContactNameOptions(
 //         viewRecord.contactName ? [viewRecord.contactName] : [],
 //       );
+//       setPhotos(Array.isArray(viewRecord.photos) ? viewRecord.photos : []);
 //       return;
 //     }
 
@@ -218,12 +257,25 @@
 //     console.log("Load Old System");
 //   };
 
+//   // Opens CameraCaptureModal. Disabled in readOnly (viewRecord) mode -
+//   // there's nothing to attach newly captured photos to on a record
+//   // that's already saved and locked down.
 //   const handleOpenCamera = () => {
-//     console.log("Open Camera");
+//     if (readOnly) return;
+//     setShowCamera(true);
 //   };
 
+//   // Photos come back as an array of dataURLs (CameraCaptureModal's
+//   // onCapture contract) - append to whatever's already been captured
+//   // this session rather than replacing it.
+//   const handlePhotosCaptured = (dataUrls) => {
+//     setPhotos((prev) => [...prev, ...dataUrls]);
+//   };
+
+//   // Available whether or not there are items yet - useful to check
+//   // what's already on file for a customer/job before logging anything.
 //   const handleOpenFolder = () => {
-//     console.log("Open Folder");
+//     setShowFolder(true);
 //   };
 
 //   // Print is now available at any time while editing (as long as
@@ -255,6 +307,7 @@
 //           jobReceiptID,
 //           type,
 //           items,
+//           photos,
 //         }),
 //       });
 //       const data = await res.json();
@@ -288,6 +341,14 @@
 //       // isOpen to false in the parent.
 //       setPrintReceipt(data.receipt);
 //       performClose();
+
+//       // Surface a partial/total photo upload failure AFTER performClose
+//       // - the dialog's own `show` state is independent of the form
+//       // portal's `isOpen` gate, so it still renders on top of the print
+//       // modal that just opened.
+//       if (data.photoUploadWarning) {
+//         showNotice("Some Photos Weren't Saved", data.photoUploadWarning);
+//       }
 //     } catch (err) {
 //       console.error("Failed to save delivery receipt:", err);
 //       setSaveError("Failed to save delivery receipt. Please try again.");
@@ -312,6 +373,7 @@
 //     setContactNameOptions([]);
 //     setShowReleaseUnit(false);
 //     setSaveError("");
+//     setPhotos([]);
 //     onClose();
 //   };
 
@@ -330,6 +392,12 @@
 //       "danger",
 //     );
 //   };
+
+//   // Shown in the camera header and used as the ReceiptFolderModal title
+//   // so it's unambiguous which flow the photos/files belong to.
+//   const contextLabel = `DELIVERY RECEIPT (UNIT)${
+//     form.deliveryReceiptId ? ` #${form.deliveryReceiptId}` : ""
+//   }`;
 
 //   return (
 //     <>
@@ -454,9 +522,9 @@
 //                     <button className="dr-btn" onClick={handleAddItem}>
 //                       Add
 //                     </button>
-//                     <button className="dr-btn" onClick={handleLoadOldSystem}>
+//                     {/* <button className="dr-btn" onClick={handleLoadOldSystem}>
 //                       Load Old System
-//                     </button>
+//                     </button> */}
 //                   </div>
 //                 )}
 
@@ -596,11 +664,20 @@
 //               </div>
 
 //               <div className="dr-modal-footer">
-//                 <button className="dr-btn dr-btn--link" disabled>
+//                 {/* <button className="dr-btn dr-btn--link" disabled>
 //                   Modification History
-//                 </button>
-//                 <button className="dr-btn" onClick={handleOpenCamera}>
-//                   Open Camera
+//                 </button> */}
+//                 <button
+//                   className="dr-btn"
+//                   onClick={handleOpenCamera}
+//                   disabled={readOnly}
+//                   title={
+//                     readOnly
+//                       ? "Not available when viewing a saved record"
+//                       : undefined
+//                   }
+//                 >
+//                   Open Camera{photos.length > 0 ? ` (${photos.length})` : ""}
 //                 </button>
 //                 <button className="dr-btn" onClick={handleOpenFolder}>
 //                   Open Folder
@@ -664,6 +741,23 @@
 //           onClose={() => setPrintReceipt(null)}
 //         />
 //       )}
+
+//       {showCamera && (
+//         <CameraCaptureModal
+//           onClose={() => setShowCamera(false)}
+//           onCapture={handlePhotosCaptured}
+//           contextLabel={contextLabel}
+//         />
+//       )}
+
+//       {showFolder && (
+//         <ReceiptFolderModal
+//           onClose={() => setShowFolder(false)}
+//           jobNumbers={items}
+//           unitPhotoUrls={photos}
+//           title={`${contextLabel} — FILES`}
+//         />
+//       )}
 //     </>
 //   );
 // };
@@ -682,6 +776,9 @@ import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal"; // adjust pat
 
 const API = import.meta.env.VITE_API_URL;
 
+// Small red asterisk shown next to every required field's label.
+const Required = () => <span className="dr-required-mark">*</span>;
+
 const EMPTY_FORM = {
   deliveryReceiptId: "",
   date: "",
@@ -694,6 +791,20 @@ const EMPTY_FORM = {
   preparedBy: "",
   remarks: "",
 };
+
+// Fields that must be non-empty before Save is allowed to run. Mirrors
+// the pattern used in AddSiteCalibrationModal — each entry maps a form
+// field key to the human-readable label used for the inline error text.
+const REQUIRED_FIELDS = [
+  { key: "customerId", label: "Customer ID" },
+  { key: "companyName", label: "Company Name" },
+  { key: "address", label: "Address" },
+  { key: "contactInfo", label: "Contact Info" },
+  { key: "date", label: "Date" },
+  { key: "reference", label: "Reference" },
+  { key: "contactName", label: "Contact Name" },
+  { key: "remarks", label: "Remarks" },
+];
 
 // Step 2 modal (shown after "Release Instrument" is chosen in
 // DeliveryTypeModal). Customer lookup picks the customer; the items
@@ -749,6 +860,14 @@ const EMPTY_FORM = {
 // elsewhere in this modal (info-style, single OK button) right after
 // a successful save, so a partial photo failure isn't silently
 // indistinguishable from a clean save.
+//
+// FORM LAYOUT: the fields render as one 3-column grid (see
+// .dr-form-grid in DeliveryReceiptModals.css) so every label/input
+// pair lines up cleanly instead of the old two-column split. Row 1 is
+// deliberately Customer ID / Delivery Receipt ID / Date - the three
+// identifying fields a user checks first. Company Name, Address, and
+// Contact Info are single-line <input>s (previously <textarea>s) since
+// none of that data ever needs multiple lines to read comfortably.
 const DeliveryReceiptUnitModal = ({
   isOpen,
   onClose,
@@ -768,6 +887,10 @@ const DeliveryReceiptUnitModal = ({
   const [showCamera, setShowCamera] = useState(false);
   const [showFolder, setShowFolder] = useState(false);
   const [photos, setPhotos] = useState([]);
+
+  // Validation — maps field key -> true when that field is currently
+  // missing. Populated by validateForm() right before Save.
+  const [errors, setErrors] = useState({});
 
   const readOnly = !!viewRecord;
 
@@ -815,6 +938,11 @@ const DeliveryReceiptUnitModal = ({
 
   useEffect(() => {
     if (!isOpen) return;
+
+    // Clear any validation errors left over from a previous open — a
+    // failed Save attempt shouldn't keep showing red borders/asterisks
+    // the next time this modal is opened for a new receipt.
+    setErrors({});
 
     if (viewRecord) {
       // Details mode: show exactly what's on the saved record, don't
@@ -964,6 +1092,27 @@ const DeliveryReceiptUnitModal = ({
     });
   };
 
+  // ===== Validation =====
+
+  // Checks all required fields (see REQUIRED_FIELDS). Returns true when
+  // the form is valid; otherwise populates `errors` so each field shows
+  // its own inline message, and returns false.
+  const validateForm = () => {
+    const newErrors = {};
+    let hasMissing = false;
+
+    REQUIRED_FIELDS.forEach(({ key }) => {
+      const value = form[key];
+      if (!value || !String(value).trim()) {
+        newErrors[key] = true;
+        hasMissing = true;
+      }
+    });
+
+    setErrors(newErrors);
+    return !hasMissing;
+  };
+
   const performSave = async () => {
     hideDialog();
     setSaving(true);
@@ -1030,6 +1179,7 @@ const DeliveryReceiptUnitModal = ({
 
   const handleSaveClick = () => {
     if (readOnly) return;
+    if (!validateForm()) return;
     showConfirm(
       "Confirm Save",
       `Are you sure you want to save Delivery Receipt ${form.deliveryReceiptId}? This will mark ${items.length} job(s) as unit-delivered.`,
@@ -1045,6 +1195,7 @@ const DeliveryReceiptUnitModal = ({
     setShowReleaseUnit(false);
     setSaveError("");
     setPhotos([]);
+    setErrors({});
     onClose();
   };
 
@@ -1083,9 +1234,16 @@ const DeliveryReceiptUnitModal = ({
 
               <div className="dr-modal-body">
                 <div className="dr-form-grid">
-                  <div className="dr-form-col">
-                    <div className="dr-field dr-field--inline">
-                      <label>Customer ID</label>
+                  {/* Row 1 — identifying fields, always first */}
+                  <div
+                    className={`dr-field${
+                      errors.customerId ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Customer ID <Required />
+                    </label>
+                    <div className="dr-input-with-btn">
                       <input
                         type="text"
                         value={form.customerId}
@@ -1103,88 +1261,165 @@ const DeliveryReceiptUnitModal = ({
                         </button>
                       )}
                     </div>
-
-                    <div className="dr-field">
-                      <label>Company Name</label>
-                      <textarea
-                        rows={4}
-                        value={form.companyName}
-                        onChange={handleChange("companyName")}
-                        disabled={readOnly}
-                      />
-                    </div>
-
-                    <div className="dr-field">
-                      <label>Contact Info</label>
-                      <textarea
-                        rows={4}
-                        value={form.contactInfo}
-                        onChange={handleChange("contactInfo")}
-                        disabled={readOnly}
-                      />
-                    </div>
+                    {errors.customerId && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
                   </div>
 
-                  <div className="dr-form-col">
-                    <div className="dr-field dr-field--inline dr-field--right">
-                      <label>Delivery Receipt ID</label>
-                      <input
-                        type="text"
-                        value={form.deliveryReceiptId}
-                        readOnly
-                      />
-                    </div>
+                  <div className="dr-field">
+                    <label>Delivery Receipt ID</label>
+                    <input
+                      type="text"
+                      className="dr-input-readonly"
+                      value={form.deliveryReceiptId}
+                      readOnly
+                    />
+                  </div>
 
-                    <div className="dr-field dr-field--inline dr-field--right">
-                      <label>Date</label>
-                      <input
-                        type="date"
-                        value={form.date}
-                        onChange={handleChange("date")}
-                        disabled={readOnly}
-                      />
-                    </div>
+                  <div
+                    className={`dr-field${
+                      errors.date ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Date <Required />
+                    </label>
+                    <input
+                      type="date"
+                      value={form.date}
+                      onChange={handleChange("date")}
+                      disabled={readOnly}
+                    />
+                    {errors.date && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="dr-field">
-                      <label>Address</label>
-                      <textarea
-                        rows={4}
-                        value={form.address}
-                        onChange={handleChange("address")}
-                        disabled={readOnly}
-                      />
-                    </div>
+                  {/* Row 2 */}
+                  <div
+                    className={`dr-field${
+                      errors.companyName ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Company Name <Required />
+                    </label>
+                    <input
+                      type="text"
+                      value={form.companyName}
+                      onChange={handleChange("companyName")}
+                      disabled={readOnly}
+                    />
+                    {errors.companyName && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="dr-field dr-field--inline dr-field--right">
-                      <label>Reference</label>
-                      <input
-                        type="text"
-                        value={form.reference}
-                        onChange={handleChange("reference")}
-                        disabled={readOnly}
-                      />
-                    </div>
+                  <div
+                    className={`dr-field${
+                      errors.address ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Address <Required />
+                    </label>
+                    <input
+                      type="text"
+                      value={form.address}
+                      onChange={handleChange("address")}
+                      disabled={readOnly}
+                    />
+                    {errors.address && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="dr-field dr-field--inline dr-field--right">
-                      <label>Contact Name</label>
-                      <select
-                        value={form.contactName}
-                        onChange={handleChange("contactName")}
-                        disabled={readOnly}
-                      >
-                        <option value="">---</option>
-                        {contactNameOptions.map((c) => (
-                          <option key={c._id || c} value={c.name || c}>
-                            {c.name || c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div
+                    className={`dr-field${
+                      errors.contactInfo ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Contact Info <Required />
+                    </label>
+                    <input
+                      type="text"
+                      value={form.contactInfo}
+                      onChange={handleChange("contactInfo")}
+                      disabled={readOnly}
+                    />
+                    {errors.contactInfo && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
+                  </div>
 
-                    <div className="dr-field dr-field--inline dr-field--right">
-                      <label>Prepared By</label>
-                      <input type="text" value={form.preparedBy} disabled />
-                    </div>
+                  {/* Row 3 */}
+                  <div
+                    className={`dr-field${
+                      errors.reference ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Reference <Required />
+                    </label>
+                    <input
+                      type="text"
+                      value={form.reference}
+                      onChange={handleChange("reference")}
+                      disabled={readOnly}
+                    />
+                    {errors.reference && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
+                  </div>
+
+                  <div
+                    className={`dr-field${
+                      errors.contactName ? " dr-field-error" : ""
+                    }`}
+                  >
+                    <label>
+                      Contact Name <Required />
+                    </label>
+                    <select
+                      value={form.contactName}
+                      onChange={handleChange("contactName")}
+                      disabled={readOnly}
+                    >
+                      <option value="">---</option>
+                      {contactNameOptions.map((c) => (
+                        <option key={c._id || c} value={c.name || c}>
+                          {c.name || c}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.contactName && (
+                      <span className="dr-field-error-text">
+                        This field is required.
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="dr-field">
+                    <label>Prepared By</label>
+                    <input
+                      type="text"
+                      className="dr-input-readonly"
+                      value={form.preparedBy}
+                      disabled
+                    />
                   </div>
                 </div>
 
@@ -1317,14 +1552,25 @@ const DeliveryReceiptUnitModal = ({
                   </table>
                 </div>
 
-                <div className="dr-field">
-                  <label>Remarks</label>
+                <div
+                  className={`dr-field${
+                    errors.remarks ? " dr-field-error" : ""
+                  }`}
+                >
+                  <label>
+                    Remarks <Required />
+                  </label>
                   <textarea
                     rows={3}
                     value={form.remarks}
                     onChange={handleChange("remarks")}
                     disabled={readOnly}
                   />
+                  {errors.remarks && (
+                    <span className="dr-field-error-text">
+                      This field is required.
+                    </span>
+                  )}
                 </div>
 
                 {saveError && (

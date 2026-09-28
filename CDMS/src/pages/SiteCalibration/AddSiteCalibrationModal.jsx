@@ -4,19 +4,49 @@
 // import JobNumberModal from "../jobreceipt/JobNumberModal";
 // import InstrumentListModal from "../jobreceipt/InstrumentListModal";
 // import RecallJobModal from "../jobreceipt/RecallJobModal";
-// import PrintReceiptModalOnSite from "./PrintTermsConditionOnsite"; // adjust path if this actually lives elsewhere (e.g. ../jobreceipt/PrintReceiptModalOnSite)
-// import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal"; // adjust path if this actually lives elsewhere
-// import AddContactSubModal from "../jobreceipt/AddContactSubModal"; // adjust path if this actually lives elsewhere
+// import PrintReceiptModalOnSite from "./PrintTermsConditionOnsite"; //
+// import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal"; //
+// import AddContactSubModal from "../jobreceipt/AddContactSubModal"; //
+// import ConfirmDialog from "../../components/ConfirmDialog"; //
 // import { emptyJobForm } from "../jobreceipt/index";
-// import "../jobreceipt.css"; // JobNumberModal's styles (jr-*, jn-*)
+// import "../jobreceipt/jobreceipt.css"; // JobNumberModal's styles (jr-*, jn-*)
 // import "./AddSiteCalibrationModal.css";
 
 // const API = import.meta.env.VITE_API_URL;
+
+// // Fields that must be non-empty before Save/Update is allowed to run.
+// // Each entry maps a form field key to the human-readable label used only
+// // for internal bookkeeping now (no alert summary is shown anymore — the
+// // inline scm-error-text under each field carries that signal instead).
+// const REQUIRED_FIELDS = [
+//   { key: "customerId", label: "Customer ID" },
+//   { key: "companyName", label: "Company Name" },
+//   { key: "address", label: "Address" },
+//   { key: "contactInfo", label: "Contact Info" },
+//   { key: "vat", label: "VAT" },
+//   { key: "contactName", label: "Contact Name" },
+//   { key: "preparedBy", label: "Prepared By" },
+//   { key: "date", label: "Date" },
+//   { key: "reference", label: "Reference" },
+//   { key: "remarks", label: "Remarks" },
+// ];
 
 // const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
 //   const [loading, setLoading] = useState(false);
 //   const [saving, setSaving] = useState(false);
 //   const [isEditMode, setIsEditMode] = useState(false);
+
+//   // Tracks whether this Site Calibration record has actually been
+//   // persisted to the backend yet (either loaded from an existing record,
+//   // or just saved). Gates the standalone "Print" button.
+//   const [isSaved, setIsSaved] = useState(false);
+
+//   // Holds the server's response from the most recent save, so we can pass
+//   // it to onSaved AFTER the user is done with the print modal, instead of
+//   // immediately. Calling onSaved immediately caused the parent's onSaved
+//   // handler (which typically closes/unmounts this modal) to wipe out the
+//   // print modal before it ever rendered.
+//   const [savedRecord, setSavedRecord] = useState(null);
 
 //   // Header identifiers
 //   const [scId, setScId] = useState("");
@@ -49,10 +79,11 @@
 //   // Remarks
 //   const [remarks, setRemarks] = useState("---");
 
-//   // Technicians — populated from registered accounts with a technician role
+//   // Technicians — populated from registered accounts with a technician role.
+//   // Rendered as a plain <select> dropdown (same pattern as Contact Name) —
+//   // no checkbox list, no custom trigger/panel.
 //   const [technicianOptions, setTechnicianOptions] = useState([]);
 //   const [selectedTechnicianIds, setSelectedTechnicianIds] = useState([]);
-//   const [showTechnicianDropdown, setShowTechnicianDropdown] = useState(false);
 
 //   // Picker modal stubs
 //   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
@@ -64,6 +95,18 @@
 //   // Open Folder — shows Cloudinary files for every job on this record,
 //   // via the shared ReceiptFolderModal component.
 //   const [showSiteFolder, setShowSiteFolder] = useState(false);
+
+//   // Confirmation dialogs
+//   const [showConfirmSave, setShowConfirmSave] = useState(false);
+//   const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+//   // Validation — maps field key -> true when that field is currently
+//   // missing/invalid. Populated by validateForm() right before Save.
+//   const [errors, setErrors] = useState({});
+
+//   // Generic banner for load/save failures — replaces the old alert()
+//   // calls. Shown at the top of the modal body when set.
+//   const [formError, setFormError] = useState("");
 
 //   useEffect(() => {
 //     if (isOpen) {
@@ -120,12 +163,6 @@
 //     }
 //   };
 
-//   const toggleTechnician = (id) => {
-//     setSelectedTechnicianIds((prev) =>
-//       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id],
-//     );
-//   };
-
 //   const technicians = selectedTechnicianIds
 //     .map((id) => {
 //       const acc = technicianOptions.find((t) => (t._id || t.username) === id);
@@ -145,6 +182,10 @@
 
 //   const resetForm = () => {
 //     setIsEditMode(false);
+//     setIsSaved(false);
+//     setSavedRecord(null);
+//     setErrors({});
+//     setFormError("");
 //     setCustomerId("");
 //     setVat("0 VAT");
 //     setCompanyName("");
@@ -183,7 +224,14 @@
 //   const loadExistingRecord = async (id) => {
 //     setLoading(true);
 //     setIsEditMode(true);
+//     setIsSaved(true);
 //     setEditingJobIndex(null);
+//     // Clear any validation errors/banner left over from a previous record
+//     // opened earlier in this modal's lifetime — otherwise a failed Save
+//     // attempt on one record would keep showing red borders/asterisks on
+//     // the next record you open, even though it hasn't been validated yet.
+//     setErrors({});
+//     setFormError("");
 //     try {
 //       const res = await fetch(
 //         `${API}/api/sitecalibrations/${encodeURIComponent(id)}`,
@@ -219,7 +267,7 @@
 //       setJobRows(relatedJobs);
 //     } catch (err) {
 //       console.error("Failed to load site calibration:", err);
-//       alert("Failed to load Site Calibration record.");
+//       setFormError("Failed to load Site Calibration record.");
 //     } finally {
 //       setLoading(false);
 //     }
@@ -262,10 +310,12 @@
 //   // Opens the Add Contact sub-modal. Requires a Customer to already be
 //   // selected, since AddContactSubModal saves the new contact against
 //   // customerID (used both to reserve the Contact ID and to POST
-//   // /api/contacts).
+//   // /api/contacts). Instead of alert()-ing, this now surfaces the same
+//   // inline error state used by the required-field validation, so the
+//   // Customer ID field highlights red with an explanatory message.
 //   const handleOpenContactPicker = () => {
 //     if (!customerId) {
-//       alert("Please select a Customer first.");
+//       setErrors((prev) => ({ ...prev, customerId: true }));
 //       return;
 //     }
 //     setShowContactPicker(true);
@@ -401,10 +451,65 @@
 //     setShowJobModal(false);
 //   };
 
+//   // ===== Validation =====
+
+//   // Checks all required fields (see REQUIRED_FIELDS) plus the two
+//   // structural requirements — at least one technician and at least one
+//   // job row — since those aren't plain text inputs. Returns true when the
+//   // form is valid; otherwise populates `errors` so each field shows its
+//   // own inline message, and returns false. No alert() — the inline state
+//   // is the only feedback now.
+//   const validateForm = () => {
+//     const fieldValues = {
+//       customerId,
+//       companyName,
+//       address,
+//       contactInfo,
+//       vat,
+//       contactName,
+//       preparedBy,
+//       date,
+//       reference,
+//       remarks,
+//     };
+
+//     const newErrors = {};
+//     let hasMissing = false;
+
+//     REQUIRED_FIELDS.forEach(({ key }) => {
+//       const value = fieldValues[key];
+//       if (!value || !String(value).trim()) {
+//         newErrors[key] = true;
+//         hasMissing = true;
+//       }
+//     });
+
+//     if (selectedTechnicianIds.length === 0) {
+//       newErrors.technicians = true;
+//       hasMissing = true;
+//     }
+
+//     if (jobRows.length === 0) {
+//       newErrors.jobRows = true;
+//       hasMissing = true;
+//     }
+
+//     setErrors(newErrors);
+//     return !hasMissing;
+//   };
+
+//   // Runs validation, and only opens the confirm dialog if everything
+//   // required is filled in.
+//   const handleSaveClick = () => {
+//     if (!validateForm()) return;
+//     setShowConfirmSave(true);
+//   };
+
 //   // ===== Save the whole Site Calibration =====
 
 //   const handleUpdate = async () => {
 //     setSaving(true);
+//     setFormError("");
 //     try {
 //       const payload = {
 //         scId,
@@ -437,6 +542,7 @@
 //       if (!res.ok) throw new Error("Failed to save site calibration");
 //       const saved = await res.json();
 //       const savedScId = saved.scId || scId;
+//       setIsSaved(true);
 
 //       for (const job of jobRows) {
 //         const isExistingJob = Boolean(job._id) && !job._isNew;
@@ -459,6 +565,15 @@
 //             date,
 //             dateRec: date,
 //             companyName,
+//             // Site Calibration jobs never go through Job Receipt, so they
+//             // have no jobReceiptID and therefore no linked jobreceipts doc
+//             // for downstream screens (Delivery Receipt List, Release Unit,
+//             // Release Certificate) to pull companyAddress/contactInfo/
+//             // contactName/customerId from. Stamp all of it directly on the
+//             // job so those screens work without needing a receipt lookup.
+//             companyAddress: address,
+//             contactInfo,
+//             contactName,
 //             customerId,
 //             // Site Calibration jobs skip Incoming Calibration and
 //             // On-Going Calibration and go straight to For Typing.
@@ -487,12 +602,15 @@
 //         }
 //       }
 
-//       onSaved?.(saved);
-//       onClose();
+//       // Don't call onSaved(...) here — see handleClosePrintModal below.
+//       // The parent's onSaved handler typically closes/unmounts this
+//       // modal, which would wipe out the print modal before it renders.
+//       setSavedRecord(saved);
+//       setShowPrintModal(true);
 //       setIsEditMode(false);
 //     } catch (err) {
 //       console.error("Failed to save site calibration:", err);
-//       alert("Failed to save Site Calibration record. Please try again.");
+//       setFormError("Failed to save Site Calibration record. Please try again.");
 //     } finally {
 //       setSaving(false);
 //     }
@@ -513,6 +631,23 @@
 //   // directly via its jobNumbers prop).
 //   const handleOpenSiteFolder = () => setShowSiteFolder(true);
 
+//   // Closing the print modal is the point at which we finally tell the
+//   // parent the save completed. If it was opened from a save, savedRecord
+//   // is set and we notify the parent + close the whole thing. If it was
+//   // opened via the standalone "Print" toolbar button (no new save
+//   // happened), savedRecord is null, so we just close the preview.
+//   const handleClosePrintModal = () => {
+//     setShowPrintModal(false);
+//     if (savedRecord) {
+//       onSaved?.(savedRecord);
+//       setSavedRecord(null);
+//       onClose();
+//     }
+//   };
+
+//   // Header's close (X) button now asks for confirmation first.
+//   const handleRequestClose = () => setShowConfirmClose(true);
+
 //   if (!isOpen) return null;
 
 //   return (
@@ -525,15 +660,24 @@
 //               : "SITE CALIBRATION DETAILS"
 //           }
 //           subtitleBottom="SCIENTIFIC STANDARDS SERVICES"
-//           onClose={onClose}
+//           onClose={handleRequestClose}
 //         />
 
 //         <div className="scm-body">
+//           {formError && (
+//             <div className="scm-form-error-banner">{formError}</div>
+//           )}
+
 //           <div className="scm-top-grid">
 //             {/* Left column */}
 //             <div className="scm-col">
-//               <div className="scm-field">
-//                 <label className="scm-label">Customer ID</label>
+//               <div
+//                 className={`scm-field${errors.customerId ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Customer ID{" "}
+//                   {errors.customerId && <span className="scm-required">*</span>}
+//                 </label>
 //                 <div className="scm-inline-group">
 //                   <input
 //                     type="text"
@@ -549,46 +693,101 @@
 //                     🔍
 //                   </button>
 //                 </div>
+//                 {errors.customerId && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Company Name</label>
+//               <div
+//                 className={`scm-field${errors.companyName ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Company Name{" "}
+//                   {errors.companyName && (
+//                     <span className="scm-required">*</span>
+//                   )}
+//                 </label>
 //                 <textarea
 //                   rows={2}
 //                   value={companyName}
 //                   onChange={(e) => setCompanyName(e.target.value)}
 //                 />
+//                 {errors.companyName && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Address</label>
+//               <div
+//                 className={`scm-field${errors.address ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Address{" "}
+//                   {errors.address && <span className="scm-required">*</span>}
+//                 </label>
 //                 <textarea
 //                   rows={2}
 //                   value={address}
 //                   onChange={(e) => setAddress(e.target.value)}
 //                 />
+//                 {errors.address && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Contact Info</label>
+//               <div
+//                 className={`scm-field${errors.contactInfo ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Contact Info{" "}
+//                   {errors.contactInfo && (
+//                     <span className="scm-required">*</span>
+//                   )}
+//                 </label>
 //                 <textarea
 //                   rows={2}
 //                   value={contactInfo}
 //                   onChange={(e) => setContactInfo(e.target.value)}
 //                 />
+//                 {errors.contactInfo && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">VAT</label>
+//               <div
+//                 className={`scm-field${errors.vat ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   VAT {errors.vat && <span className="scm-required">*</span>}
+//                 </label>
 //                 <input
 //                   type="text"
 //                   value={vat}
 //                   onChange={(e) => setVat(e.target.value)}
 //                 />
+//                 {errors.vat && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Contact Name</label>
+//               <div
+//                 className={`scm-field${errors.contactName ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Contact Name{" "}
+//                   {errors.contactName && (
+//                     <span className="scm-required">*</span>
+//                   )}
+//                 </label>
 //                 <div className="scm-inline-group">
 //                   <select
 //                     value={contactName}
@@ -617,16 +816,32 @@
 //                     📋
 //                   </button>
 //                 </div>
+//                 {errors.contactName && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Prepared By</label>
+//               <div
+//                 className={`scm-field${errors.preparedBy ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Prepared By{" "}
+//                   {errors.preparedBy && <span className="scm-required">*</span>}
+//                 </label>
 //                 <input
 //                   type="text"
 //                   className="scm-readonly"
 //                   value={preparedBy || "Loading..."}
 //                   readOnly
 //                 />
+//                 {errors.preparedBy && (
+//                   <span className="scm-error-text">
+//                     Could not determine the logged-in user. Please contact
+//                     support.
+//                   </span>
+//                 )}
 //               </div>
 //             </div>
 
@@ -642,72 +857,99 @@
 //                     readOnly
 //                   />
 //                 </div>
-//                 <div className="scm-field">
-//                   <label className="scm-label">Date</label>
+//                 <div
+//                   className={`scm-field${errors.date ? " scm-field-error" : ""}`}
+//                 >
+//                   <label className="scm-label">
+//                     Date{" "}
+//                     {errors.date && <span className="scm-required">*</span>}
+//                   </label>
 //                   <input
 //                     type="date"
 //                     value={date}
 //                     onChange={(e) => setDate(e.target.value)}
 //                   />
+//                   {errors.date && (
+//                     <span className="scm-error-text">
+//                       This field is required.
+//                     </span>
+//                   )}
 //                 </div>
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Reference</label>
+//               <div
+//                 className={`scm-field${errors.reference ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Reference{" "}
+//                   {errors.reference && <span className="scm-required">*</span>}
+//                 </label>
 //                 <input
 //                   type="text"
 //                   value={reference}
 //                   onChange={(e) => setReference(e.target.value)}
 //                 />
+//                 {errors.reference && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field">
-//                 <label className="scm-label">Remarks</label>
+//               <div
+//                 className={`scm-field${errors.remarks ? " scm-field-error" : ""}`}
+//               >
+//                 <label className="scm-label">
+//                   Remarks{" "}
+//                   {errors.remarks && <span className="scm-required">*</span>}
+//                 </label>
 //                 <textarea
 //                   rows={2}
 //                   value={remarks}
 //                   onChange={(e) => setRemarks(e.target.value)}
 //                 />
+//                 {errors.remarks && (
+//                   <span className="scm-error-text">
+//                     This field is required.
+//                   </span>
+//                 )}
 //               </div>
 
-//               <div className="scm-field scm-technician-field">
+//               <div
+//                 className={`scm-field scm-technician-field${
+//                   errors.technicians ? " scm-field-error" : ""
+//                 }`}
+//               >
 //                 <label className="scm-label">Technicians</label>
-//                 <div className="scm-technician-picker">
-//                   <button
-//                     type="button"
-//                     className="scm-technician-trigger"
-//                     onClick={() => setShowTechnicianDropdown((v) => !v)}
-//                   >
-//                     {technicians || "Select technicians..."}
-//                     <span className="scm-technician-caret">▾</span>
-//                   </button>
-//                   {showTechnicianDropdown && (
-//                     <div className="scm-technician-dropdown">
-//                       {technicianOptions.length > 0 ? (
-//                         technicianOptions.map((tech) => {
-//                           const id = tech._id || tech.username;
-//                           return (
-//                             <label key={id} className="scm-technician-option">
-//                               <input
-//                                 type="checkbox"
-//                                 checked={selectedTechnicianIds.includes(id)}
-//                                 onChange={() => toggleTechnician(id)}
-//                               />
-//                               {tech.name || tech.username}{" "}
-//                               <span className="scm-technician-initials">
-//                                 ({getInitials(tech.name || tech.username)})
-//                               </span>
-//                             </label>
-//                           );
-//                         })
-//                       ) : (
-//                         <div className="scm-technician-empty">
-//                           No registered technicians found.
-//                         </div>
-//                       )}
-//                     </div>
-//                   )}
-//                 </div>
+//                 <select
+//                   className="scm-technician-select"
+//                   value={selectedTechnicianIds[0] || ""}
+//                   onChange={(e) =>
+//                     setSelectedTechnicianIds(
+//                       e.target.value ? [e.target.value] : [],
+//                     )
+//                   }
+//                 >
+//                   <option value="">
+//                     {technicianOptions.length > 0
+//                       ? "Select technician..."
+//                       : "No registered technicians found"}
+//                   </option>
+//                   {technicianOptions.map((tech) => {
+//                     const id = tech._id || tech.username;
+//                     return (
+//                       <option key={id} value={id}>
+//                         {tech.name || tech.username} (
+//                         {getInitials(tech.name || tech.username)})
+//                       </option>
+//                     );
+//                   })}
+//                 </select>
+//                 {errors.technicians && (
+//                   <span className="scm-error-text">
+//                     Select at least one technician.
+//                   </span>
+//                 )}
 //               </div>
 //             </div>
 //           </div>
@@ -741,20 +983,30 @@
 //               type="button"
 //               className="scm-ghost-btn"
 //               onClick={handlePrint}
+//               disabled={!isSaved}
+//               title={
+//                 !isSaved
+//                   ? "Save this Site Calibration first"
+//                   : "Print Conditions of Calibration"
+//               }
 //             >
 //               Print
 //             </button>
 //             <button
 //               type="button"
 //               className="scm-update-btn"
-//               onClick={handleUpdate}
+//               onClick={handleSaveClick}
 //               disabled={saving}
 //             >
 //               {saving ? "Saving..." : isEditMode ? "Update" : "Save"}
 //             </button>
 //           </div>
 
-//           <div className="scm-jobs-table-wrapper">
+//           <div
+//             className={`scm-jobs-table-wrapper${
+//               errors.jobRows ? " scm-field-error" : ""
+//             }`}
+//           >
 //             <table className="scm-jobs-table">
 //               <thead>
 //                 <tr>
@@ -797,6 +1049,11 @@
 //                 )}
 //               </tbody>
 //             </table>
+//             {errors.jobRows && (
+//               <span className="scm-error-text">
+//                 Add at least one job before saving.
+//               </span>
+//             )}
 //           </div>
 //         </div>
 //       </div>
@@ -874,7 +1131,7 @@
 //             remarks,
 //             jobNumbers: jobRows,
 //           }}
-//           onClose={() => setShowPrintModal(false)}
+//           onClose={handleClosePrintModal}
 //         />
 //       )}
 
@@ -883,6 +1140,41 @@
 //           onClose={() => setShowSiteFolder(false)}
 //           jobNumbers={jobRows}
 //           title="SITE CALIBRATION FOLDER"
+//         />
+//       )}
+
+//       {showConfirmSave && (
+//         <ConfirmDialog
+//           title={
+//             isEditMode ? "Update Site Calibration?" : "Save Site Calibration?"
+//           }
+//           message={
+//             isEditMode
+//               ? "This will update the Site Calibration record and all its job numbers."
+//               : "This will save the Site Calibration record and create its job numbers."
+//           }
+//           confirmLabel={isEditMode ? "Update" : "Save"}
+//           cancelLabel="Cancel"
+//           onConfirm={() => {
+//             setShowConfirmSave(false);
+//             handleUpdate();
+//           }}
+//           onCancel={() => setShowConfirmSave(false)}
+//         />
+//       )}
+
+//       {showConfirmClose && (
+//         <ConfirmDialog
+//           title="Close Site Calibration?"
+//           message="Any unsaved changes will be lost."
+//           type="danger"
+//           confirmLabel="Close"
+//           cancelLabel="Cancel"
+//           onConfirm={() => {
+//             setShowConfirmClose(false);
+//             onClose();
+//           }}
+//           onCancel={() => setShowConfirmClose(false)}
 //         />
 //       )}
 //     </div>
@@ -905,6 +1197,9 @@ import "../jobreceipt/jobreceipt.css"; // JobNumberModal's styles (jr-*, jn-*)
 import "./AddSiteCalibrationModal.css";
 
 const API = import.meta.env.VITE_API_URL;
+
+// Small red asterisk shown next to every required field's label.
+const Required = () => <span className="scm-required">*</span>;
 
 // Fields that must be non-empty before Save/Update is allowed to run.
 // Each entry maps a form field key to the human-readable label used only
@@ -1567,8 +1862,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.customerId ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Customer ID{" "}
-                  {errors.customerId && <span className="scm-required">*</span>}
+                  Customer ID <Required />
                 </label>
                 <div className="scm-inline-group">
                   <input
@@ -1596,10 +1890,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.companyName ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Company Name{" "}
-                  {errors.companyName && (
-                    <span className="scm-required">*</span>
-                  )}
+                  Company Name <Required />
                 </label>
                 <textarea
                   rows={2}
@@ -1617,8 +1908,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.address ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Address{" "}
-                  {errors.address && <span className="scm-required">*</span>}
+                  Address <Required />
                 </label>
                 <textarea
                   rows={2}
@@ -1636,10 +1926,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.contactInfo ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Contact Info{" "}
-                  {errors.contactInfo && (
-                    <span className="scm-required">*</span>
-                  )}
+                  Contact Info <Required />
                 </label>
                 <textarea
                   rows={2}
@@ -1657,7 +1944,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.vat ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  VAT {errors.vat && <span className="scm-required">*</span>}
+                  VAT <Required />
                 </label>
                 <input
                   type="text"
@@ -1675,10 +1962,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.contactName ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Contact Name{" "}
-                  {errors.contactName && (
-                    <span className="scm-required">*</span>
-                  )}
+                  Contact Name <Required />
                 </label>
                 <div className="scm-inline-group">
                   <select
@@ -1719,8 +2003,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.preparedBy ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Prepared By{" "}
-                  {errors.preparedBy && <span className="scm-required">*</span>}
+                  Prepared By <Required />
                 </label>
                 <input
                   type="text"
@@ -1753,8 +2036,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                   className={`scm-field${errors.date ? " scm-field-error" : ""}`}
                 >
                   <label className="scm-label">
-                    Date{" "}
-                    {errors.date && <span className="scm-required">*</span>}
+                    Date <Required />
                   </label>
                   <input
                     type="date"
@@ -1773,8 +2055,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.reference ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Reference{" "}
-                  {errors.reference && <span className="scm-required">*</span>}
+                  Reference <Required />
                 </label>
                 <input
                   type="text"
@@ -1792,8 +2073,7 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                 className={`scm-field${errors.remarks ? " scm-field-error" : ""}`}
               >
                 <label className="scm-label">
-                  Remarks{" "}
-                  {errors.remarks && <span className="scm-required">*</span>}
+                  Remarks <Required />
                 </label>
                 <textarea
                   rows={2}
@@ -1812,7 +2092,9 @@ const AddSiteCalibrationModal = ({ isOpen, onClose, onSaved, editingScId }) => {
                   errors.technicians ? " scm-field-error" : ""
                 }`}
               >
-                <label className="scm-label">Technicians</label>
+                <label className="scm-label">
+                  Technicians <Required />
+                </label>
                 <select
                   className="scm-technician-select"
                   value={selectedTechnicianIds[0] || ""}

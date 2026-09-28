@@ -46,18 +46,18 @@
   cursor: pointer;
 }
 
-/* Step 2: unit form */
+/* Step 2: form fields.
+   One 3-column grid for every label/input pair (instead of the old
+   two hand-split columns), so everything lines up on a shared
+   baseline. Row order in the JSX is what drives the layout: Customer
+   ID / Delivery Receipt ID / Date come first, then Company Name /
+   Address / Contact Info, then Reference / Contact Name / Prepared By. */
 .dr-form-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0 20px;
-  margin-bottom: 12px;
-}
-
-.dr-form-col {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 20px;
+  align-items: start;
+  margin-bottom: 14px;
 }
 
 .dr-field {
@@ -70,53 +70,99 @@
 .dr-field label {
   font-size: 12px;
   font-weight: 600;
-  margin-bottom: 2px;
+  color: #333;
+  margin-bottom: 4px;
 }
 
 .dr-field input,
 .dr-field select,
 .dr-field textarea {
-  border: 1px solid #aaa;
-  border-radius: 2px;
-  padding: 4px 6px;
+  border: 1px solid #b3b3b3;
+  border-radius: 4px;
+  padding: 7px 8px;
   font-size: 13px;
   background: #fff;
   resize: vertical;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.dr-field--inline {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+.dr-field input:focus,
+.dr-field select:focus,
+.dr-field textarea:focus {
+  outline: none;
+  border-color: #2f6fed;
+  box-shadow: 0 0 0 2px rgba(47, 111, 237, 0.15);
 }
 
-.dr-field--inline label {
-  margin-bottom: 0;
-  min-width: 110px;
+.dr-field input:disabled,
+.dr-field input[readonly],
+.dr-field select:disabled,
+.dr-field textarea:disabled {
+  background: #ececec;
+  color: #666;
+  cursor: not-allowed;
 }
 
-.dr-field--inline input,
-.dr-field--inline select {
+/* Delivery Receipt ID / Prepared By - always read-only, styled a
+   touch differently so it reads as "system-filled" rather than an
+   editable field that just happens to be locked right now. */
+.dr-input-readonly {
+  background: #eef0f2 !important;
+  color: #444 !important;
+  font-weight: 600;
+}
+
+/* Customer ID: text input + inline search button */
+.dr-input-with-btn {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.dr-input-with-btn input {
   flex: 1;
   min-width: 0;
 }
 
-.dr-field--right label {
-  min-width: 130px;
-  text-align: right;
+.dr-field textarea {
+  min-height: 44px;
+}
+
+.dr-required-mark {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.dr-field-error input,
+.dr-field-error textarea,
+.dr-field-error select {
+  border-color: #dc2626 !important;
+  background: #fff5f5;
+}
+
+.dr-field-error-text {
+  display: block;
+  color: #dc2626;
+  font-size: 11px;
+  margin-top: 4px;
 }
 
 .dr-icon-btn {
-  border: 1px solid #aaa;
+  border: 1px solid #b3b3b3;
   background: #e6e6e6;
-  border-radius: 2px;
-  padding: 2px 6px;
+  border-radius: 4px;
+  padding: 2px 10px;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.dr-icon-btn:hover {
+  background: #dcdcdc;
 }
 
 .dr-modal-actions {
@@ -350,8 +396,9 @@
   cursor: default;
 }
 
-/* MOBILE — stack the 2-column form and let the table scroll instead of
-   forcing the whole modal wider than the viewport */
+/* MOBILE — collapse the 3-column form to a single column and let the
+   table scroll instead of forcing the whole modal wider than the
+   viewport */
 @media (max-width: 700px) {
   .dr-modal--large,
   .dr-modal--small {
@@ -361,17 +408,6 @@
   .dr-form-grid {
     grid-template-columns: 1fr;
     gap: 0;
-  }
-
-  .dr-field--right label,
-  .dr-field--inline label {
-    min-width: 0;
-    text-align: left;
-  }
-
-  .dr-field--inline {
-    flex-direction: column;
-    align-items: stretch;
   }
 
   .dr-modal-footer {

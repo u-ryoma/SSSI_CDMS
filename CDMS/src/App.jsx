@@ -36,6 +36,7 @@ import SiteCalibration from "./pages/SiteCalibration/SiteCalibration";
 import StandardForCalib from "./pages/StandardForCalib";
 import StdForCertification from "./pages/StdForCertification";
 import StdForUpdate from "./pages/StdForUpdate";
+import Predictions from "./pages/Predictions/Predictions";
 
 function App() {
   return (
@@ -92,6 +93,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["owner", "admin"]}>
                 <Logs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="predictions"
+            element={
+              <ProtectedRoute allowedRoles={["owner", "admin"]}>
+                <Predictions />
               </ProtectedRoute>
             }
           />
