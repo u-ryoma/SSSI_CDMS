@@ -104,11 +104,30 @@ async function sendViaAppsScript({ to, subject, text, attachments = [] }) {
     }),
   });
 
-  const data = await res.json().catch(() => null);
-  if (!res.ok || !data || !data.ok) {
+  // Apps Script answers with HTML (still HTTP 200) when the deployment is
+  // misconfigured — e.g. access not set to "Anyone" (Google sign-in page)
+  // or doPost missing from the deployed version. Surface that clearly.
+  const raw = await res.text();
+  let data = null;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    /* not JSON */
+  }
+
+  if (!data) {
+    const snippet = raw
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
     throw new Error(
-      `Apps Script mail error: ${(data && data.error) || res.status}`,
+      `Apps Script returned a non-JSON response (HTTP ${res.status}): ${snippet || "empty"}. ` +
+        `Check the deployment: Execute as "Me", access "Anyone", and a NEW VERSION deployed with doPost.`,
     );
+  }
+  if (!res.ok || !data.ok) {
+    throw new Error(`Apps Script mail error: ${data.error || res.status}`);
   }
   return data;
 }
