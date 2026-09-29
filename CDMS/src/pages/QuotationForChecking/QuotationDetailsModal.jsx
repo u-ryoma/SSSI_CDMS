@@ -1,4 +1,3 @@
-
 // import React, { useState, useEffect, useRef } from "react";
 // import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
 // import QuotationFilesModal from "./QuotationFilesModal";
@@ -8,6 +7,16 @@
 
 // /**
 //  * QuotationDetailsModal — "Quotation Information Details" popup.
+//  *
+//  * READ-ONLY: every data field (Quotation ID, Date, Customer ID, Company
+//  * Name, Address, Contact Info, Contact Name, Prepared By, Reference,
+//  * Purchase Order, Remarks) is a plain display value straight off the
+//  * `quotation` prop — no local form state, no onChange handlers, no
+//  * validation. This modal's job is reviewing a quotation and moving it
+//  * through the pipeline (uploading the checked/signed file, approving,
+//  * marking sent), not editing its text fields. The Customer ID "search"
+//  * and Contact Name "add contact" icon buttons from the old editable
+//  * version are removed since there's nothing left for them to do here.
 //  *
 //  * IMPORTANT: quotationId values look like "QTN/0001/26" — they contain
 //  * slashes. Every URL built from quotation.quotationId MUST go through
@@ -19,7 +28,7 @@
 //  * Send, ...). Which stage it's opened from is passed in via the
 //  * `stage` prop, which drives STAGE_CONFIG below — that's what decides
 //  * which file field to display/download, what "Re-upload + Save" does,
-//  * and whether the "Mark as Sent" action shows up.
+//  * and whether the "Mark as Sent" / "Save" actions show up.
 //  *
 //  * Pipeline (per real backend routes):
 //  *   AddQuotation (create + attach template) -> status "For Checking"
@@ -36,7 +45,9 @@
 //  *     - Re-upload Template + Save: manual override path, uploads
 //  *       whatever file you pick via PUT /:id/upload-signed -> status
 //  *       "For Sending". Still supported for cases where the checker
-//  *       wants to hand-edit the file themselves.
+//  *       wants to hand-edit the file themselves. Since text fields are
+//  *       no longer editable here, Save now does ONLY this upload — it's
+//  *       disabled unless a file has actually been staged.
 //  *     - "Approve & Generate Signed Copy" (new): picks up whichever
 //  *       file currently represents the real content (signedFileUrl if
 //  *       it exists, otherwise staffFileUrl), runs a SECOND docxtemplater
@@ -47,13 +58,9 @@
 //  *       PUT /:id/apply-approval -> status "For Sending".
 //  *   Qtn For Send: "Mark as Sent" -> status "Sent"
 //  *     PUT /:id/mark-sent, body { sentBy } -> sets sentBy + sentAt
-//  *
-//  * NOTE: PUT /api/quotations/:id (plain field save) only returns
-//  * { success, quotationId } — NOT the updated document — per server
-//  * code. So after a plain save (no file involved) we merge `form` into
-//  * the existing `quotation` locally before calling onSaved. When a file
-//  * upload / apply-approval route fires instead, ITS response body is
-//  * the full updated document, so that's used directly.
+//  *     There's nothing to Save on this stage (no file re-upload, no
+//  *     editable fields), so the Save button doesn't render here at all
+//  *     (see STAGE_CONFIG.showSave).
 //  *
 //  * Approver selection (check stage only): the checker doesn't have to be
 //  * the one whose name/signature appears as "Approved by" on the final
@@ -92,6 +99,7 @@
 //     requiresRoleHeader: true,
 //     savingLabel: "Save & Move to Sending",
 //     showMarkSent: false,
+//     showSave: true,
 //   },
 //   send: {
 //     displayFileField: "signedFileUrl",
@@ -101,6 +109,9 @@
 //     requiresRoleHeader: false,
 //     savingLabel: "Save",
 //     showMarkSent: true,
+//     // No editable fields and no upload route on this stage — nothing
+//     // for a Save action to do, so it isn't shown at all.
+//     showSave: false,
 //   },
 // };
 
@@ -112,16 +123,6 @@
 // }) => {
 //   const config = STAGE_CONFIG[stage] || STAGE_CONFIG.check;
 
-//   const [form, setForm] = useState({
-//     customerId: "",
-//     companyName: "",
-//     address: "",
-//     contactInfo: "",
-//     contactName: "",
-//     reference: "",
-//     poNumber: "",
-//     remarks: "",
-//   });
 //   const [saving, setSaving] = useState(false);
 //   const [error, setError] = useState("");
 
@@ -168,17 +169,8 @@
 
 //   useEffect(() => {
 //     if (!quotation) return;
-//     setForm({
-//       customerId: quotation.customerId || "",
-//       companyName: quotation.companyName || "",
-//       address: quotation.address || "",
-//       contactInfo: quotation.contactInfo || "",
-//       contactName: quotation.contactName || "",
-//       reference: quotation.reference || "",
-//       poNumber: quotation.poNumber || "",
-//       remarks: quotation.remarks || "",
-//     });
 //     setPendingTemplateFile(null);
+//     setError("");
 //     // Pre-select if this record was already checked before (re-opening
 //     // a "For Sending" record), otherwise starts blank.
 //     setSelectedApproverUsername(quotation.checkedByUsername || "");
@@ -214,9 +206,6 @@
 //     },
 //   ].filter((f) => f.url);
 
-//   const handleChange = (field) => (e) =>
-//     setForm((prev) => ({ ...prev, [field]: e.target.value }));
-
 //   const handleReuploadTemplate = () => {
 //     templateInputRef.current?.click();
 //   };
@@ -229,64 +218,52 @@
 //     setError("");
 //   };
 
+//   // Save now does ONLY the file upload — there are no editable text
+//   // fields left to persist. Disabled entirely unless a file has been
+//   // staged via Re-upload Template (see the button's `disabled` prop).
 //   const handleSave = async () => {
-//     setSaving(true);
-//     setError("");
+//     if (!pendingTemplateFile || !config.uploadRoute) return;
 
-//     // On the check stage, an approver must be picked before the signed
-//     // file goes up — that's who the "Approved by" name/signature on the
-//     // final document will be.
-//     if (stage === "check" && pendingTemplateFile && !selectedApproverUsername) {
+//     if (stage === "check" && !selectedApproverUsername) {
 //       setError("Please select who is approving this quotation before saving.");
-//       setSaving(false);
 //       return;
 //     }
 
+//     setSaving(true);
+//     setError("");
 //     try {
-//       const res = await fetch(`${API}/api/quotations/${idPath}`, {
-//         method: "PUT",
-//         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(form),
-//       });
-//       if (!res.ok) throw new Error("Failed to save quotation");
-//       let updated = { ...quotation, ...form };
+//       const formData = new FormData();
+//       formData.append(config.uploadField, pendingTemplateFile);
 
-//       if (pendingTemplateFile && config.uploadRoute) {
-//         const formData = new FormData();
-//         formData.append(config.uploadField, pendingTemplateFile);
-
-//         if (selectedApprover) {
-//           formData.append("approverUsername", selectedApprover.username);
-//           formData.append(
-//             "approverName",
-//             selectedApprover.name || selectedApprover.username,
-//           );
-//         }
-
-//         const headers = {};
-//         if (config.requiresRoleHeader) {
-//           headers["x-user-role"] = sessionStorage.getItem("userRole") || "";
-//           headers["x-user-name"] = sessionStorage.getItem("username") || "";
-//         }
-
-//         const uploadRes = await fetch(
-//           `${API}/api/quotations/${idPath}/${config.uploadRoute}`,
-//           { method: "PUT", headers, body: formData },
+//       if (selectedApprover) {
+//         formData.append("approverUsername", selectedApprover.username);
+//         formData.append(
+//           "approverName",
+//           selectedApprover.name || selectedApprover.username,
 //         );
-//         if (!uploadRes.ok) {
-//           if (uploadRes.status === 403) {
-//             throw new Error("Checker role required to upload the signed file.");
-//           }
-//           throw new Error("Failed to upload file");
-//         }
-//         const uploadResult = await uploadRes.json();
-//         if (!uploadResult.success) throw new Error("Failed to upload file");
-
-//         updated = uploadResult.quotation;
-//         setPendingTemplateFile(null);
 //       }
 
-//       onSaved?.(updated);
+//       const headers = {};
+//       if (config.requiresRoleHeader) {
+//         headers["x-user-role"] = sessionStorage.getItem("userRole") || "";
+//         headers["x-user-name"] = sessionStorage.getItem("username") || "";
+//       }
+
+//       const uploadRes = await fetch(
+//         `${API}/api/quotations/${idPath}/${config.uploadRoute}`,
+//         { method: "PUT", headers, body: formData },
+//       );
+//       if (!uploadRes.ok) {
+//         if (uploadRes.status === 403) {
+//           throw new Error("Checker role required to upload the signed file.");
+//         }
+//         throw new Error("Failed to upload file");
+//       }
+//       const uploadResult = await uploadRes.json();
+//       if (!uploadResult.success) throw new Error("Failed to upload file");
+
+//       setPendingTemplateFile(null);
+//       onSaved?.(uploadResult.quotation);
 //       onClose();
 //     } catch (err) {
 //       console.error("Failed to save quotation:", err);
@@ -459,20 +436,7 @@
 //             </div>
 //             <div className="qtn-field">
 //               <label>Customer ID</label>
-//               <div className="qtn-field-with-icon">
-//                 <input
-//                   type="text"
-//                   value={form.customerId}
-//                   onChange={handleChange("customerId")}
-//                 />
-//                 <button
-//                   type="button"
-//                   className="qtn-icon-btn"
-//                   title="Search customer"
-//                 >
-//                   🔍
-//                 </button>
-//               </div>
+//               <input type="text" value={quotation.customerId || ""} readOnly />
 //             </div>
 //           </div>
 
@@ -482,45 +446,29 @@
 //                 <label>Company Name</label>
 //                 <input
 //                   type="text"
-//                   value={form.companyName}
-//                   onChange={handleChange("companyName")}
+//                   value={quotation.companyName || ""}
+//                   readOnly
 //                 />
 //               </div>
 //               <div className="qtn-field">
 //                 <label>Address</label>
-//                 <textarea
-//                   value={form.address}
-//                   onChange={handleChange("address")}
-//                 />
+//                 <input type="text" value={quotation.address || ""} readOnly />
 //               </div>
 //               <div className="qtn-field">
 //                 <label>Contact Info</label>
-//                 <textarea
-//                   value={form.contactInfo}
-//                   onChange={handleChange("contactInfo")}
+//                 <input
+//                   type="text"
+//                   value={quotation.contactInfo || ""}
+//                   readOnly
 //                 />
 //               </div>
 //               <div className="qtn-field">
 //                 <label>Contact Name</label>
-//                 <div className="qtn-field-with-icon">
-//                   <select
-//                     value={form.contactName}
-//                     onChange={handleChange("contactName")}
-//                   >
-//                     {form.contactName && (
-//                       <option value={form.contactName}>
-//                         {form.contactName}
-//                       </option>
-//                     )}
-//                   </select>
-//                   <button
-//                     type="button"
-//                     className="qtn-icon-btn"
-//                     title="Add contact"
-//                   >
-//                     +
-//                   </button>
-//                 </div>
+//                 <input
+//                   type="text"
+//                   value={quotation.contactName || ""}
+//                   readOnly
+//                 />
 //               </div>
 //               <div className="qtn-field">
 //                 <label>Prepared By</label>
@@ -563,24 +511,24 @@
 //                 <label>Reference</label>
 //                 <input
 //                   type="text"
-//                   value={form.reference}
-//                   onChange={handleChange("reference")}
+//                   value={quotation.reference || ""}
+//                   readOnly
 //                 />
 //               </div>
 //               <div className="qtn-field">
 //                 <label>Purchase Order</label>
 //                 <input
 //                   type="text"
-//                   value={form.poNumber}
-//                   onChange={handleChange("poNumber")}
+//                   value={quotation.poNumber || ""}
+//                   readOnly
 //                 />
 //               </div>
 //               <div className="qtn-field">
 //                 <label>Remarks</label>
 //                 <textarea
 //                   className="qtn-remarks"
-//                   value={form.remarks}
-//                   onChange={handleChange("remarks")}
+//                   value={quotation.remarks || ""}
+//                   readOnly
 //                 />
 //               </div>
 //             </div>
@@ -600,22 +548,24 @@
 //             the same gray action-bar pattern as AddQuotationModal */}
 //         <div className="qtn-modal-footer qtn-toolbar">
 //           <div className="qtn-toolbar-left">
-//             <button
-//               className="qtn-btn qtn-btn-primary"
-//               onClick={handleSave}
-//               disabled={
-//                 saving ||
-//                 (stage === "check" &&
-//                   pendingTemplateFile &&
-//                   !selectedApproverUsername)
-//               }
-//             >
-//               {saving
-//                 ? "Saving..."
-//                 : pendingTemplateFile
-//                   ? config.savingLabel
-//                   : "Save"}
-//             </button>
+//             {config.showSave && (
+//               <button
+//                 className="qtn-btn qtn-btn-primary"
+//                 onClick={handleSave}
+//                 disabled={
+//                   saving ||
+//                   !pendingTemplateFile ||
+//                   (stage === "check" && !selectedApproverUsername)
+//                 }
+//                 title={
+//                   !pendingTemplateFile
+//                     ? "Re-upload a file first — there's nothing else to save"
+//                     : undefined
+//                 }
+//               >
+//                 {saving ? "Saving..." : config.savingLabel}
+//               </button>
+//             )}
 
 //             {stage === "check" && (
 //               <button
@@ -704,6 +654,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
 import QuotationFilesModal from "./QuotationFilesModal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 import "./QuotationDetailsModal.css";
 
 const API = import.meta.env.VITE_API_URL;
@@ -717,9 +668,7 @@ const API = import.meta.env.VITE_API_URL;
  * `quotation` prop — no local form state, no onChange handlers, no
  * validation. This modal's job is reviewing a quotation and moving it
  * through the pipeline (uploading the checked/signed file, approving,
- * marking sent), not editing its text fields. The Customer ID "search"
- * and Contact Name "add contact" icon buttons from the old editable
- * version are removed since there's nothing left for them to do here.
+ * sending), not editing its text fields.
  *
  * IMPORTANT: quotationId values look like "QTN/0001/26" — they contain
  * slashes. Every URL built from quotation.quotationId MUST go through
@@ -731,66 +680,40 @@ const API = import.meta.env.VITE_API_URL;
  * Send, ...). Which stage it's opened from is passed in via the
  * `stage` prop, which drives STAGE_CONFIG below — that's what decides
  * which file field to display/download, what "Re-upload + Save" does,
- * and whether the "Mark as Sent" / "Save" actions show up.
+ * and whether the "Send" / "Mark as Sent" / "Save" actions show up.
  *
  * Pipeline (per real backend routes):
  *   AddQuotation (create + attach template) -> status "For Checking"
  *     staffFileUrl/staffFileName set by PUT /:id/upload-template.
- *     This is a ONE-TIME docxtemplater render — the "Approved by" tags
- *     in the master template use [[ ]] delimiters specifically so this
- *     first render (which uses default { } delimiters) does NOT touch
- *     them, leaving them alive for a later second pass.
  *   Qtn For Check:
- *     - Download Template here fetches the REAL uploaded file as-is
- *       (staffFileUrl / signedFileUrl) — never re-rendered — so
- *       whatever the staff actually typed into the table/fields is
- *       what you see. No signature yet unless already approved.
- *     - Re-upload Template + Save: manual override path, uploads
- *       whatever file you pick via PUT /:id/upload-signed -> status
- *       "For Sending". Still supported for cases where the checker
- *       wants to hand-edit the file themselves. Since text fields are
- *       no longer editable here, Save now does ONLY this upload — it's
- *       disabled unless a file has actually been staged.
- *     - "Approve & Generate Signed Copy" (new): picks up whichever
- *       file currently represents the real content (signedFileUrl if
- *       it exists, otherwise staffFileUrl), runs a SECOND docxtemplater
- *       pass using [[ ]] delimiters against just the approvedBy /
- *       adminSignature tags, and re-uploads the result — so the real
- *       content the staff typed stays completely untouched while the
- *       approver's name + signature get inserted automatically.
- *       PUT /:id/apply-approval -> status "For Sending".
- *   Qtn For Send: "Mark as Sent" -> status "Sent"
- *     PUT /:id/mark-sent, body { sentBy } -> sets sentBy + sentAt
- *     There's nothing to Save on this stage (no file re-upload, no
- *     editable fields), so the Save button doesn't render here at all
- *     (see STAGE_CONFIG.showSave).
+ *     - Download Template fetches the REAL uploaded file as-is.
+ *     - "Approve & Generate Signed Copy": second docxtemplater pass
+ *       ([[ ]] delimiters) inserting the approver's name + signature.
+ *       PUT /:id/apply-approval. The signed copy is only STORED — the
+ *       status stays "For Checking" and the modal stays open (the copy
+ *       is also downloaded so it can be reviewed).
+ *     - "Save & Move to Sending": the step that actually advances the
+ *       quotation to "For Sending". If a file was staged via Re-upload
+ *       Template it is uploaded (PUT /:id/upload-signed, manual
+ *       override); otherwise the existing signed copy is used
+ *       (PUT /:id/move-to-sending). Enabled once either exists.
+ *   Qtn For Send:
+ *     - "Send": opens an in-app confirmation dialog, then POST /:id/send.
+ *       The SERVER looks up the company email from the customers
+ *       collection and emails the signed file as an attachment. The
+ *       status is NOT changed and the modal stays open — the record
+ *       just gets emailSentTo/emailSentBy/emailSentAt, shown in the
+ *       modal. The user then clicks "Mark as Sent" to finish.
+ *       The recipient shown in the modal comes from GET /:id/recipient
+ *       (display only — the browser never chooses the address).
+ *     - "Mark as Sent": PUT /:id/mark-sent, body { sentBy }. Flips the
+ *       status to "Sent". Also works on its own for quotations
+ *       delivered outside the system (by hand, messaging app, etc.).
  *
- * Approver selection (check stage only): the checker doesn't have to be
- * the one whose name/signature appears as "Approved by" on the final
- * document. GET /api/users is fetched and filtered down to admin +
- * technician accounts; whichever one is selected is used either by
- * "Approve & Generate Signed Copy" (apply-approval route) or, if a file
- * is staged via Re-upload Template, sent along with that upload as
- * approverUsername/approverName so the server stores those as
- * checkedBy/checkedByUsername too. Assumes GET /api/users returns
- * objects shaped like { username, name, role } — matches the actual
- * users collection schema (confirmed via authRoutes.js's /register).
- *
- * "View Files" — there is no GET /:id/files route on the server. All
- * file URLs already live directly on the quotation document
- * (staffFileUrl, signedFileUrl, clientProofUrl), so this reads those
- * off the prop instead of fetching anything. Shown via QuotationFilesModal.
- *
- * Download filenames: prefer the real extension from staffFileName /
- * signedFileName (saved server-side as of this version). Falls back to
- * parsing the extension off the file URL for older records that predate
- * signedFileName existing — those may still come through
- * extension-less if the original Cloudinary asset itself has none.
- *
- * Logged-in user info lives in sessionStorage (confirmed keys):
+ * Logged-in user info lives in sessionStorage:
  *   userRole  -> "admin" | "clerk" | ... (sent as x-user-role header)
  *   username  -> e.g. "admin1"           (sent as x-user-name header /
- *                                          used as sentBy on mark-sent)
+ *                                          used as sentBy)
  */
 
 const STAGE_CONFIG = {
@@ -801,6 +724,7 @@ const STAGE_CONFIG = {
     uploadField: "file",
     requiresRoleHeader: true,
     savingLabel: "Save & Move to Sending",
+    showSend: false,
     showMarkSent: false,
     showSave: true,
   },
@@ -811,6 +735,7 @@ const STAGE_CONFIG = {
     uploadField: null,
     requiresRoleHeader: false,
     savingLabel: "Save",
+    showSend: true,
     showMarkSent: true,
     // No editable fields and no upload route on this stage — nothing
     // for a Save action to do, so it isn't shown at all.
@@ -834,15 +759,25 @@ const QuotationDetailsModal = ({
   const [showFiles, setShowFiles] = useState(false);
   const [markingSent, setMarkingSent] = useState(false);
 
+  // --- Send by email (send stage only) --------------------------------
+  const [sending, setSending] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [loadingRecipient, setLoadingRecipient] = useState(false);
+  const [showSendConfirm, setShowSendConfirm] = useState(false);
+  // Filled from the record (already emailed before) or after a
+  // successful send in this session.
+  const [emailSent, setEmailSent] = useState(null); // { to, at } | null
+
   // --- Approver selection (check stage only) --------------------------
-  // Who actually gets credited/signed as "Approved by" on the final
-  // document — not necessarily whoever is logged in doing the upload.
   const [approvers, setApprovers] = useState([]);
   const [loadingApprovers, setLoadingApprovers] = useState(false);
   const [selectedApproverUsername, setSelectedApproverUsername] = useState("");
 
   // --- Approve & Generate Signed Copy (second render pass) -----------
   const [approving, setApproving] = useState(false);
+  // Signed copy generated during this session (the `quotation` prop is
+  // not refreshed by the parent until the list reloads).
+  const [signedCopy, setSignedCopy] = useState(null); // { url, name, approver }
 
   const templateInputRef = useRef(null);
 
@@ -870,6 +805,32 @@ const QuotationDetailsModal = ({
     fetchApprovers();
   }, [stage]);
 
+  // Fetch the company email (looked up server-side from the customers
+  // collection) so the user can see where the quotation will be sent.
+  useEffect(() => {
+    if (stage !== "send" || !quotation) return;
+    let cancelled = false;
+    const fetchRecipient = async () => {
+      setLoadingRecipient(true);
+      try {
+        const res = await fetch(
+          `${API}/api/quotations/${encodeURIComponent(quotation.quotationId)}/recipient`,
+        );
+        const data = await res.json();
+        if (!cancelled) setRecipientEmail(data.email || "");
+      } catch (err) {
+        console.error("Failed to fetch recipient:", err);
+        if (!cancelled) setRecipientEmail("");
+      } finally {
+        if (!cancelled) setLoadingRecipient(false);
+      }
+    };
+    fetchRecipient();
+    return () => {
+      cancelled = true;
+    };
+  }, [stage, quotation]);
+
   useEffect(() => {
     if (!quotation) return;
     setPendingTemplateFile(null);
@@ -877,6 +838,13 @@ const QuotationDetailsModal = ({
     // Pre-select if this record was already checked before (re-opening
     // a "For Sending" record), otherwise starts blank.
     setSelectedApproverUsername(quotation.checkedByUsername || "");
+    setShowSendConfirm(false);
+    setSignedCopy(null);
+    setEmailSent(
+      quotation.emailSentAt
+        ? { to: quotation.emailSentTo || "", at: quotation.emailSentAt }
+        : null,
+    );
   }, [quotation]);
 
   if (!quotation) return null;
@@ -891,6 +859,13 @@ const QuotationDetailsModal = ({
     (a) => a.username === selectedApproverUsername,
   );
 
+  // Signed copy = one generated this session, or one already on the record.
+  const signedUrl = signedCopy?.url || quotation.signedFileUrl || "";
+  const signedName =
+    signedCopy?.name || quotation.signedFileName || "Signed File";
+  const signedApprover = signedCopy?.approver || quotation.checkedBy || "";
+  const hasSignedCopy = Boolean(signedUrl);
+
   const knownFiles = [
     {
       url: quotation.staffFileUrl,
@@ -898,8 +873,8 @@ const QuotationDetailsModal = ({
       label: "Quotation Template",
     },
     {
-      url: quotation.signedFileUrl,
-      filename: quotation.signedFileName || "Signed File",
+      url: signedUrl,
+      filename: signedName,
       label: "Signed Quotation",
     },
     {
@@ -921,11 +896,14 @@ const QuotationDetailsModal = ({
     setError("");
   };
 
-  // Save now does ONLY the file upload — there are no editable text
-  // fields left to persist. Disabled entirely unless a file has been
-  // staged via Re-upload Template (see the button's `disabled` prop).
+  // "Save & Move to Sending" — the step that advances the quotation.
+  //  - If a file was staged via Re-upload Template: upload it
+  //    (PUT upload-signed), which also sets "For Sending".
+  //  - Otherwise: use the signed copy already generated by
+  //    "Approve & Generate Signed Copy" (PUT move-to-sending).
   const handleSave = async () => {
-    if (!pendingTemplateFile || !config.uploadRoute) return;
+    if (!config.uploadRoute) return;
+    if (!pendingTemplateFile && !hasSignedCopy) return;
 
     if (stage === "check" && !selectedApproverUsername) {
       setError("Please select who is approving this quotation before saving.");
@@ -935,38 +913,61 @@ const QuotationDetailsModal = ({
     setSaving(true);
     setError("");
     try {
-      const formData = new FormData();
-      formData.append(config.uploadField, pendingTemplateFile);
+      const roleHeaders = {
+        "x-user-role": sessionStorage.getItem("userRole") || "",
+        "x-user-name": sessionStorage.getItem("username") || "",
+      };
+      const approverName = selectedApprover
+        ? selectedApprover.name || selectedApprover.username
+        : "";
 
-      if (selectedApprover) {
-        formData.append("approverUsername", selectedApprover.username);
-        formData.append(
-          "approverName",
-          selectedApprover.name || selectedApprover.username,
-        );
-      }
-
-      const headers = {};
-      if (config.requiresRoleHeader) {
-        headers["x-user-role"] = sessionStorage.getItem("userRole") || "";
-        headers["x-user-name"] = sessionStorage.getItem("username") || "";
-      }
-
-      const uploadRes = await fetch(
-        `${API}/api/quotations/${idPath}/${config.uploadRoute}`,
-        { method: "PUT", headers, body: formData },
-      );
-      if (!uploadRes.ok) {
-        if (uploadRes.status === 403) {
-          throw new Error("Checker role required to upload the signed file.");
+      let result;
+      if (pendingTemplateFile) {
+        const formData = new FormData();
+        formData.append(config.uploadField, pendingTemplateFile);
+        if (selectedApprover) {
+          formData.append("approverUsername", selectedApprover.username);
+          formData.append("approverName", approverName);
         }
-        throw new Error("Failed to upload file");
+        const uploadRes = await fetch(
+          `${API}/api/quotations/${idPath}/${config.uploadRoute}`,
+          {
+            method: "PUT",
+            headers: config.requiresRoleHeader ? roleHeaders : {},
+            body: formData,
+          },
+        );
+        if (!uploadRes.ok) {
+          if (uploadRes.status === 403) {
+            throw new Error("Checker role required to upload the signed file.");
+          }
+          throw new Error("Failed to upload file");
+        }
+        result = await uploadRes.json();
+        if (!result.success) throw new Error("Failed to upload file");
+      } else {
+        const moveRes = await fetch(
+          `${API}/api/quotations/${idPath}/move-to-sending`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...roleHeaders },
+            body: JSON.stringify({
+              approverUsername: selectedApprover?.username || "",
+              approverName,
+            }),
+          },
+        );
+        result = await moveRes.json().catch(() => ({}));
+        if (!moveRes.ok || !result.success) {
+          if (moveRes.status === 403) {
+            throw new Error("Checker role required to move this quotation.");
+          }
+          throw new Error(result.message || "Failed to move to sending");
+        }
       }
-      const uploadResult = await uploadRes.json();
-      if (!uploadResult.success) throw new Error("Failed to upload file");
 
       setPendingTemplateFile(null);
-      onSaved?.(uploadResult.quotation);
+      onSaved?.(result.quotation);
       onClose();
     } catch (err) {
       console.error("Failed to save quotation:", err);
@@ -976,10 +977,10 @@ const QuotationDetailsModal = ({
     }
   };
 
-  // Runs the second docxtemplater pass (server-side) against whichever
-  // file currently holds the real content, inserting only the selected
-  // approver's name + signature via [[ ]]-delimited tags. Leaves
-  // everything the staff typed completely untouched.
+  // Runs the second docxtemplater pass (server-side), inserting the
+  // selected approver's name + signature, and STORES the result as the
+  // signed copy. Does NOT close the modal or change the status — the
+  // user reviews the copy, then clicks "Save & Move to Sending".
   const handleApprove = async () => {
     if (!selectedApprover) {
       setError("Please select who is approving this quotation.");
@@ -1004,11 +1005,21 @@ const QuotationDetailsModal = ({
       if (!result.success)
         throw new Error(result.message || "Failed to apply approval");
 
-      // Immediately download the newly generated signed copy so there's
-      // a visible result instead of the modal just quietly closing.
-      const signedUrl = result.quotation?.signedFileUrl;
-      if (signedUrl) {
-        const fileRes = await fetch(signedUrl);
+      const newSignedUrl = result.quotation?.signedFileUrl;
+      setSignedCopy({
+        url: newSignedUrl,
+        name: result.quotation?.signedFileName,
+        approver:
+          result.quotation?.checkedBy ||
+          selectedApprover.name ||
+          selectedApprover.username,
+      });
+      // The generated copy replaces any file staged via Re-upload.
+      setPendingTemplateFile(null);
+
+      // Download the generated copy so there's something to review.
+      if (newSignedUrl) {
+        const fileRes = await fetch(newSignedUrl);
         if (fileRes.ok) {
           const blob = await fileRes.blob();
           const blobUrl = window.URL.createObjectURL(blob);
@@ -1022,8 +1033,9 @@ const QuotationDetailsModal = ({
         }
       }
 
+      // Keep the parent list in sync (status is unchanged, so the row
+      // stays in "For Checking"). Modal intentionally stays open.
       onSaved?.(result.quotation);
-      onClose();
     } catch (err) {
       console.error("Failed to apply approval:", err);
       setError(err.message || "Failed to apply approval. Please try again.");
@@ -1054,9 +1066,7 @@ const QuotationDetailsModal = ({
   };
 
   // Downloads the REAL uploaded file as-is (staffFileUrl / signedFileUrl)
-  // — never re-rendered here — so whatever the staff actually typed
-  // into the document is exactly what you get. Signature only appears
-  // once "Approve & Generate Signed Copy" has actually run.
+  // — never re-rendered here.
   const handleDownloadTemplate = async () => {
     if (!displayFileUrl) {
       setError("No file has been uploaded for this quotation yet.");
@@ -1087,6 +1097,58 @@ const QuotationDetailsModal = ({
       );
     } finally {
       setDownloadingTemplate(false);
+    }
+  };
+
+  // Step 1: validate, then open the in-app confirmation dialog.
+  const handleSendClick = () => {
+    if (!displayFileUrl) {
+      setError("No signed file available to send.");
+      return;
+    }
+    if (!recipientEmail) {
+      setError("This customer has no email on record.");
+      return;
+    }
+    setError("");
+    setShowSendConfirm(true);
+  };
+
+  // Step 2 (dialog's confirm button): email the signed file. The server
+  // resolves the recipient itself. The modal stays open afterwards —
+  // the user still has to click "Mark as Sent".
+  const handleConfirmSend = async () => {
+    if (sending) return; // ConfirmDialog's button can't be disabled
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch(`${API}/api/quotations/${idPath}/send`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-role": sessionStorage.getItem("userRole") || "",
+          "x-user-name": sessionStorage.getItem("username") || "",
+        },
+        body: JSON.stringify({
+          sentBy: sessionStorage.getItem("username") || "",
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || "Failed to send email");
+      }
+      setEmailSent({
+        to: result.quotation?.emailSentTo || recipientEmail,
+        at: result.quotation?.emailSentAt || new Date().toISOString(),
+      });
+      setShowSendConfirm(false);
+      onSaved?.(result.quotation); // keeps the list row in sync (status unchanged)
+    } catch (err) {
+      console.error("Failed to send quotation:", err);
+      setShowSendConfirm(false);
+      setError(err.message || "Failed to send email. Please try again.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -1127,6 +1189,48 @@ const QuotationDetailsModal = ({
 
         <div className="qtn-modal-body">
           {error && <div className="qtn-modal-error">{error}</div>}
+
+          {stage === "check" && hasSignedCopy && (
+            <div
+              style={{
+                background: "#e8f5e9",
+                border: "1px solid #a5d6a7",
+                color: "#1b5e20",
+                padding: "8px 12px",
+                borderRadius: 4,
+                marginBottom: 10,
+                fontSize: 13,
+              }}
+            >
+              ✓ Signed copy ready
+              {signedApprover ? (
+                <>
+                  {" "}
+                  (approved by <strong>{signedApprover}</strong>)
+                </>
+              ) : null}
+              . Click <strong>Save &amp; Move to Sending</strong> to send it to
+              the next stage.
+            </div>
+          )}
+
+          {config.showSend && emailSent && (
+            <div
+              style={{
+                background: "#e8f5e9",
+                border: "1px solid #a5d6a7",
+                color: "#1b5e20",
+                padding: "8px 12px",
+                borderRadius: 4,
+                marginBottom: 10,
+                fontSize: 13,
+              }}
+            >
+              ✓ Email sent to <strong>{emailSent.to}</strong> on{" "}
+              {new Date(emailSent.at).toLocaleString()}. Click{" "}
+              <strong>Mark as Sent</strong> to complete this quotation.
+            </div>
+          )}
 
           <div className="qtn-details-top-row">
             <div className="qtn-field">
@@ -1212,19 +1316,11 @@ const QuotationDetailsModal = ({
             <div className="qtn-details-col">
               <div className="qtn-field">
                 <label>Reference</label>
-                <input
-                  type="text"
-                  value={quotation.reference || ""}
-                  readOnly
-                />
+                <input type="text" value={quotation.reference || ""} readOnly />
               </div>
               <div className="qtn-field">
                 <label>Purchase Order</label>
-                <input
-                  type="text"
-                  value={quotation.poNumber || ""}
-                  readOnly
-                />
+                <input type="text" value={quotation.poNumber || ""} readOnly />
               </div>
               <div className="qtn-field">
                 <label>Remarks</label>
@@ -1234,6 +1330,21 @@ const QuotationDetailsModal = ({
                   readOnly
                 />
               </div>
+
+              {config.showSend && (
+                <div className="qtn-field">
+                  <label>Send To (Company Email)</label>
+                  <input
+                    type="text"
+                    value={
+                      loadingRecipient
+                        ? "Loading..."
+                        : recipientEmail || "No email on customer record"
+                    }
+                    readOnly
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1247,8 +1358,8 @@ const QuotationDetailsModal = ({
         />
 
         {/* FOOTER — qtn-toolbar layout: primary actions (Save / Approve /
-            Mark as Sent) pinned left, file actions pinned right, matching
-            the same gray action-bar pattern as AddQuotationModal */}
+            Send / Mark as Sent) pinned left, file actions pinned right,
+            matching the same gray action-bar pattern as AddQuotationModal */}
         <div className="qtn-modal-footer qtn-toolbar">
           <div className="qtn-toolbar-left">
             {config.showSave && (
@@ -1257,13 +1368,13 @@ const QuotationDetailsModal = ({
                 onClick={handleSave}
                 disabled={
                   saving ||
-                  !pendingTemplateFile ||
+                  (!pendingTemplateFile && !hasSignedCopy) ||
                   (stage === "check" && !selectedApproverUsername)
                 }
                 title={
-                  !pendingTemplateFile
-                    ? "Re-upload a file first — there's nothing else to save"
-                    : undefined
+                  !pendingTemplateFile && !hasSignedCopy
+                    ? "Generate a signed copy (or re-upload a file) first"
+                    : "Move this quotation to the For Sending stage"
                 }
               >
                 {saving ? "Saving..." : config.savingLabel}
@@ -1285,11 +1396,37 @@ const QuotationDetailsModal = ({
               </button>
             )}
 
-            {config.showMarkSent && (
+            {config.showSend && (
               <button
                 className="qtn-btn qtn-btn-primary"
+                onClick={handleSendClick}
+                disabled={
+                  sending ||
+                  markingSent ||
+                  loadingRecipient ||
+                  !displayFileUrl ||
+                  !recipientEmail
+                }
+                title={
+                  !recipientEmail
+                    ? "Add an email to this customer's record first"
+                    : "Email the signed quotation to the company"
+                }
+              >
+                {sending ? "Sending..." : emailSent ? "Resend" : "Send"}
+              </button>
+            )}
+
+            {config.showMarkSent && (
+              <button
+                className={emailSent ? "qtn-btn qtn-btn-primary" : "qtn-btn"}
                 onClick={handleMarkAsSent}
-                disabled={markingSent}
+                disabled={markingSent || sending}
+                title={
+                  emailSent
+                    ? "Complete this quotation and move it to Sent"
+                    : "Use this if you already sent the file outside the system"
+                }
               >
                 {markingSent ? "Marking..." : "Mark as Sent"}
               </button>
@@ -1342,6 +1479,24 @@ const QuotationDetailsModal = ({
           </button> */}
         </div>
       </div>
+
+      {showSendConfirm && (
+        <ConfirmDialog
+          title={emailSent ? "Resend Quotation" : "Send Quotation"}
+          message={
+            `Email ${quotation.quotationId} to ${recipientEmail}? ` +
+            `The signed file will be attached.` +
+            (emailSent ? " This quotation was already emailed once." : "")
+          }
+          confirmLabel={sending ? "Sending..." : "Yes, Send"}
+          cancelLabel="Cancel"
+          onConfirm={handleConfirmSend}
+          // Ignore cancel / overlay clicks while the email is in flight.
+          onCancel={() => {
+            if (!sending) setShowSendConfirm(false);
+          }}
+        />
+      )}
 
       {showFiles && (
         <QuotationFilesModal
