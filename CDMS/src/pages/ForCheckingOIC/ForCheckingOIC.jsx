@@ -80,9 +80,13 @@
 //                 accreditationLogo: job.accreditationLogo || "with",
 //                 calibrationProcedure: job.calibrationProcedure || "",
 //                 calibrationStandards: job.calibrationStandards || [],
-//                 dateRec: receipt.date || "",
-//                 companyName: receipt.companyName || "",
-//                 contactName: receipt.contactName || "",
+//                 // from receipt — falls back to the job's own date/companyName
+//                 // for jobs that have no jobReceiptID (e.g. jobs added from
+//                 // Site Calibration, which don't go through Job Receipt but
+//                 // carry date/companyName directly on the job record).
+//                 dateRec: receipt.date || job.date || "",
+//                 companyName: receipt.companyName || job.companyName || "",
+//                 contactName: receipt.contactName || job.contactName || "",
 //               };
 //             })
 //         : [];
@@ -205,8 +209,8 @@
 //           onKeyDown={handleSearchKeyDown}
 //         />
 
-//         <button>Re-Log</button>
-//         <button>Quick Log</button>
+//         {/* <button>Re-Log</button>
+//         <button>Quick Log</button> */}
 //         <button onClick={handleRefresh}>Refresh</button>
 //       </div>
 
@@ -335,9 +339,11 @@ const ForCheckingOIC = () => {
   const [showModal, setShowModal] = useState(false);
 
   // Local "reviewed" gate — true once Check and Sign Report has been
-  // clicked for the currently open record. Controls whether the
-  // Update button is enabled. Reset whenever a (new) modal is opened
-  // or closed, since it's not persisted to the backend.
+  // completed for the currently open record (the OIC clicked "Sign &
+  // Approve" on the certificate, or the signed report downloaded).
+  // Controls whether the Update button is enabled. Reset whenever a
+  // (new) modal is opened or closed, since it's not persisted to the
+  // backend.
   const [isSigned, setIsSigned] = useState(false);
 
   useEffect(() => {
@@ -374,6 +380,11 @@ const ForCheckingOIC = () => {
               return {
                 jobNumber: job.jobNumber,
                 jobReceiptID: job.jobReceiptID,
+                // Same fields ForTyping carries through, so the
+                // certificate preview in the details modal has everything
+                // it needs to render.
+                scId: job.scId || null,
+                customerId: job.customerId || null,
                 description: job.description || "",
                 brand: job.brand || "",
                 model: job.model || "",
@@ -395,12 +406,20 @@ const ForCheckingOIC = () => {
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
+                // The readings / uncertainty inputs and computed
+                // certificate saved from ForTyping's "Open Calibration
+                // Data". "Check and Sign Report" renders this as the
+                // certificate, with the OIC's signature above their name.
+                calibrationData: job.calibrationData || null,
                 // from receipt — falls back to the job's own date/companyName
                 // for jobs that have no jobReceiptID (e.g. jobs added from
                 // Site Calibration, which don't go through Job Receipt but
                 // carry date/companyName directly on the job record).
                 dateRec: receipt.date || job.date || "",
                 companyName: receipt.companyName || job.companyName || "",
+                // Needed for the certificate's "Submitted By" block.
+                companyAddress:
+                  receipt.companyAddress || job.companyAddress || "",
                 contactName: receipt.contactName || job.contactName || "",
               };
             })
@@ -435,9 +454,10 @@ const ForCheckingOIC = () => {
     setIsSigned(false);
   };
 
-  // "Check and Sign Report" no longer touches the backend or moves the
-  // job. It's just a local confirmation gate that unlocks the Update
-  // button for this record.
+  // Called by the details modal once the OIC has completed Check and Sign
+  // Report. It no longer touches the backend or moves the job — it's just
+  // a local confirmation gate that unlocks the Update button for this
+  // record.
   const handleCheckAndSignReport = () => {
     setIsSigned(true);
   };

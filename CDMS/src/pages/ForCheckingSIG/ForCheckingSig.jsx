@@ -78,11 +78,15 @@
 //                 oicBy: job.oicBy || "",
 //                 // Audit stamp of who actually performed the OIC check
 //                 // (separate from oicBy, the originally assigned OIC).
-//                 oicCheckedBy: job.oicCheckedBy || "",
+//                 // oicCheckedBy: job.oicCheckedBy || "",
 //                 priority: job.priority || "Normal",
-//                 dateRec: receipt.date || "",
-//                 companyName: receipt.companyName || "",
-//                 contactName: receipt.contactName || "",
+//                 // from receipt — falls back to the job's own date/companyName
+//                 // for jobs that have no jobReceiptID (e.g. jobs added from
+//                 // Site Calibration, which don't go through Job Receipt but
+//                 // carry date/companyName directly on the job record).
+//                 dateRec: receipt.date || job.date || "",
+//                 companyName: receipt.companyName || job.companyName || "",
+//                 contactName: receipt.contactName || job.contactName || "",
 
 //                 // ---- extra fields needed by ForCheckingSigDetailsModal ----
 //                 sig: job.sig || "",
@@ -218,8 +222,8 @@
 //           onKeyDown={handleSearchKeyDown}
 //         />
 
-//         <button>Re-Log</button>
-//         <button>Quick Log</button>
+//         {/* <button>Re-Log</button>
+//         <button>Quick Log</button> */}
 //         <button onClick={handleRefresh}>Refresh</button>
 //       </div>
 
@@ -364,9 +368,10 @@ const ForCheckingSig = () => {
   const [showModal, setShowModal] = useState(false);
 
   // Local "reviewed" gate — true once Check and Sign Report has been
-  // clicked for the currently open record. Controls whether the
-  // Update button is enabled. Not persisted to the backend; resets
-  // whenever a (new) modal is opened or closed.
+  // completed for the currently open record (the SIG clicked "Sign &
+  // Approve" on the certificate, or the signed report downloaded).
+  // Controls whether the Update button is enabled. Not persisted to the
+  // backend; resets whenever a (new) modal is opened or closed.
   const [isSigned, setIsSigned] = useState(false);
 
   useEffect(() => {
@@ -392,7 +397,7 @@ const ForCheckingSig = () => {
 
       const merged = Array.isArray(jobs)
         ? jobs
-            // Only jobs checked and signed by the SIG, and not yet
+            // Only jobs checked and signed by the OIC, and not yet
             // moved on to Print Final.
             .filter(
               (job) =>
@@ -431,6 +436,8 @@ const ForCheckingSig = () => {
                 contactName: receipt.contactName || job.contactName || "",
 
                 // ---- extra fields needed by ForCheckingSigDetailsModal ----
+                scId: job.scId || null,
+                customerId: job.customerId || null,
                 sig: job.sig || "",
                 typedBy: job.typedBy || "",
                 frequency: job.frequency || "",
@@ -442,6 +449,15 @@ const ForCheckingSig = () => {
                 accreditationLogo: job.accreditationLogo || "",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
+                // The readings / uncertainty inputs and computed
+                // certificate saved from ForTyping's "Open Calibration
+                // Data". "Check and Sign Report" renders this as the
+                // certificate, with the SIG's signature above the
+                // Approved signatory name.
+                calibrationData: job.calibrationData || null,
+                // Needed for the certificate's "Submitted By" block.
+                companyAddress:
+                  receipt.companyAddress || job.companyAddress || "",
 
                 // keep the raw job/receipt around in case the modal
                 // or its handlers need something not mapped above
@@ -492,9 +508,10 @@ const ForCheckingSig = () => {
     setIsSigned(false);
   };
 
-  // "Check and Sign Report" no longer touches the backend or moves the
-  // job. It's just a local confirmation gate that unlocks the Update
-  // button for this record.
+  // Called by the details modal once the SIG has completed Check and Sign
+  // Report. It no longer touches the backend or moves the job — it's just
+  // a local confirmation gate that unlocks the Update button for this
+  // record.
   const handleCheckAndSignReport = () => {
     setIsSigned(true);
   };

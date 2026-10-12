@@ -1681,7 +1681,7 @@ const JobNumberModal = ({
                     : {}
                 }
               >
-                Open Folder
+                View Files
               </button>
             </div>
             <div className="jr-modal-actions-right">

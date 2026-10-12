@@ -1257,12 +1257,10 @@ router.post(
       res.json({ success: true, quotation: updated });
     } catch (err) {
       console.error("Send quotation failed:", err);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: err.message || "Failed to send email.",
-        });
+      res.status(500).json({
+        success: false,
+        message: err.message || "Failed to send email.",
+      });
     }
   },
 );

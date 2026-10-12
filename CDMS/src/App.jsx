@@ -37,7 +37,7 @@ import StandardForCalib from "./pages/StandardForCalib";
 import StdForCertification from "./pages/StdForCertification";
 import StdForUpdate from "./pages/StdForUpdate";
 import Predictions from "./pages/Predictions/Predictions";
-
+import DriftAnalytics from "./pages/DriftAnalytics/DriftAnalytics";
 function App() {
   return (
     <BrowserRouter>
@@ -101,6 +101,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["owner", "admin"]}>
                 <Predictions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="drift-analytics"
+            element={
+              <ProtectedRoute allowedRoles={["owner", "admin"]}>
+                <DriftAnalytics />
               </ProtectedRoute>
             }
           />

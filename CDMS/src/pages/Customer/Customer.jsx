@@ -17,6 +17,35 @@
 //   remarks: "",
 // };
 
+// // Builds the four field handlers (change / contact change / add / remove)
+// // for a given setState function, so the Add form and the Edit form can each
+// // get their own independent set without duplicating the logic.
+// const makeFieldHandlers = (setter) => ({
+//   onChangeField: (e) => {
+//     const { name, value } = e.target;
+//     setter((prev) => ({ ...prev, [name]: value }));
+//   },
+//   onContactChange: (index, value) => {
+//     setter((prev) => {
+//       const updated = [...prev.contactNames];
+//       updated[index] = value;
+//       return { ...prev, contactNames: updated };
+//     });
+//   },
+//   onAddContact: () => {
+//     setter((prev) => ({
+//       ...prev,
+//       contactNames: [...prev.contactNames, ""],
+//     }));
+//   },
+//   onRemoveContact: (index) => {
+//     setter((prev) => ({
+//       ...prev,
+//       contactNames: prev.contactNames.filter((_, i) => i !== index),
+//     }));
+//   },
+// });
+
 // const ConfirmDialog = ({
 //   title,
 //   message,
@@ -55,7 +84,15 @@
 //   const [loading, setLoading] = useState(false);
 //   const [selectedCustomer, setSelectedCustomer] = useState(null);
 //   const [showModal, setShowModal] = useState(false);
-//   const [formData, setFormData] = useState(emptyForm);
+
+//   // Add Customer tab has its own, independent form state
+//   const [addFormData, setAddFormData] = useState(emptyForm);
+//   // Edit modal has its own, independent form state
+//   const [editFormData, setEditFormData] = useState(emptyForm);
+
+//   const addHandlers = makeFieldHandlers(setAddFormData);
+//   const editHandlers = makeFieldHandlers(setEditFormData);
+
 //   const [customerJobs, setCustomerJobs] = useState([]);
 //   const [jobsLoading, setJobsLoading] = useState(false);
 //   const [dialog, setDialog] = useState({
@@ -139,37 +176,17 @@
 //     });
 //   };
 
-//   const handleChange = (e) =>
-//     setFormData({ ...formData, [e.target.name]: e.target.value });
-
-//   const handleContactChange = (index, value) => {
-//     const updated = [...formData.contactNames];
-//     updated[index] = value;
-//     setFormData({ ...formData, contactNames: updated });
-//   };
-
-//   const addContactField = () =>
-//     setFormData({
-//       ...formData,
-//       contactNames: [...formData.contactNames, ""],
-//     });
-
-//   const removeContactField = (index) => {
-//     const updated = formData.contactNames.filter((_, i) => i !== index);
-//     setFormData({ ...formData, contactNames: updated });
-//   };
-
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
 //     try {
 //       const res = await fetch(`${API}/api/customers`, {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
-//         body: JSON.stringify(formData),
+//         body: JSON.stringify(addFormData),
 //       });
 //       const data = await res.json();
 //       if (data.success) {
-//         setFormData(emptyForm);
+//         setAddFormData(emptyForm);
 //         fetchCustomers();
 //         setActiveTab("allcustomer");
 //         showSuccess(
@@ -184,7 +201,7 @@
 
 //   const handleRowClick = (customer) => {
 //     setSelectedCustomer(customer);
-//     setFormData({
+//     setEditFormData({
 //       companyName: customer.companyName,
 //       companyAddress: customer.companyAddress,
 //       contactNames: customer.contactNames?.length
@@ -209,7 +226,7 @@
 //         {
 //           method: "PUT",
 //           headers: { "Content-Type": "application/json" },
-//           body: JSON.stringify(formData),
+//           body: JSON.stringify(editFormData),
 //         },
 //       );
 //       const data = await res.json();
@@ -280,14 +297,11 @@
 //       {activeTab === "customer" && (
 //         <div className="customer-card">
 //           <CustomerForm
-//             formData={formData}
+//             formData={addFormData}
 //             onSubmit={handleSubmit}
 //             submitLabel="Save Customer"
 //             isModal={false}
-//             onChangeField={handleChange}
-//             onContactChange={handleContactChange}
-//             onAddContact={addContactField}
-//             onRemoveContact={removeContactField}
+//             {...addHandlers}
 //           />
 //         </div>
 //       )}
@@ -350,16 +364,13 @@
 //       {showModal && (
 //         <CustomerModal
 //           selectedCustomer={selectedCustomer}
-//           formData={formData}
+//           formData={editFormData}
 //           jobs={customerJobs}
 //           jobsLoading={jobsLoading}
 //           onClose={() => setShowModal(false)}
 //           onSubmit={handleUpdate}
 //           onDelete={handleDelete}
-//           onChangeField={handleChange}
-//           onContactChange={handleContactChange}
-//           onAddContact={addContactField}
-//           onRemoveContact={removeContactField}
+//           {...editHandlers}
 //         />
 //       )}
 
@@ -397,6 +408,15 @@ const emptyForm = {
   email: "",
   vat: "",
   remarks: "",
+};
+
+// Returns an error message, or null if the numbers are valid.
+const validateNumbers = (data) => {
+  if (!/^\d{11}$/.test(data.phoneNumber))
+    return "Phone number must be exactly 11 digits.";
+  if (!/^\d{10}$/.test(data.faxNumber))
+    return "Fax number must be exactly 10 digits.";
+  return null;
 };
 
 // Builds the four field handlers (change / contact change / add / remove)
@@ -560,6 +580,13 @@ const Customer = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const error = validateNumbers(addFormData);
+    if (error) {
+      showSuccess("Invalid Input", error);
+      return;
+    }
+
     try {
       const res = await fetch(`${API}/api/customers`, {
         method: "POST",
@@ -602,6 +629,13 @@ const Customer = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+
+    const error = validateNumbers(editFormData);
+    if (error) {
+      showSuccess("Invalid Input", error);
+      return;
+    }
+
     try {
       const res = await fetch(
         `${API}/api/customers/${selectedCustomer.customerID}`,

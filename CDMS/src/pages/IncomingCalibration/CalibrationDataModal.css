@@ -1,0 +1,380 @@
+.cdm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.cdm-wrapper {
+  background: #fff;
+  width: min(1100px, 96vw);
+  height: min(860px, 94vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.cdm-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid #ccc;
+  background: #f3f3f3;
+}
+.cdm-tabs button {
+  border: 1px solid #ccc;
+  border-bottom: none;
+  background: #e6e6e6;
+  padding: 7px 16px;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  font-size: 13px;
+}
+.cdm-tabs button.active {
+  background: #fff;
+  font-weight: 600;
+  position: relative;
+  top: 1px;
+}
+
+.cdm-body {
+  flex: 1;
+  overflow: auto;
+  padding: 14px 16px;
+  font-size: 13px;
+}
+
+.cdm-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.cdm-card {
+  border: 1px solid #d5d5d5;
+  border-radius: 4px;
+  padding: 10px 12px 12px;
+  background: #fafafa;
+}
+.cdm-card h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.cdm-card-wide {
+  grid-column: 1 / -1;
+}
+
+.cdm-field {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.cdm-field label {
+  font-size: 12px;
+}
+.cdm-field input,
+.cdm-field select {
+  padding: 4px 6px;
+  border: 1px solid #b9b9b9;
+  border-radius: 3px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.cdm-field .cdm-hint {
+  grid-column: 2;
+  margin-top: -3px;
+}
+
+.cdm-computed {
+  background: #eef4ff;
+  border: 1px solid #c9d9f5;
+  border-radius: 3px;
+  padding: 6px 8px;
+  margin: 6px 0 10px;
+  font-size: 12px;
+}
+.cdm-warn {
+  color: #b00020;
+}
+.cdm-hint {
+  font-size: 11px;
+  color: #666;
+}
+.cdm-empty {
+  color: #777;
+  font-style: italic;
+}
+.cdm-muted {
+  color: #888;
+}
+
+.cdm-table-scroll {
+  overflow-x: auto;
+}
+.cdm-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.cdm-table th,
+.cdm-table td {
+  border: 1px solid #cfcfcf;
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 12px;
+}
+.cdm-table thead th {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+.cdm-table input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 4px;
+  border: 1px solid #b9b9b9;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.cdm-out {
+  background: #f6fbf4;
+  font-variant-numeric: tabular-nums;
+  text-align: right !important;
+}
+.cdm-readings input {
+  min-width: 90px;
+}
+
+.cdm-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid #ccc;
+  background: #f3f3f3;
+}
+.cdm-footer-msg ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #b00020;
+  font-size: 12px;
+}
+.cdm-footer-btns {
+  display: flex;
+  gap: 8px;
+}
+.cdm-footer-btns button {
+  padding: 7px 16px;
+  border: 1px solid #999;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.cdm-footer-btns .cdm-save {
+  background: #1f5fbf;
+  border-color: #1f5fbf;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------------- certificate preview ---------------- */
+.cdm-cert-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cdm-cert-toolbar button {
+  padding: 6px 12px;
+  border: 1px solid #999;
+  background: #fff;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.cdm-cert-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  background: #777;
+  padding: 18px;
+}
+.cdm-page {
+  background: #fff;
+  width: 794px; /* A4 @ 96dpi */
+  min-height: 1000px;
+  padding: 40px 48px;
+  box-sizing: border-box;
+  position: relative;
+  font-family: "Times New Roman", serif;
+  font-size: 13px;
+  color: #000;
+}
+.cdm-page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 6px;
+}
+.cdm-org {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+}
+.cdm-logo {
+  border: 1.5px solid #000;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.cdm-title {
+  text-align: center;
+  margin: 18px 0 4px;
+  font-size: 20px;
+}
+.cdm-certno {
+  text-align: center;
+  font-weight: 700;
+}
+.cdm-note {
+  text-align: center;
+  font-size: 10px;
+  margin-bottom: 14px;
+}
+.cdm-dl {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  row-gap: 3px;
+  margin: 12px 0;
+}
+.cdm-dl dt {
+  font-weight: 700;
+}
+.cdm-dl dt::after {
+  content: " :";
+  float: right;
+  padding-right: 8px;
+}
+.cdm-dl dd {
+  margin: 0;
+}
+.cdm-page h5 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+}
+.cdm-cert-table th,
+.cdm-cert-table td {
+  border: 1px solid #000;
+  font-size: 12px;
+}
+.cdm-center th,
+.cdm-center td {
+  text-align: center;
+}
+.cdm-units th {
+  font-weight: 400;
+}
+.cdm-remarks {
+  font-size: 11px;
+  padding-left: 22px;
+}
+.cdm-sign {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 44px;
+  text-align: center;
+}
+.cdm-sign span {
+  font-size: 11px;
+}
+.cdm-pageno {
+  position: absolute;
+  bottom: 18px;
+  left: 48px;
+  font-size: 11px;
+}
+.cdm-status {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.cdm-status-draft {
+  background: #fff3cd;
+  color: #8a6d00;
+}
+.cdm-status-complete {
+  background: #d4edda;
+  color: #1e6b34;
+}
+/* ---------------- print: only the certificate pages ---------------- */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body > *:not(.cdm-overlay) {
+    display: none !important;
+  }
+
+  .cdm-overlay {
+    position: static;
+    background: none;
+    display: block;
+    overflow: visible;
+  }
+  .cdm-wrapper {
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: none;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .cdm-body {
+    display: block;
+    overflow: visible;
+    padding: 0;
+  }
+  .cdm-no-print {
+    display: none !important;
+  }
+  .cdm-cert-pages {
+    display: block;
+    background: none;
+    padding: 0;
+    gap: 0;
+  }
+  .cdm-page {
+    width: 210mm;
+    min-height: 296mm;
+    margin: 0 auto;
+    box-shadow: none;
+    break-after: page;
+    break-inside: avoid;
+  }
+  .cdm-page:last-child {
+    break-after: auto;
+  }
+}

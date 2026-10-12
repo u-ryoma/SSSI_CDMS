@@ -16,6 +16,30 @@
 //   "JR ID": "jobReceiptID",
 // };
 
+// // Fields editable in ForTypingDetailsModal when the job originated from
+// // Site Calibration (see isSiteCalibrationJob there). Kept as a single
+// // list so both the local-edit handler and the save-to-backend payload
+// // stay in sync — add a new editable field there, add it here too.
+// const SITE_CALIB_EDITABLE_FIELDS = [
+//   "description",
+//   "brand",
+//   "model",
+//   "serialNo",
+//   "remarks",
+//   "oicBy",
+//   "sig",
+//   "frequency",
+//   "contactCert",
+//   "uncertainty",
+//   "range",
+//   "concern",
+//   "dateCal",
+//   "dateDue",
+//   "priority",
+//   "accreditationLogo",
+//   "calibrationStandards",
+// ];
+
 // const ForTyping = () => {
 //   const [records, setRecords] = useState([]);
 //   const [loading, setLoading] = useState(false);
@@ -66,6 +90,13 @@
 //               return {
 //                 jobNumber: job.jobNumber,
 //                 jobReceiptID: job.jobReceiptID,
+//                 // Carried through so ForTypingDetailsModal can detect a
+//                 // Site Calibration job (isSiteCalibrationJob = Boolean(scId))
+//                 // and make its fields editable accordingly.
+//                 scId: job.scId || null,
+//                 // Needed by ForTypingDetailsModal's Con Cert dropdown to
+//                 // fetch this company's contacts (GET /api/customers/:id/contacts/full).
+//                 customerId: job.customerId || null,
 //                 description: job.description || "",
 //                 brand: job.brand || "",
 //                 model: job.model || "",
@@ -140,6 +171,14 @@
 //     fetchRecords();
 //   };
 
+//   // Edits made directly inside ForTypingDetailsModal (only possible for
+//   // Site Calibration jobs — see isSiteCalibrationJob there). Kept purely
+//   // in local state until the user confirms "Upload and Auto Backup";
+//   // nothing is persisted to the backend until that PUT fires below.
+//   const handleModalFieldChange = (field, value) => {
+//     setSelectedRecord((prev) => (prev ? { ...prev, [field]: value } : prev));
+//   };
+
 //   // Step 1: "Upload and Auto Backup" clicked in the details modal -> ask for confirmation
 //   const requestUploadAndAutoBackup = () => {
 //     setConfirmUpload(true);
@@ -155,6 +194,17 @@
 //       // not "name" — matches how oicCheckedBy is read in ForCheckingOIC.
 //       const typedBy = sessionStorage.getItem("username") || "";
 
+//       // For Site Calibration jobs, any edits made in the details modal
+//       // (description, brand, model, etc. — see SITE_CALIB_EDITABLE_FIELDS)
+//       // need to ride along in this same PUT, since this is the only save
+//       // point in the whole For Typing flow.
+//       const editedFields = selectedRecord.scId
+//         ? SITE_CALIB_EDITABLE_FIELDS.reduce((acc, field) => {
+//             acc[field] = selectedRecord[field];
+//             return acc;
+//           }, {})
+//         : {};
+
 //       const res = await fetch(`${API}/api/jobnumbers/update-details`, {
 //         method: "PUT",
 //         headers: { "Content-Type": "application/json" },
@@ -163,6 +213,7 @@
 //           forCheckingOICTagged: true,
 //           typedBy,
 //           draftReportTypedAt: new Date().toISOString(),
+//           ...editedFields,
 //         }),
 //       });
 
@@ -244,8 +295,8 @@
 //           <option value={100}>100</option>
 //         </select>
 
-//         <button>Re-Log</button>
-//         <button>Quick Log</button>
+//         {/* <button>Re-Log</button>
+//         <button>Quick Log</button> */}
 //         <button onClick={handleRefresh}>Refresh</button>
 //       </div>
 
@@ -345,6 +396,7 @@
 //           onSaveAndAutoBackup={requestUploadAndAutoBackup}
 //           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
 //           onOpenCalProcedureLookup={() => {}}
+//           onFieldChange={handleModalFieldChange}
 //           downloadLabel="FOR TYPING"
 //         />
 //       )}
@@ -418,7 +470,7 @@ const ForTyping = () => {
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Upload / confirm state
+  // Save / confirm state
   const [uploading, setUploading] = useState(false);
   const [confirmUpload, setConfirmUpload] = useState(false);
 
@@ -483,16 +535,23 @@ const ForTyping = () => {
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
-                // Carried over so ForTypingDetailsModal's download check
-                // (template?.publicId) actually has something to read.
                 calibrationProcedureTemplate:
                   job.calibrationProcedureTemplate || null,
+                // Everything entered in CalibrationDataModal back in
+                // Incoming / On-Going Calibration (readings, uncertainty
+                // inputs, reference standards, computed certificate).
+                // Opened and editable from "Open Calibration Data" in
+                // ForTypingDetailsModal.
+                calibrationData: job.calibrationData || null,
                 // from receipt — falls back to the job's own date/companyName
                 // for jobs that have no jobReceiptID (e.g. jobs added from
                 // Site Calibration, which don't go through Job Receipt but
                 // carry date/companyName directly on the job record).
                 dateRec: receipt.date || job.date || "",
                 companyName: receipt.companyName || job.companyName || "",
+                // Needed for the certificate's "Submitted By" block.
+                companyAddress:
+                  receipt.companyAddress || job.companyAddress || "",
                 contactName: receipt.contactName || job.contactName || "",
               };
             })
@@ -538,21 +597,24 @@ const ForTyping = () => {
     fetchRecords();
   };
 
-  // Edits made directly inside ForTypingDetailsModal (only possible for
-  // Site Calibration jobs — see isSiteCalibrationJob there). Kept purely
-  // in local state until the user confirms "Upload and Auto Backup";
-  // nothing is persisted to the backend until that PUT fires below.
+  // Edits made directly inside ForTypingDetailsModal — Site Calibration
+  // fields, and (for every job) the calibrationData saved from
+  // CalibrationDataModal. Kept purely in local state until the user
+  // confirms "Save and Auto Backup"; nothing is persisted to the backend
+  // until that PUT fires below.
   const handleModalFieldChange = (field, value) => {
     setSelectedRecord((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
-  // Step 1: "Upload and Auto Backup" clicked in the details modal -> ask for confirmation
+  // Step 1: "Save and Auto Backup" clicked in the details modal (after its
+  // backup file uploaded successfully) -> ask for confirmation
   const requestUploadAndAutoBackup = () => {
     setConfirmUpload(true);
   };
 
-  // Step 2: user confirms -> stamp the draft-typed date, save the job as
-  // tagged for OIC checking, remove from this list
+  // Step 2: user confirms -> stamp the draft-typed date, save the job
+  // (including any edited calibrationData) as tagged for OIC checking,
+  // remove from this list
   const confirmUploadAndAutoBackup = async () => {
     if (!selectedRecord) return;
     setUploading(true);
@@ -581,6 +643,9 @@ const ForTyping = () => {
           typedBy,
           draftReportTypedAt: new Date().toISOString(),
           ...editedFields,
+          // Always saved, for every job (not just Site Calibration) —
+          // this is the edited version from For Typing.
+          calibrationData: selectedRecord.calibrationData || null,
         }),
       });
 
@@ -764,7 +829,7 @@ const ForTyping = () => {
           onOpenCalStandardLookup={(rowIndex, columnKey) => {}}
           onOpenCalProcedureLookup={() => {}}
           onFieldChange={handleModalFieldChange}
-          downloadLabel="FOR TYPING"
+          downloadLabel="For Typing"
         />
       )}
 

@@ -55,6 +55,14 @@
 //   )}&filename=${encodeURIComponent(filename)}`;
 // };
 
+// // Converts a base64 dataURL (what CameraCaptureModal produces, from
+// // either canvas.toDataURL or FileReader.readAsDataURL) into a Blob, so it
+// // can be sent as multipart/form-data to the equipment-photo upload route.
+// const dataUrlToBlob = async (dataUrl) => {
+//   const res = await fetch(dataUrl);
+//   return res.blob();
+// };
+
 // const IncomingCalibDetailsModal = ({
 //   jobForm,
 //   onClose,
@@ -457,18 +465,73 @@
 //   // OPEN CAMERA — onOpenCamera is expected to resolve either a single
 //   // dataURL/uploaded-URL (older callers) or an ARRAY of them (multi-shot
 //   // capture, matching CameraCaptureModal's onCapture(photos) contract).
-//   // Either way, results are APPENDED to form.photoUrls rather than
-//   // replacing it, so previously captured photos stay in the carousel.
+//   //
+//   // IMPORTANT: what CameraCaptureModal actually hands back are raw
+//   // base64 dataURLs — nothing has uploaded them to Cloudinary yet. Those
+//   // dataURLs are NOT stored directly into form.photoUrls (that used to
+//   // be the bug: photos never made it past local component state, so if
+//   // the session ended any other way than a successful "Update" — or
+//   // even after Update, since nothing ever actually persisted them to
+//   // Cloudinary — the photo just vanished and never showed up in the
+//   // "View Files" / job-folder listing on the next stage).
+//   //
+//   // So each dataURL is uploaded here, immediately, via
+//   // POST /api/uploads/equipment-photo/:jobNumber (see uploadRoutes.js),
+//   // and only the URL Cloudinary actually returns is appended to
+//   // form.photoUrls. That's what makes captured photos survive
+//   // regardless of what the user does afterwards (Update, Concern, or
+//   // just closing the modal) — they're already saved server-side the
+//   // moment they're taken, same as how the template Re-upload button
+//   // works.
+//   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+
 //   const handleOpenCamera = async () => {
 //     const result = await onOpenCamera?.();
 //     if (!result) return;
-//     const newPhotos = Array.isArray(result) ? result : [result];
-//     if (newPhotos.length === 0) return;
-//     setForm((prev) => ({
-//       ...prev,
-//       photoUrls: [...prev.photoUrls, ...newPhotos],
-//     }));
-//     setActivePhotoIndex(form.photoUrls.length); // jump to first newly added photo
+//     const newDataUrls = Array.isArray(result) ? result : [result];
+//     if (newDataUrls.length === 0) return;
+
+//     if (!form.jobNumber) {
+//       showError(
+//         "Missing Job Number",
+//         "This job has no job number yet, so the photo can't be saved. Please try again once the job number is set.",
+//       );
+//       return;
+//     }
+
+//     setIsUploadingPhotos(true);
+//     try {
+//       const uploadedUrls = [];
+//       for (const dataUrl of newDataUrls) {
+//         const blob = await dataUrlToBlob(dataUrl);
+//         const formData = new FormData();
+//         formData.append("photo", blob, `photo_${Date.now()}.jpg`);
+
+//         const res = await fetch(
+//           `${API}/api/uploads/equipment-photo/${encodeURIComponent(form.jobNumber)}`,
+//           { method: "POST", body: formData },
+//         );
+//         const data = await res.json();
+//         if (!res.ok || data.success === false) {
+//           throw new Error(data?.message || "Photo upload failed");
+//         }
+//         uploadedUrls.push(data.url);
+//       }
+
+//       setForm((prev) => ({
+//         ...prev,
+//         photoUrls: [...prev.photoUrls, ...uploadedUrls],
+//       }));
+//       setActivePhotoIndex(form.photoUrls.length); // jump to first newly added photo
+//     } catch (err) {
+//       console.error("Failed to upload captured photo(s):", err);
+//       showError(
+//         "Upload Failed",
+//         "One or more captured photos could not be saved. Please try taking the photo again.",
+//       );
+//     } finally {
+//       setIsUploadingPhotos(false);
+//     }
 //   };
 
 //   const contactCertOptions = CONTACT_CERT_OPTIONS.includes(form.contactCert)
@@ -524,6 +587,18 @@
 //     const file = e.target.files?.[0];
 //     e.target.value = "";
 //     if (!file) return;
+
+//     const isXlsx =
+//       file.name?.toLowerCase().endsWith(".xlsx") ||
+//       file.type ===
+//         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+//     if (!isXlsx) {
+//       showError(
+//         "Invalid File Type",
+//         "Only .xlsx files are accepted for the calibration procedure template.",
+//       );
+//       return;
+//     }
 
 //     const formData = new FormData();
 //     formData.append("file", file);
@@ -1028,6 +1103,7 @@
 //                   <input
 //                     type="file"
 //                     ref={reuploadInputRef}
+//                     accept=".xlsx"
 //                     className="icd-hidden-file-input"
 //                     onChange={handleReuploadFileChange}
 //                   />
@@ -1080,10 +1156,16 @@
 
 //           <div className="icd-footer">
 //             <div className="icd-footer-left">
-//               <button type="button" onClick={handleOpenCamera}>
-//                 {form.photoUrls.length > 0
-//                   ? `Add More Photos (${form.photoUrls.length})`
-//                   : "Open Camera"}
+//               <button
+//                 type="button"
+//                 onClick={handleOpenCamera}
+//                 disabled={isUploadingPhotos}
+//               >
+//                 {isUploadingPhotos
+//                   ? "Saving Photo..."
+//                   : form.photoUrls.length > 0
+//                     ? `Add More Photos (${form.photoUrls.length})`
+//                     : "Open Camera"}
 //               </button>
 //               <button type="button" onClick={handleViewFilesClick}>
 //                 View Files
@@ -1160,12 +1242,13 @@
 // };
 
 // export default IncomingCalibDetailsModal;
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import "./IncomingCalibDetailsModal.css";
 import CdmsModalHeader from "./CdmsModalHeader";
 import CalibrationStandardLookupModal from "./CalibrationStandardLookUpModal";
 import CalibrationProcedureLookupModal from "./CalibrationProcedureLookUpModal";
+import CalibrationDataModal from "./CalibrationDataModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
 
@@ -1203,20 +1286,6 @@ const addMonths = (isoDateStr, months) => {
   return toISODate(d);
 };
 
-// Builds the URL for the backend's raw template-download proxy route (see
-// routes/uploadRoutes.js -> GET /api/uploads/templates/download). Needs
-// the template's Cloudinary publicId, which only exists once a template
-// has actually been picked via CalibrationProcedureLookupModal.
-const buildTemplateDownloadUrl = (template) => {
-  if (!template?.publicId) return null;
-  const filename = template.format
-    ? `${template.code}.${template.format}`
-    : template.code;
-  return `${API}/api/uploads/templates/download?publicId=${encodeURIComponent(
-    template.publicId,
-  )}&filename=${encodeURIComponent(filename)}`;
-};
-
 // Converts a base64 dataURL (what CameraCaptureModal produces, from
 // either canvas.toDataURL or FileReader.readAsDataURL) into a Blob, so it
 // can be sent as multipart/form-data to the equipment-photo upload route.
@@ -1236,13 +1305,20 @@ const IncomingCalibDetailsModal = ({
   onOpenCalProcedureLookup,
   onOpenCalStandardLookup,
   title = "INCOMING CALIBRATION DETAILS",
-  downloadLabel = "",
+  // true  (default, Incoming Calibration): calibration data can be saved
+  //        even when empty/partial — it's stored as a draft
+  //        (complete: false) and the job can still be moved on.
+  // false (On-Going Calibration): calibration data must be complete
+  //        (all 6 points filled in) before it can be saved, and Update
+  //        stays locked until it is.
+  allowIncompleteCalibData = true,
 }) => {
   const [form, setForm] = useState(() => ({
     jobNumber: jobForm.jobNumber || "",
     dateRec: jobForm.dateRec || "",
     companyName: jobForm.companyName || "",
     companyAddress: jobForm.companyAddress || "",
+    contactName: jobForm.contactName || "",
     description: jobForm.description || "",
     brand: jobForm.brand || "",
     model: jobForm.model || "",
@@ -1267,6 +1343,12 @@ const IncomingCalibDetailsModal = ({
         ? jobForm.calibrationStandards
         : Array.from({ length: ROW_COUNT }, emptyStandardRow),
 
+    // CALIBRATION DATA — everything the SSS-CP-020 workbook used to hold
+    // (readings, uncertainty inputs, standards used, computed certificate
+    // values). Filled in through CalibrationDataModal instead of
+    // downloading/re-uploading the xlsx. null until saved at least once.
+    calibrationData: jobForm.calibrationData || null,
+
     // PHOTOS — the job may have several equipment photos captured across
     // sessions (CameraCaptureModal supports multi-shot capture). Prefers
     // jobForm.photoUrls (the array); falls back to wrapping the older
@@ -1281,8 +1363,6 @@ const IncomingCalibDetailsModal = ({
         ? [jobForm.photoUrl]
         : [],
   }));
-
-  const stageLabel = downloadLabel || "Incoming Calib";
 
   useEffect(() => {
     if (!form.dateCal) return;
@@ -1345,24 +1425,67 @@ const IncomingCalibDetailsModal = ({
     });
   };
 
-  const showInfo = (title, message) => {
-    setDialog({
-      show: true,
-      title,
-      message,
-      onConfirm: hideDialog,
-      onCancel: null,
-      confirmLabel: "OK",
-      cancelLabel: "Cancel",
-      type: "default",
-    });
+  // --- Calibration data (replaces the xlsx download / re-upload) -----
+  // Update stays locked until the calibration data has been saved at
+  // least once through CalibrationDataModal.
+  //
+  // Draft vs complete: in Incoming Calibration the data can be saved as a
+  // draft (complete: false). Records saved before the draft feature have
+  // no `complete` field — they were only saved after passing validation,
+  // so `complete !== false` correctly treats them as complete.
+  //   - hasCalibrationData: saved at least once (draft or complete)
+  //   - calibrationComplete: saved AND not a draft
+  //   - canUpdate: Incoming only needs it saved; On-Going needs it complete
+  const [showCalibData, setShowCalibData] = useState(false);
+  const hasCalibrationData = Boolean(form.calibrationData?.savedAt);
+  const calibrationComplete =
+    hasCalibrationData && form.calibrationData.complete !== false;
+  const canUpdate = allowIncompleteCalibData
+    ? hasCalibrationData
+    : calibrationComplete;
+  const calibStatus = !hasCalibrationData
+    ? null
+    : calibrationComplete
+      ? "Complete"
+      : "Draft";
+
+  const handleOpenCalibData = () => {
+    const missing = [];
+
+    if (!form.calibrationProcedure?.trim()) {
+      missing.push("Calibration Procedure");
+    }
+
+    const hasStandard = form.calibrationStandards.some((row) =>
+      Object.values(row).some((v) => v?.trim()),
+    );
+    if (!hasStandard) {
+      missing.push("Calibration Standard");
+    }
+
+    if (missing.length > 0) {
+      showError(
+        "Missing Information",
+        `Please fill out the ${missing.join(" and ")} before entering the calibration data.`,
+      );
+      return;
+    }
+
+    setShowCalibData(true);
+  };
+
+  const handleSaveCalibrationData = (data) => {
+    setForm((prev) => ({ ...prev, calibrationData: data }));
+    setShowCalibData(false);
   };
 
   const handleUpdateClick = () => {
-    if (!hasReuploadedThisSession) {
+    if (!canUpdate) {
       showError(
-        "Re-upload Required",
-        "You must re-upload the edited calibration procedure template before you can update this job. Use the Re-upload button next to Calibration Procedure.",
+        "Calibration Data Required",
+        hasCalibrationData
+          ? "The calibration data is still a draft. Open the Calibration Data window and fill in all 6 points before you can update this job."
+          : "You must enter and save the calibration data before you can update this job. Use the Calibration Data button next to Calibration Procedure.",
       );
       return;
     }
@@ -1529,17 +1652,14 @@ const IncomingCalibDetailsModal = ({
   }, []);
 
   // --- Fetch valid SIG signers (technicians + admins) ----------------
-  // The SIG field is a code (initials) looked up against
-  // calculations!H86:H93 in the downloaded template — it must be one of
-  // the actual technician/admin account usernames, not a fixed value.
+  // The SIG field is a code (initials) — it must be one of the actual
+  // technician/admin account usernames, not a fixed value.
   // GET /api/accounts returns every account with no role filter, so
   // filter down to role === "technician" OR "admin" here — both roles
-  // are eligible signers (this used to be technician-only, which wrongly
-  // excluded admin accounts from the dropdown even though the backend's
-  // resolved-name lookup and the rest of the system treat admins as
-  // valid signers too). Each option's value is the username (the
-  // initials code the template lookup expects); the label shows the
-  // full name for readability.
+  // are eligible signers. Each option's value is the username (the
+  // initials code); the label shows the full name for readability.
+  // The same list is handed to CalibrationDataModal so it can resolve
+  // OIC / SIG initials into full names on the certificate.
   const [signerOptions, setSignerOptions] = useState([]);
 
   useEffect(() => {
@@ -1631,11 +1751,7 @@ const IncomingCalibDetailsModal = ({
   // IMPORTANT: what CameraCaptureModal actually hands back are raw
   // base64 dataURLs — nothing has uploaded them to Cloudinary yet. Those
   // dataURLs are NOT stored directly into form.photoUrls (that used to
-  // be the bug: photos never made it past local component state, so if
-  // the session ended any other way than a successful "Update" — or
-  // even after Update, since nothing ever actually persisted them to
-  // Cloudinary — the photo just vanished and never showed up in the
-  // "View Files" / job-folder listing on the next stage).
+  // be the bug: photos never made it past local component state).
   //
   // So each dataURL is uploaded here, immediately, via
   // POST /api/uploads/equipment-photo/:jobNumber (see uploadRoutes.js),
@@ -1643,8 +1759,7 @@ const IncomingCalibDetailsModal = ({
   // form.photoUrls. That's what makes captured photos survive
   // regardless of what the user does afterwards (Update, Concern, or
   // just closing the modal) — they're already saved server-side the
-  // moment they're taken, same as how the template Re-upload button
-  // works.
+  // moment they're taken.
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
 
   const handleOpenCamera = async () => {
@@ -1726,188 +1841,6 @@ const IncomingCalibDetailsModal = ({
 
   const handleViewFilesClick = () => {
     setShowViewFiles(true);
-  };
-
-  // --- Re-upload the edited template --------------------------------
-  const reuploadInputRef = useRef(null);
-  const [isReuploading, setIsReuploading] = useState(false);
-  const [hasReuploadedThisSession, setHasReuploadedThisSession] =
-    useState(false);
-
-  const handleReuploadClick = () => {
-    if (!form.calibrationProcedure?.trim()) {
-      showError(
-        "Missing Calibration Procedure",
-        "Select or enter a Calibration Procedure before uploading a revised template.",
-      );
-      return;
-    }
-    reuploadInputRef.current?.click();
-  };
-
-  const handleReuploadFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-
-    const isXlsx =
-      file.name?.toLowerCase().endsWith(".xlsx") ||
-      file.type ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-    if (!isXlsx) {
-      showError(
-        "Invalid File Type",
-        "Only .xlsx files are accepted for the calibration procedure template.",
-      );
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("jobNumber", form.jobNumber);
-    formData.append(
-      "code",
-      form.calibrationProcedureTemplate?.code || form.calibrationProcedure,
-    );
-    formData.append("stageLabel", stageLabel);
-
-    setIsReuploading(true);
-    try {
-      const res = await fetch(`${API}/api/uploads/templates/reupload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok || data.success === false) {
-        throw new Error(data?.message || "Upload failed");
-      }
-
-      const newTemplate = data.template;
-      setHasReuploadedThisSession(true);
-
-      showInfo(
-        "Template Uploaded",
-        newTemplate?.savedAs
-          ? `The revised template has been saved for this job as "${newTemplate.savedAs}". Downloads for this job will now use this version.`
-          : "The revised template has been saved for this job.",
-      );
-    } catch (err) {
-      console.error("Failed to re-upload template:", err);
-      showError(
-        "Upload Failed",
-        "The revised template could not be uploaded. Please try again.",
-      );
-    } finally {
-      setIsReuploading(false);
-    }
-  };
-
-  // --- Download the template, filled with this job's data -----------
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleDownloadClick = async () => {
-    const missing = [];
-
-    if (!form.calibrationProcedure?.trim()) {
-      missing.push("Calibration Procedure");
-    }
-
-    const hasStandard = form.calibrationStandards.some((row) =>
-      Object.values(row).some((v) => v?.trim()),
-    );
-    if (!hasStandard) {
-      missing.push("Calibration Standard");
-    }
-
-    if (missing.length > 0) {
-      showError(
-        "Missing Information",
-        `Please fill out the ${missing.join(" and ")} before downloading the template.`,
-      );
-      return;
-    }
-
-    const template = form.calibrationProcedureTemplate;
-    const code = template?.code || form.calibrationProcedure?.trim();
-    if (!code) {
-      showError(
-        "Template Not Found",
-        "No calibration procedure code is set. Please select one from the lookup.",
-      );
-      return;
-    }
-
-    const ext = template?.format ? `.${template.format}` : ".xlsx";
-    const safeJobNumber = (form.jobNumber || "job").replace(/[\\/]/g, "-");
-    const baseName = downloadLabel
-      ? `${safeJobNumber} - ${downloadLabel}`
-      : safeJobNumber;
-    const filename = `${baseName}${ext}`;
-
-    setIsDownloading(true);
-    try {
-      const res = await fetch(`${API}/api/uploads/templates/download-filled`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          publicId: template?.publicId,
-          code,
-          filename,
-          jobData: {
-            jobNumber: form.jobNumber,
-            companyName: form.companyName,
-            companyAddress: form.companyAddress,
-            description: form.description,
-            brand: form.brand,
-            model: form.model,
-            serialNo: form.serialNo,
-            dateRec: form.dateRec,
-            dateCal: form.dateCal,
-            dateDue: form.dateDue,
-            contactCert: form.contactCert,
-            // The template's OIC/SIG cells (ws!B7/B8) are the acronym
-            // lookup INPUT cells the workbook itself is built around:
-            // calculations!B84/H84 — which Front Page!B55/W55 and Calib
-            // Data 1!B55/W55 both read from — do
-            // MATCH(ws!B7 or ws!B8, ...) against the acronym tables at
-            // calculations!B86:C93 / H86:I93 to resolve the full name.
-            // So we send the acronym (username), NOT the full name,
-            // here: ws ends up showing the initials, and Front Page /
-            // Calib Data 1 end up showing the resolved full name
-            // automatically via that lookup. form.oicBy and form.sig
-            // are already usernames/initials (see the OIC field's
-            // initial state and the SIG <select>'s option values
-            // above), so they're sent through as-is.
-            oicBy: form.oicBy,
-            sig: form.sig,
-            calibrationStandards: form.calibrationStandards,
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || `Download failed with ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error("Failed to download filled template:", err);
-      showError(
-        "Download Failed",
-        "The template could not be downloaded. Please try again.",
-      );
-    } finally {
-      setIsDownloading(false);
-    }
   };
 
   return createPortal(
@@ -2247,28 +2180,20 @@ const IncomingCalibDetailsModal = ({
                   <button
                     type="button"
                     className="icd-download-btn"
-                    onClick={handleDownloadClick}
-                    disabled={isDownloading}
-                    title="Download the calibration procedure template (this job's latest re-upload if one exists, otherwise the blank master), filled with this job's data"
+                    onClick={handleOpenCalibData}
+                    title="Enter the readings and uncertainty inputs, and preview the certificate"
                   >
-                    {isDownloading ? "Preparing..." : "⬇ Download"}
+                    {hasCalibrationData
+                      ? "✓ Calibration Data"
+                      : "📋 Calibration Data"}
                   </button>
-                  <button
-                    type="button"
-                    className="icd-reupload-btn"
-                    onClick={handleReuploadClick}
-                    disabled={isReuploading}
-                    title="Upload the edited template as this job's current version"
-                  >
-                    {isReuploading ? "Uploading..." : "⤴ Re-upload"}
-                  </button>
-                  <input
-                    type="file"
-                    ref={reuploadInputRef}
-                    accept=".xlsx"
-                    className="icd-hidden-file-input"
-                    onChange={handleReuploadFileChange}
-                  />
+                  {calibStatus && (
+                    <span
+                      className={`cdm-status cdm-status-${calibStatus.toLowerCase()}`}
+                    >
+                      {calibStatus}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -2345,11 +2270,13 @@ const IncomingCalibDetailsModal = ({
                 type="button"
                 className="icd-update-btn"
                 onClick={handleUpdateClick}
-                disabled={!hasReuploadedThisSession}
+                disabled={!canUpdate}
                 title={
-                  hasReuploadedThisSession
+                  canUpdate
                     ? undefined
-                    : "Re-upload the edited calibration procedure template before updating"
+                    : hasCalibrationData
+                      ? "Complete all 6 calibration points before updating"
+                      : "Enter and save the calibration data before updating"
                 }
               >
                 Update
@@ -2372,6 +2299,22 @@ const IncomingCalibDetailsModal = ({
         <CalibrationProcedureLookupModal
           onCancel={() => setShowProcedureLookup(false)}
           onSelectTemplate={handleSelectTemplate}
+        />
+      )}
+
+      {/* CALIBRATION DATA — in-app replacement for the SSS-CP-020.xlsx
+          download / fill-in / re-upload flow. allowIncompleteSave lets
+          Incoming Calibration save a blank/partial draft; On-Going
+          passes allowIncompleteCalibData={false} to keep full validation. */}
+      {showCalibData && (
+        <CalibrationDataModal
+          job={form}
+          standards={form.calibrationStandards}
+          accounts={signerOptions}
+          initialData={form.calibrationData}
+          allowIncompleteSave={allowIncompleteCalibData}
+          onSave={handleSaveCalibrationData}
+          onCancel={() => setShowCalibData(false)}
         />
       )}
 

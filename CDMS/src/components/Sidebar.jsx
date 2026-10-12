@@ -11,7 +11,7 @@
 //   const role = sessionStorage.getItem("role");
 //   const navigate = useNavigate();
 //   const [showConfirm, setShowConfirm] = useState(false);
-//   const [showAutoLogoutModal, setShowAutoLogoutModal] = useState(false); // ← new
+//   const [showAutoLogoutModal, setShowAutoLogoutModal] = useState(false);
 
 //   // ==========================
 //   // SAVE LOG HELPER
@@ -35,14 +35,40 @@
 //   }
 
 //   // ==========================
-//   // HEARTBEAT
+//   // HEARTBEAT (always polls; only renews presence while user is active)
 //   // ==========================
+//   const IDLE_THRESHOLD_MS = 60000; // must match backend HEARTBEAT_TIMEOUT_MS
+
 //   useEffect(() => {
 //     if (!sessionStorage.getItem("activeUser")) return;
+//     console.log(
+//       "Heartbeat effect (re)initialized at",
+//       new Date().toLocaleTimeString(),
+//     );
+//     let heartbeat;
+//     let lastActivity = Date.now();
 
-//     let heartbeat; // ← declared here so it can be cleared from inside sendHeartbeat
+//     const markActive = (e) => {
+//       console.log(
+//         "Activity detected:",
+//         e.type,
+//         new Date().toLocaleTimeString(),
+//       );
+//       lastActivity = Date.now();
+//     };
+
+//     const activityEvents = [
+//       "mousemove",
+//       "mousedown",
+//       "keydown",
+//       "scroll",
+//       "touchstart",
+//     ];
+//     activityEvents.forEach((evt) => window.addEventListener(evt, markActive));
 
 //     async function sendHeartbeat() {
+//       const isActive = Date.now() - lastActivity < IDLE_THRESHOLD_MS;
+
 //       try {
 //         const res = await fetch(
 //           `${import.meta.env.VITE_API_URL}/api/heartbeat`,
@@ -53,6 +79,7 @@
 //               username: sessionStorage.getItem("activeUser"),
 //               name: sessionStorage.getItem("activeName"),
 //               role: sessionStorage.getItem("userRole"),
+//               active: isActive, // only renews server-side presence if true
 //             }),
 //           },
 //         );
@@ -68,8 +95,14 @@
 //     }
 
 //     sendHeartbeat();
-//     heartbeat = setInterval(sendHeartbeat, 30000);
-//     return () => clearInterval(heartbeat);
+//     heartbeat = setInterval(sendHeartbeat, 15000); // keep polling even while idle, so the modal can still show
+
+//     return () => {
+//       clearInterval(heartbeat);
+//       activityEvents.forEach((evt) =>
+//         window.removeEventListener(evt, markActive),
+//       );
+//     };
 //   }, []);
 
 //   // ==========================
@@ -483,18 +516,6 @@
 //             Quotation For Check
 //           </NavLink>
 //         )}
-//         {/* <NavLink className={navLinkClass} to="/admin/qtnforfile" onClick={onClose}>
-//           Quotation For File
-//         </NavLink>
-//         {(role === "admin" || role === "clerk") && (
-//           <NavLink
-//             className={navLinkClass}
-//             to="/admin/qtnforfolowup"
-//             onClick={onClose}
-//           >
-//             Quotation For Follow Up
-//           </NavLink>
-//         )} */}
 //         {(role === "admin" || role === "clerk") && (
 //           <NavLink
 //             className={navLinkClass}
@@ -527,6 +548,15 @@
 //             onClick={onClose}
 //           >
 //             System Activity
+//           </NavLink>
+//         )}
+//         {(role === "admin" || role === "owner") && (
+//           <NavLink
+//             className={navLinkClass}
+//             to="/admin/predictions"
+//             onClick={onClose}
+//           >
+//             Predictions
 //           </NavLink>
 //         )}
 //       </nav>
@@ -611,34 +641,43 @@ export default function Sidebar({ isOpen, onClose }) {
   // ==========================
   // HEARTBEAT (always polls; only renews presence while user is active)
   // ==========================
-  const IDLE_THRESHOLD_MS = 60000; // must match backend HEARTBEAT_TIMEOUT_MS
+  // How recent the last input must be for the user to count as "active".
+  // The server's auto-logout (HEARTBEAT_TIMEOUT_MS = 10 min) is counted
+  // from the last time presence was renewed, so effective logout is
+  // roughly 10 minutes after the user's last real activity.
+  const IDLE_THRESHOLD_MS = 30000;
 
   useEffect(() => {
     if (!sessionStorage.getItem("activeUser")) return;
-    console.log(
-      "Heartbeat effect (re)initialized at",
-      new Date().toLocaleTimeString(),
-    );
     let heartbeat;
     let lastActivity = Date.now();
 
-    const markActive = (e) => {
-      console.log(
-        "Activity detected:",
-        e.type,
-        new Date().toLocaleTimeString(),
-      );
+    const markActive = () => {
       lastActivity = Date.now();
     };
 
     const activityEvents = [
       "mousemove",
       "mousedown",
+      "pointerdown",
+      "click",
       "keydown",
+      "input",
+      "focusin",
+      "wheel",
       "scroll",
       "touchstart",
     ];
-    activityEvents.forEach((evt) => window.addEventListener(evt, markActive));
+
+    // capture: true => fires even if a modal calls stopPropagation(),
+    // and also catches scroll events from inside scrollable modal bodies
+    // (scroll doesn't bubble, so a normal listener would miss them).
+    activityEvents.forEach((evt) =>
+      window.addEventListener(evt, markActive, {
+        capture: true,
+        passive: true,
+      }),
+    );
 
     async function sendHeartbeat() {
       const isActive = Date.now() - lastActivity < IDLE_THRESHOLD_MS;
@@ -674,7 +713,7 @@ export default function Sidebar({ isOpen, onClose }) {
     return () => {
       clearInterval(heartbeat);
       activityEvents.forEach((evt) =>
-        window.removeEventListener(evt, markActive),
+        window.removeEventListener(evt, markActive, { capture: true }),
       );
     };
   }, []);
@@ -1131,6 +1170,15 @@ export default function Sidebar({ isOpen, onClose }) {
             onClick={onClose}
           >
             Predictions
+          </NavLink>
+        )}
+        {(role === "admin" || role === "owner") && (
+          <NavLink
+            className={navLinkClass}
+            to="/admin/drift-analytics"
+            onClick={onClose}
+          >
+            Drift Analytics
           </NavLink>
         )}
       </nav>

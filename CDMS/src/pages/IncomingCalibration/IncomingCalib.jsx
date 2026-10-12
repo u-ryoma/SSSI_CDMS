@@ -59,10 +59,16 @@
 //       const merged = Array.isArray(jobs)
 //         ? jobs
 //             // Only show jobs that are tagged into Incoming Calib, not flagged
-//             // as a concern, and not yet moved on to On-Going Calibration.
+//             // as a concern, not yet moved on to On-Going Calibration, and not
+//             // closed out via "Log RWOC" in Outgoing Concern (RWOC clears
+//             // concernTagged/outgoingConcernTagged, so without this check the
+//             // job would otherwise reappear here).
 //             .filter(
 //               (job) =>
-//                 job.tagged === true && !job.concernTagged && !job.ongoingTagged,
+//                 job.tagged === true &&
+//                 !job.concernTagged &&
+//                 !job.ongoingTagged &&
+//                 !job.rwocTagged,
 //             )
 //             .map((job) => {
 //               const receipt = receiptsMap[job.jobReceiptID] || {};
@@ -283,8 +289,8 @@
 //           <option value={100}>100</option>
 //         </select>
 
-//         <button>Re-Log</button>
-//         <button>Quick Log</button>
+//         {/* <button>Re-Log</button>
+//         <button>Quick Log</button> */}
 //         <button onClick={handleRefresh}>Refresh</button>
 //       </div>
 
@@ -503,6 +509,9 @@ const IncomingCalib = () => {
                 accreditationLogo: job.accreditationLogo || "with",
                 calibrationProcedure: job.calibrationProcedure || "",
                 calibrationStandards: job.calibrationStandards || [],
+                // readings + uncertainty inputs + computed certificate values
+                // saved from CalibrationDataModal (null until first saved)
+                calibrationData: job.calibrationData || null,
                 photoUrl: job.photoUrl || "", // equipment photo captured in JobNumberModal
                 // from receipt
                 dateRec: receipt.date || "",
@@ -542,13 +551,14 @@ const IncomingCalib = () => {
   }, [records, selectedYear, activeSearch, searchBy, rowsPerPage]);
 
   const handleRowClick = (record) => {
-    console.log("clicked record photoUrl:", record.jobNumber, record.photoUrl); // temp debug
     setSelectedRecord(record);
     setShowModal(true);
   };
 
   // UPDATE job number details in DB, mark it as moved to On-Going Calibration,
   // and remove it from this list (it should no longer show up here).
+  // updatedFields now includes `calibrationData` — make sure the backend's
+  // PUT /api/jobnumbers/update-details route and the job schema accept it.
   const handleUpdate = async (updatedFields) => {
     try {
       const res = await fetch(`${API}/api/jobnumbers/update-details`, {

@@ -4,6 +4,9 @@
 // import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
 // import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
 // import ConfirmDialog from "../../components/ConfirmDialog";
+// // Adjust this path to wherever CameraCaptureModal actually lives in your
+// // tree (same component IncomingCalibDetailsModal / OnGoingCalib use).
+// import CameraCaptureModal from "../jobreceipt/CameraCaptureModal";
 
 // // Base backend URL — needed here (unlike before) now that this modal
 // // actually calls the backend directly to build the filled-template
@@ -41,6 +44,14 @@
 //   const mm = String(result.getMonth() + 1).padStart(2, "0");
 //   const dd = String(result.getDate()).padStart(2, "0");
 //   return `${yyyy}-${mm}-${dd}`;
+// };
+
+// // Converts a base64 dataURL (what CameraCaptureModal produces, from
+// // either canvas.toDataURL or FileReader.readAsDataURL) into a Blob, so it
+// // can be sent as multipart/form-data to the equipment-photo upload route.
+// const dataUrlToBlob = async (dataUrl) => {
+//   const res = await fetch(dataUrl);
+//   return res.blob();
 // };
 
 // /**
@@ -223,6 +234,80 @@
 
 //   const showError = (title, message) => {
 //     setDialog({ show: true, title, message });
+//   };
+
+//   // --- Equipment photo capture ---------------------------------------
+//   // Unlike IncomingCalibDetailsModal, this screen doesn't display a
+//   // photo carousel of its own — captured photos are only ever viewed
+//   // via "Open Folder" (ReceiptFolderModal, below). So this doesn't need
+//   // to track a photoUrls array in local state; it just needs the photo
+//   // to actually reach Cloudinary the moment it's taken.
+//   //
+//   // Previously the "Open Camera" button called onOpenCamera directly as
+//   // its onClick — no await, no result handling, and no camera UI
+//   // rendered anywhere in this file. Whether that did anything at all
+//   // depended entirely on ForTyping.jsx (the parent) implementing the
+//   // full open -> capture -> upload chain itself. This modal now owns
+//   // that chain directly instead: it opens CameraCaptureModal itself,
+//   // and on capture, uploads each photo straight to
+//   // POST /api/uploads/equipment-photo/:jobNumber (same route
+//   // IncomingCalibDetailsModal now uses) so photos are saved
+//   // server-side immediately, regardless of what the user does
+//   // afterward. onOpenCamera is still called first, if passed, purely
+//   // so a parent that wants to know "camera was opened" (e.g. for
+//   // logging) still can — but nothing here depends on it doing more
+//   // than that.
+//   const [showCamera, setShowCamera] = useState(false);
+//   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+
+//   const handleOpenCameraClick = () => {
+//     onOpenCamera?.();
+
+//     if (!jobForm.jobNumber) {
+//       showError(
+//         "No Job Number",
+//         "This record has no job number yet, so a photo can't be saved.",
+//       );
+//       return;
+//     }
+//     setShowCamera(true);
+//   };
+
+//   const handleCameraCapture = async (photos) => {
+//     setShowCamera(false);
+//     if (!photos || photos.length === 0) return;
+
+//     setIsUploadingPhotos(true);
+//     try {
+//       for (const dataUrl of photos) {
+//         const blob = await dataUrlToBlob(dataUrl);
+//         const formData = new FormData();
+//         formData.append("photo", blob, `photo_${Date.now()}.jpg`);
+
+//         const res = await fetch(
+//           `${API}/api/uploads/equipment-photo/${encodeURIComponent(
+//             jobForm.jobNumber,
+//           )}`,
+//           { method: "POST", body: formData },
+//         );
+//         const data = await res.json().catch(() => ({}));
+//         if (!res.ok || data.success === false) {
+//           throw new Error(data?.message || "Photo upload failed");
+//         }
+//       }
+//     } catch (err) {
+//       console.error("Failed to upload captured photo(s):", err);
+//       showError(
+//         "Upload Failed",
+//         "One or more captured photos could not be saved. Please try taking the photo again.",
+//       );
+//     } finally {
+//       setIsUploadingPhotos(false);
+//     }
+//   };
+
+//   const handleCameraClose = () => {
+//     setShowCamera(false);
 //   };
 
 //   // --- Download the template, filled with this job's data -----------
@@ -538,7 +623,7 @@
 //                             : "No technicians found"}
 //                         </option>
 //                         {technicianOptions.map((tech) => {
-//                           const label = tech.name || tech.username;
+//                           const label = tech.username;
 //                           return (
 //                             <option
 //                               key={tech._id || tech.username}
@@ -723,8 +808,12 @@
 //                   </div>
 
 //                   <div className="ftd-camera-actions">
-//                     <button type="button" onClick={onOpenCamera}>
-//                       Open Camera
+//                     <button
+//                       type="button"
+//                       onClick={handleOpenCameraClick}
+//                       disabled={isUploadingPhotos}
+//                     >
+//                       {isUploadingPhotos ? "Saving Photo..." : "Open Camera"}
 //                     </button>
 //                     <button
 //                       type="button"
@@ -859,6 +948,20 @@
 //         />
 //       )}
 
+//       {/* CAMERA MODAL — captures 1+ photos, each uploaded straight to
+//           this job's Cloudinary equipment-photos folder on capture (see
+//           handleCameraCapture above). Nothing here needs to hold onto
+//           the returned URLs locally since this screen has no photo
+//           carousel of its own — captured photos are visible afterward
+//           via "Open Folder" above. */}
+//       {showCamera && (
+//         <CameraCaptureModal
+//           onClose={handleCameraClose}
+//           onCapture={handleCameraCapture}
+//           contextLabel={jobForm.jobNumber}
+//         />
+//       )}
+
 //       {dialog.show && (
 //         <ConfirmDialog
 //           title={dialog.title}
@@ -874,31 +977,23 @@
 // };
 
 // export default ForTypingDetailsModal;
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./ForTypingDetailsModal.css";
 import CdmsModalHeader from "../IncomingCalibration/CdmsModalHeader";
+import CalibrationDataModal from "../IncomingCalibration/CalibrationDataModal";
 import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
 import ConfirmDialog from "../../components/ConfirmDialog";
 // Adjust this path to wherever CameraCaptureModal actually lives in your
 // tree (same component IncomingCalibDetailsModal / OnGoingCalib use).
 import CameraCaptureModal from "../jobreceipt/CameraCaptureModal";
 
-// Base backend URL — needed here (unlike before) now that this modal
-// actually calls the backend directly to build the filled-template
-// download, instead of just delegating to onOpenAndUpdateReport.
 const API = import.meta.env.VITE_API_URL;
 
 const STANDARD_COLUMNS = ["item1", "item2"];
 const STANDARD_ROW_COUNT = 5;
 
 const emptyStandardRow = () => ({ item1: "", item2: "" });
-
-// SIG has no real signatory data source wired up yet — placeholder list
-// so the dropdown is usable in the meantime. Swap for a real fetch
-// (e.g. an accounts role, or a dedicated signatories collection) once
-// that's decided.
-const SAMPLE_SIG_OPTIONS = ["JJP", "ARB", "MCL"];
 
 const FREQUENCY_OPTIONS = ["1 Year", "6 Months", "3 Months", "2 Years"];
 
@@ -930,15 +1025,41 @@ const dataUrlToBlob = async (dataUrl) => {
   return res.blob();
 };
 
+// Reads a fetch Response as text first, then tries JSON. multer
+// rejections (e.g. unsupported file type) come back as an HTML error
+// page, not JSON, so res.json() alone would hide the real reason.
+const readUploadResponse = async (res) => {
+  const raw = await res.text();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {
+      message: raw
+        .replace(/<[^>]+>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 200),
+    };
+  }
+};
+
+// File types accepted by the "Upload Report" button. Later stages
+// (Check and Sign, Print Final) only work on Excel workbooks.
+const REPORT_ACCEPT = ".xlsx,.xls";
+
 /**
  * ForTypingDetailsModal
  *
- * Read-only "draft report" review screen. Originally built for
- * ForTyping.jsx, but reused across other post-calibration report stages
- * (e.g. ForCheckingOIC.jsx) via the `title` / button-label props below,
- * since the layout (read-only snapshot of a job's calibration details,
- * plus Calibration Standard grid) is identical at each stage — only the
- * header title and footer action labels change.
+ * "Draft report" review screen. Originally built for ForTyping.jsx, but
+ * reused across other post-calibration report stages (e.g.
+ * ForCheckingOIC.jsx) via the `title` / button-label props below.
+ *
+ * Calibration data: the readings / uncertainty inputs entered back in
+ * Incoming Calibration arrive on jobForm.calibrationData. "Open
+ * Calibration Data" opens CalibrationDataModal pre-filled with it so it
+ * can be reviewed and edited here; edits are pushed up through
+ * onFieldChange("calibrationData", ...) and only persisted by the parent
+ * when "Save and Auto Backup" is confirmed.
  *
  * EXCEPTION: jobs that originated from Site Calibration (identified by
  * jobForm.scId being present) skip Incoming Calibration and On-Going
@@ -958,55 +1079,49 @@ const ForTypingDetailsModal = ({
   onOpenCalProcedureLookup,
   onFieldChange,
   title = "DRAFT REPORT FOR TYPING",
-  primaryButtonLabel = "Download and Update Report",
-  secondaryButtonLabel = "Upload and Auto Backup",
-  // Appended to the downloaded filled-template filename, e.g.
-  // "SSS-0001-26 - For Typing.xlsx". Left blank by default so a caller
-  // that doesn't pass one gets the plain job-number filename. Each
-  // stage's parent screen passes its own label in (see ForTyping.jsx).
-  downloadLabel = "",
+  primaryButtonLabel = "Open Calibration Data",
+  secondaryButtonLabel = "Save and Auto Backup",
+  // Used in the auto-backup filename, e.g.
+  // "SSS-0001-26 - For Typing.json". Each stage's parent screen passes
+  // its own label in (see ForTyping.jsx).
+  downloadLabel = "For Typing",
 }) => {
-  // Site Calibration jobs carry an scId (stamped on save in
-  // AddSiteCalibrationModal.jsx) and never pass through Incoming/
-  // On-Going Calibration, so this screen is their first chance to have
-  // these fields filled in — hence editable here, unlike the normal
-  // read-only review flow.
   const isSiteCalibrationJob = Boolean(jobForm.scId);
 
   const handleChange = (field) => (e) => {
     onFieldChange?.(field, e.target.value);
   };
 
-  // OIC options — accounts with a technician role, same fetch pattern as
-  // AddSiteCalibrationModal.jsx's fetchTechnicians. Only fetched for
-  // Site Calibration jobs since that's the only case OIC becomes a
-  // dropdown instead of a disabled input.
-  const [technicianOptions, setTechnicianOptions] = useState([]);
+  // --- Accounts ------------------------------------------------------
+  // One fetch, three uses:
+  //   - technician accounts -> OIC dropdown (Site Calibration jobs only)
+  //   - technician + admin accounts -> SIG dropdown (Site Calibration jobs)
+  //   - all accounts -> resolving OIC / SIG initials into full names on
+  //     the certificate preview inside CalibrationDataModal
+  const [accounts, setAccounts] = useState([]);
 
   useEffect(() => {
-    if (!isSiteCalibrationJob) return;
     let cancelled = false;
-
-    const fetchTechnicians = async () => {
+    (async () => {
       try {
         const res = await fetch(`${API}/api/accounts`);
         if (!res.ok) return;
-        const accounts = await res.json();
-        const technicians = (Array.isArray(accounts) ? accounts : []).filter(
-          (acc) => acc.role === "technician",
-        );
-        if (!cancelled) setTechnicianOptions(technicians);
+        const data = await res.json();
+        if (!cancelled) setAccounts(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Failed to fetch technicians:", err);
-        if (!cancelled) setTechnicianOptions([]);
+        console.error("Failed to fetch accounts:", err);
+        if (!cancelled) setAccounts([]);
       }
-    };
-
-    fetchTechnicians();
+    })();
     return () => {
       cancelled = true;
     };
-  }, [isSiteCalibrationJob]);
+  }, []);
+
+  const technicianOptions = accounts.filter((a) => a.role === "technician");
+  const signerOptions = accounts.filter(
+    (a) => a.role === "technician" || a.role === "admin",
+  );
 
   // Site Calibration jobs default Date Cal to today and Date Due to one
   // month later — only when those fields are still empty, so this never
@@ -1020,8 +1135,6 @@ const ForTypingDetailsModal = ({
         onFieldChange?.("dateDue", addOneMonthISO(today));
       }
     }
-    // Only re-run when the job itself changes (not on every keystroke) —
-    // deliberately omitting jobForm.dateCal/onFieldChange from deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSiteCalibrationJob, jobForm.jobNumber]);
 
@@ -1035,9 +1148,7 @@ const ForTypingDetailsModal = ({
     onFieldChange?.("dateDue", addOneMonthISO(value));
   };
 
-  // Con Cert options — contact names for this job's company, fetched the
-  // same way AddSiteCalibrationModal.jsx does. Requires customerId to be
-  // carried through onto the job record (see ForTyping.jsx's mapping).
+  // Con Cert options — contact names for this job's company.
   const [contactOptions, setContactOptions] = useState([]);
 
   useEffect(() => {
@@ -1081,12 +1192,7 @@ const ForTypingDetailsModal = ({
   };
 
   // OPEN FOLDER — shows every file (equipment photos + documents)
-  // already stored under this job number's Cloudinary folder, same
-  // JobFolderModal design used from JobNumberModal's "Open Folder"
-  // button elsewhere in the app. onOpenFolder (if passed in) still
-  // fires first, in case the parent screen needs to do something of
-  // its own (e.g. logging/analytics) — but showing the modal no longer
-  // depends on the parent actually doing anything with it.
+  // already stored under this job number's Cloudinary folder.
   const [showFolder, setShowFolder] = useState(false);
 
   const handleOpenFolderClick = () => {
@@ -1095,11 +1201,6 @@ const ForTypingDetailsModal = ({
   };
 
   // --- Validation / info dialog --------------------------------------
-  // Lightweight local dialog, same shape/behavior as the one in
-  // IncomingCalibDetailsModal, just scoped to this modal's own
-  // download/upload validation (missing fields, missing template,
-  // failed download, wrong file type, failed upload) since this modal
-  // doesn't otherwise need a confirm/cancel flow of its own.
   const [dialog, setDialog] = useState({
     show: false,
     title: "",
@@ -1113,26 +1214,10 @@ const ForTypingDetailsModal = ({
   };
 
   // --- Equipment photo capture ---------------------------------------
-  // Unlike IncomingCalibDetailsModal, this screen doesn't display a
-  // photo carousel of its own — captured photos are only ever viewed
-  // via "Open Folder" (ReceiptFolderModal, below). So this doesn't need
-  // to track a photoUrls array in local state; it just needs the photo
-  // to actually reach Cloudinary the moment it's taken.
-  //
-  // Previously the "Open Camera" button called onOpenCamera directly as
-  // its onClick — no await, no result handling, and no camera UI
-  // rendered anywhere in this file. Whether that did anything at all
-  // depended entirely on ForTyping.jsx (the parent) implementing the
-  // full open -> capture -> upload chain itself. This modal now owns
-  // that chain directly instead: it opens CameraCaptureModal itself,
-  // and on capture, uploads each photo straight to
-  // POST /api/uploads/equipment-photo/:jobNumber (same route
-  // IncomingCalibDetailsModal now uses) so photos are saved
-  // server-side immediately, regardless of what the user does
-  // afterward. onOpenCamera is still called first, if passed, purely
-  // so a parent that wants to know "camera was opened" (e.g. for
-  // logging) still can — but nothing here depends on it doing more
-  // than that.
+  // This modal owns the open -> capture -> upload chain: it opens
+  // CameraCaptureModal itself, and on capture uploads each photo straight
+  // to POST /api/uploads/equipment-photo/:jobNumber so photos are saved
+  // server-side immediately. Captured photos are viewed via "Open Folder".
   const [showCamera, setShowCamera] = useState(false);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
 
@@ -1186,22 +1271,16 @@ const ForTypingDetailsModal = ({
     setShowCamera(false);
   };
 
-  // --- Download the template, filled with this job's data -----------
-  // Pulls whichever template is currently attached to the job record as
-  // calibrationProcedureTemplate — i.e. the LAST version re-uploaded
-  // during an earlier stage (Incoming Calibration / On-Going
-  // Calibration), since each re-upload there overwrites that field with
-  // the new version before the job is saved forward. This modal never
-  // re-uploads anything itself; it only reads whatever was carried over
-  // by the parent screen's fetch (see ForTyping.jsx), so there's no
-  // "old vs new" ambiguity to resolve here — there's exactly one
-  // template on the record, and it's always the most recent one.
-  const [isDownloading, setIsDownloading] = useState(false);
+  // --- Calibration data (replaces the xlsx download) -----------------
+  const [showCalibData, setShowCalibData] = useState(false);
+  const hasCalibrationData = Boolean(jobForm.calibrationData?.savedAt);
 
-  const handleDownloadClick = async () => {
+  const handleOpenCalibData = () => {
     const missing = [];
 
-    if (!jobForm.calibrationProcedure?.trim()) {
+    // Site Calibration jobs can't edit the procedure here (the field is
+    // read-only), so it isn't required for them.
+    if (!isSiteCalibrationJob && !jobForm.calibrationProcedure?.trim()) {
       missing.push("Calibration Procedure");
     }
 
@@ -1217,147 +1296,115 @@ const ForTypingDetailsModal = ({
         "Missing Information",
         `The ${missing.join(" and ")} ${
           missing.length > 1 ? "are" : "is"
-        } missing from this job's record, so a template can't be downloaded.`,
+        } missing from this job's record, so the calibration data can't be opened.`,
       );
       return;
     }
 
-    const template = jobForm.calibrationProcedureTemplate;
-    if (!template?.publicId) {
-      showError(
-        "Template Not Found",
-        "No downloadable file is linked to this calibration procedure.",
-      );
-      return;
-    }
-
-    // Filename is the job number, not the template's code — e.g.
-    // "SSS-0001-26.xlsx" instead of "SSS-CP-020.xlsx". Slashes are
-    // swapped for dashes since job numbers are often formatted like
-    // "SSS/0001/26", and a raw "/" would both break the filename and
-    // corrupt the Content-Disposition header. Extension comes from the
-    // template so the downloaded file still opens correctly.
-    const ext = template.format ? `.${template.format}` : "";
-    const safeJobNumber = (jobForm.jobNumber || "job").replace(/[\\/]/g, "-");
-    const baseName = downloadLabel
-      ? `${safeJobNumber} - ${downloadLabel}`
-      : safeJobNumber;
-    const filename = `${baseName}${ext}`;
-
-    setIsDownloading(true);
-    try {
-      const res = await fetch(`${API}/api/uploads/templates/download-filled`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          publicId: template.publicId,
-          filename,
-          jobData: {
-            jobNumber: jobForm.jobNumber,
-            companyName: jobForm.companyName,
-            companyAddress: jobForm.companyAddress,
-            description: jobForm.description,
-            brand: jobForm.brand,
-            model: jobForm.model,
-            serialNo: jobForm.serialNo,
-            dateRec: jobForm.dateRec,
-            dateCal: jobForm.dateCal,
-            dateDue: jobForm.dateDue,
-            contactCert: jobForm.contactCert,
-            oicBy: jobForm.oicBy,
-            sig: jobForm.sig,
-            calibrationStandards,
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || `Download failed with ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      // Let the parent screen react to a completed download (e.g. any
-      // logging/analytics it wants to attach to this stage) without
-      // this modal needing to know what that is.
-      onOpenAndUpdateReport?.();
-    } catch (err) {
-      console.error("Failed to download filled template:", err);
-      showError(
-        "Download Failed",
-        "The template could not be downloaded. Please try again.",
-      );
-    } finally {
-      setIsDownloading(false);
-    }
+    onOpenAndUpdateReport?.();
+    setShowCalibData(true);
   };
 
-  // --- Upload the filled-in template back, then hand off to the parent
-  // screen's move-to-next-stage flow --------------------------------
-  // "Upload and Auto Backup" now does two things in sequence:
-  //   1. Uploads the file the user picks (the template they downloaded
-  //      via Download, presumably filled in / signed) into this job's
-  //      Cloudinary documents folder — cdms/job-numbers/<jobNumber>/
-  //      documents — using the same POST /api/uploads/job-document/:jobNumber
-  //      route JobNumberModal's "Upload PDF" button uses. That folder is
-  //      exactly what JobFolderModal (Open Folder / View Files) reads
-  //      from, so the uploaded copy shows up there automatically — no
-  //      extra field needs to be saved on the job record for it to be
-  //      visible.
-  //   2. Only once that upload succeeds does it call onSaveAndAutoBackup
-  //      (unchanged from before) — which is what actually triggers the
-  //      parent screen's confirm dialog and the update-details PUT that
-  //      moves the job on to For Checking OIC (see ForTyping.jsx).
-  // If the upload fails, onSaveAndAutoBackup is never called, so a
-  // failed backup can't silently still move the job forward.
-  //
-  // Restricted to .xlsx only — every downstream stage (this modal's own
-  // download-filled, and For Checking OIC's Check and Sign Report) reads
-  // this file back with ExcelJS, which can't open legacy .xls, and
-  // .doc/.docx/.pdf were never actually usable here either. The picker
-  // itself is filtered via `accept`, but that's advisory only (some OS
-  // file dialogs let the user override it), so the extension is checked
-  // again below before anything is uploaded.
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  // Edits go up to the parent's local state only; they're persisted when
+  // the parent's "Save and Auto Backup" confirmation fires.
+  const handleSaveCalibrationData = (data) => {
+    onFieldChange?.("calibrationData", data);
+    setShowCalibData(false);
+  };
 
-  const handleUploadButtonClick = () => {
+  // --- Save and Auto Backup -----------------------------------------
+  // 1. Builds a backup file from the (possibly edited) calibration data
+  //    and uploads it into this job's Cloudinary documents folder —
+  //    cdms/job-numbers/<jobNumber>/documents — via the same
+  //    POST /api/uploads/job-document/:jobNumber route used before, so it
+  //    shows up in Open Folder / View Files automatically.
+  // 2. Only once that upload succeeds does it call onSaveAndAutoBackup,
+  //    which makes the parent show its confirm dialog and PUT the job
+  //    (including calibrationData) on to For Checking OIC. If the backup
+  //    fails, the job is never moved forward.
+  const [isBackingUp, setIsBackingUp] = useState(false);
+
+  // --- Upload Report ---------------------------------------------------
+  // Lets the typist upload the finished report workbook straight into
+  // this job's Cloudinary documents folder. Needed for jobs that came
+  // from Site Calibration: they skip Incoming / On-Going Calibration, so
+  // there's no calibration data from earlier stages and the report is
+  // prepared outside CDMS. Uses the same POST
+  // /api/uploads/job-document/:jobNumber route as the auto-backup, and the
+  // upload becomes "the current working document" that Check and Sign
+  // picks up later (the .json backup is ignored by that lookup).
+  const reportInputRef = useRef(null);
+  const [isUploadingReport, setIsUploadingReport] = useState(false);
+  const [uploadedReportName, setUploadedReportName] = useState("");
+
+  // A report may already be in this job's documents folder from an
+  // earlier session (e.g. the typist uploaded it, closed the modal, and
+  // came back). Check the folder on open so that job isn't forced to
+  // upload the same file again.
+  const [existingReportName, setExistingReportName] = useState("");
+
+  useEffect(() => {
+    if (!jobForm.jobNumber) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `${API}/api/uploads/job-folder/${encodeURIComponent(
+            jobForm.jobNumber,
+          )}/files`,
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        const report = (data.files || []).find((f) => {
+          const format = (f.format || "").toLowerCase();
+          const inDocuments =
+            (f.folder || "").endsWith("/documents") ||
+            (f.publicId || "").includes("/documents/");
+          return inDocuments && (format === "xlsx" || format === "xls");
+        });
+        if (!cancelled && report) {
+          setExistingReportName(report.publicId.split("/").pop());
+        }
+      } catch (err) {
+        console.error("Failed to check for an existing report:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobForm.jobNumber]);
+
+  const hasReport = Boolean(uploadedReportName || existingReportName);
+
+  const handleUploadReportClick = () => {
     if (!jobForm.jobNumber) {
       showError(
         "No Job Number",
-        "This record has no job number yet, so a file can't be uploaded.",
+        "This record has no job number yet, so a report can't be uploaded.",
       );
       return;
     }
-    fileInputRef.current?.click();
+    reportInputRef.current?.click();
   };
 
-  const handleFileSelected = async (e) => {
+  const handleReportSelected = async (e) => {
     const file = e.target.files?.[0];
-    // Reset immediately so selecting the same file again later (e.g.
-    // after a failed upload) still fires onChange.
+    // Reset so picking the same file again still fires onChange.
     e.target.value = "";
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith(".xlsx")) {
-      const ext = file.name.match(/\.[^/.]+$/)?.[0] || "this format";
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xls")) {
       showError(
-        "Wrong File Type",
-        `"${file.name}" is ${ext}, not .xlsx. When saving in Excel, make sure the format is set to "Excel Workbook (.xlsx)" — not "Excel 97-2003 Workbook (.xls)" — then try uploading again.`,
+        "Unsupported File",
+        "Please upload the report as an Excel file (.xlsx or .xls).",
       );
       return;
     }
 
-    setIsUploading(true);
+    setIsUploadingReport(true);
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -1366,28 +1413,121 @@ const ForTypingDetailsModal = ({
         `${API}/api/uploads/job-document/${encodeURIComponent(
           jobForm.jobNumber,
         )}`,
-        {
-          method: "POST",
-          body: formData,
-        },
+        { method: "POST", body: formData },
       );
-
-      const data = await res.json().catch(() => ({}));
+      const data = await readUploadResponse(res);
       if (!res.ok || !data.success) {
         throw new Error(data.message || `Upload failed with ${res.status}`);
       }
 
-      // Upload succeeded — proceed to the existing "move to For
-      // Checking OIC" confirmation flow in the parent screen.
-      onSaveAndAutoBackup?.();
+      setUploadedReportName(file.name);
     } catch (err) {
-      console.error("Failed to upload backup file:", err);
+      console.error("Failed to upload report:", err);
       showError(
         "Upload Failed",
-        "The file could not be uploaded. Please try again.",
+        `The report could not be uploaded. ${
+          err.message || "Please try again."
+        }`,
       );
     } finally {
-      setIsUploading(false);
+      setIsUploadingReport(false);
+    }
+  };
+
+  // Save and Auto Backup needs something for the OIC to check and sign:
+  //   - saved calibration data (the OIC sees it as the certificate, with
+  //     their signature above the OIC name), or
+  //   - for Site Calibration jobs only, an uploaded .xlsx report — those
+  //     jobs are prepared outside CDMS, so they may have no calibration
+  //     data at all. The OIC then signs the uploaded workbook instead.
+  const canSaveAndBackup =
+    hasCalibrationData || (isSiteCalibrationJob && hasReport);
+
+  const buildBackupFile = () => {
+    const safeJobNumber = (jobForm.jobNumber || "job").replace(/[\\/]/g, "-");
+    const baseName = downloadLabel
+      ? `${safeJobNumber} - ${downloadLabel}`
+      : safeJobNumber;
+
+    const snapshot = {
+      jobNumber: jobForm.jobNumber,
+      stage: downloadLabel || "For Typing",
+      backedUpAt: new Date().toISOString(),
+      backedUpBy: sessionStorage.getItem("username") || "",
+      job: {
+        companyName: jobForm.companyName,
+        companyAddress: jobForm.companyAddress,
+        contactName: jobForm.contactName,
+        description: jobForm.description,
+        brand: jobForm.brand,
+        model: jobForm.model,
+        serialNo: jobForm.serialNo,
+        dateRec: jobForm.dateRec,
+        dateCal: jobForm.dateCal,
+        dateDue: jobForm.dateDue,
+        oicBy: jobForm.oicBy,
+        sig: jobForm.sig,
+        calibrationProcedure: jobForm.calibrationProcedure,
+        calibrationStandards: jobForm.calibrationStandards,
+      },
+      calibrationData: jobForm.calibrationData,
+    };
+
+    return new File([JSON.stringify(snapshot, null, 2)], `${baseName}.json`, {
+      type: "application/json",
+    });
+  };
+
+  const handleSaveAndAutoBackupClick = async () => {
+    if (!jobForm.jobNumber) {
+      showError(
+        "No Job Number",
+        "This record has no job number yet, so a backup can't be saved.",
+      );
+      return;
+    }
+    if (!canSaveAndBackup) {
+      showError(
+        "Calibration Data Required",
+        isSiteCalibrationJob
+          ? "Open and save the calibration data, or upload the report (.xlsx), before using Save and Auto Backup."
+          : "Open the calibration data and save it before using Save and Auto Backup.",
+      );
+      return;
+    }
+
+    setIsBackingUp(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", buildBackupFile());
+
+      // The server turns this JSON snapshot into an .xlsx workbook and
+      // stores it in the job's "backups" folder (not "documents", so it
+      // can never be mistaken for the working report).
+      const res = await fetch(
+        `${API}/api/uploads/job-backup/${encodeURIComponent(
+          jobForm.jobNumber,
+        )}`,
+        { method: "POST", body: formData },
+      );
+
+      const data = await readUploadResponse(res);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || `Upload failed with ${res.status}`);
+      }
+
+      onSaveAndAutoBackup?.();
+    } catch (err) {
+      console.error("Failed to back up calibration data:", err);
+      showError(
+        "Backup Failed",
+        `The backup copy could not be saved. ${
+          err.message || "Please try again."
+        }`,
+      );
+    } finally {
+      setIsBackingUp(false);
     }
   };
 
@@ -1498,17 +1638,14 @@ const ForTypingDetailsModal = ({
                             ? "Select technician..."
                             : "No technicians found"}
                         </option>
-                        {technicianOptions.map((tech) => {
-                          const label = tech.username;
-                          return (
-                            <option
-                              key={tech._id || tech.username}
-                              value={label}
-                            >
-                              {label}
-                            </option>
-                          );
-                        })}
+                        {technicianOptions.map((tech) => (
+                          <option
+                            key={tech._id || tech.username}
+                            value={tech.username}
+                          >
+                            {tech.username}
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       <input type="text" value={jobForm.oicBy || ""} disabled />
@@ -1522,9 +1659,9 @@ const ForTypingDetailsModal = ({
                         onChange={handleChange("sig")}
                       >
                         <option value="">Select...</option>
-                        {SAMPLE_SIG_OPTIONS.map((name) => (
-                          <option key={name} value={name}>
-                            {name}
+                        {signerOptions.map((u) => (
+                          <option key={u._id || u.username} value={u.username}>
+                            {u.username} — {u.name}
                           </option>
                         ))}
                       </select>
@@ -1765,44 +1902,59 @@ const ForTypingDetailsModal = ({
 
               {/* FOOTER ACTIONS */}
               <div className="ftd-footer">
-                <button
-                  type="button"
-                  className="ftd-primary-btn"
-                  onClick={handleDownloadClick}
-                  disabled={isDownloading || isSiteCalibrationJob}
-                  title={
-                    isSiteCalibrationJob
-                      ? "Not available for jobs from Site Calibration"
-                      : "Download the calibration procedure template (last re-uploaded version), filled with this job's data"
-                  }
-                  style={
-                    isSiteCalibrationJob
-                      ? { opacity: 0.5, cursor: "not-allowed" }
-                      : {}
-                  }
-                >
-                  {isDownloading ? "Preparing..." : primaryButtonLabel}
-                </button>
-                <div className="ftd-footer-right">
-                  {/* Hidden file input — opened by the visible button
-                      below via fileInputRef, so the actual OS file
-                      picker UI stays native instead of building a
-                      custom one. Restricted to .xlsx — see the comment
-                      above handleFileSelected. */}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelected}
-                    accept=".xlsx"
-                    style={{ display: "none" }}
-                  />
+                <div className="ftd-footer-left">
                   <button
                     type="button"
-                    onClick={handleUploadButtonClick}
-                    disabled={isUploading}
-                    title="Upload the filled-in template as this job's backup copy, then send it to For Checking OIC"
+                    className="ftd-primary-btn"
+                    onClick={handleOpenCalibData}
+                    title="Review and edit the calibration data, and preview the certificate"
                   >
-                    {isUploading ? "Uploading..." : secondaryButtonLabel}
+                    {hasCalibrationData
+                      ? `✓ ${primaryButtonLabel}`
+                      : primaryButtonLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUploadReportClick}
+                    disabled={isUploadingReport || !jobForm.jobNumber}
+                    title={
+                      hasReport
+                        ? `Report on file: ${
+                            uploadedReportName || existingReportName
+                          } (click to upload a newer one)`
+                        : "Optional: upload the finished report (.xlsx / .xls) to this job's files. Site Calibration jobs can use it instead of calibration data."
+                    }
+                  >
+                    {isUploadingReport
+                      ? "Uploading..."
+                      : hasReport
+                        ? "✓ Upload Report"
+                        : "Upload Report"}
+                  </button>
+                  <input
+                    ref={reportInputRef}
+                    type="file"
+                    accept={REPORT_ACCEPT}
+                    style={{ display: "none" }}
+                    onChange={handleReportSelected}
+                  />
+                </div>
+                <div className="ftd-footer-right">
+                  <button
+                    type="button"
+                    onClick={handleSaveAndAutoBackupClick}
+                    disabled={
+                      isBackingUp || isUploadingReport || !canSaveAndBackup
+                    }
+                    title={
+                      canSaveAndBackup
+                        ? "Back up this job's data to its files, then send it to For Checking OIC"
+                        : isSiteCalibrationJob
+                          ? "Open and save the calibration data, or upload the report, first"
+                          : "Open and save the calibration data first"
+                    }
+                  >
+                    {isBackingUp ? "Backing up..." : secondaryButtonLabel}
                   </button>
                   <button type="button" onClick={onClose}>
                     Exit
@@ -1815,6 +1967,19 @@ const ForTypingDetailsModal = ({
         document.body,
       )}
 
+      {/* CALIBRATION DATA — pre-filled from Incoming / On-Going
+          Calibration; edits are saved back through onFieldChange. */}
+      {showCalibData && (
+        <CalibrationDataModal
+          job={jobForm}
+          standards={jobForm.calibrationStandards || []}
+          accounts={accounts}
+          initialData={jobForm.calibrationData}
+          onSave={handleSaveCalibrationData}
+          onCancel={() => setShowCalibData(false)}
+        />
+      )}
+
       {/* JOB FOLDER MODAL — lists every file Cloudinary has for this job
           number (equipment photos + documents), fetched fresh on open. */}
       {showFolder && jobForm.jobNumber && (
@@ -1824,12 +1989,6 @@ const ForTypingDetailsModal = ({
         />
       )}
 
-      {/* CAMERA MODAL — captures 1+ photos, each uploaded straight to
-          this job's Cloudinary equipment-photos folder on capture (see
-          handleCameraCapture above). Nothing here needs to hold onto
-          the returned URLs locally since this screen has no photo
-          carousel of its own — captured photos are visible afterward
-          via "Open Folder" above. */}
       {showCamera && (
         <CameraCaptureModal
           onClose={handleCameraClose}

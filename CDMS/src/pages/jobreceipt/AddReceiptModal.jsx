@@ -1041,7 +1041,7 @@ const AddReceiptModal = ({
                       : {}
                   }
                 >
-                  Open Folder
+                  View Files
                 </button>
 
                 <button

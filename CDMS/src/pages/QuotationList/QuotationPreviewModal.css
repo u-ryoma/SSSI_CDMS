@@ -1,0 +1,107 @@
+.qpm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 18, 36, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000; /* above AddQuotationModal */
+}
+
+.qpm-modal {
+  width: min(920px, 96vw);
+  height: 94vh;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.qpm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: #f4f6fa;
+  border-bottom: 1px solid #d9dee8;
+  flex: 0 0 auto;
+}
+.qpm-toolbar-group {
+  display: flex;
+  gap: 4px;
+}
+.qpm-toolbar-spacer {
+  flex: 1 1 auto;
+}
+.qpm-tool {
+  width: 30px;
+  height: 28px;
+  border: 1px solid #c3cada;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.qpm-tool:hover {
+  background: #e8eefc;
+}
+.qpm-hint {
+  font-size: 12px;
+  color: #5a6478;
+}
+
+.qpm-warning {
+  background: #fff4e0;
+  color: #8a5a00;
+  border-bottom: 1px solid #f0d49a;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  flex: 0 0 auto;
+}
+
+/* grey "desk" the paper sits on */
+.qpm-scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: #8b93a3;
+  padding: 22px 0;
+}
+.qpm-scroll .qp-page {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.qpm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f4f6fa;
+  border-top: 1px solid #d9dee8;
+  flex: 0 0 auto;
+}
+
+.qpm-btn {
+  padding: 6px 16px;
+  border: 1px solid #b8c0d0;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.qpm-btn:hover:not(:disabled) {
+  background: #eef2fb;
+}
+.qpm-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.qpm-btn-primary {
+  background: #1f4fb0;
+  border-color: #1f4fb0;
+  color: #fff;
+}
+.qpm-btn-primary:hover:not(:disabled) {
+  background: #173f91;
+}

@@ -11,6 +11,13 @@
 //     incomingCalibration: null,
 //     ongoingCalibration: null,
 //     instrumentTag: null,
+//     siteCalibration: null,
+//     incomingConcern: null,
+//     outgoingConcern: null,
+//     forTyping: null,
+//     forCheckingOIC: null,
+//     forCheckingSig: null,
+//     forPrintFinal: null,
 //   });
 //   const [statsError, setStatsError] = useState("");
 //   const [statsLoading, setStatsLoading] = useState(true);
@@ -91,6 +98,13 @@
 //         incomingCalibration: data.incomingCalibration ?? 0,
 //         ongoingCalibration: data.ongoingCalibration ?? 0,
 //         instrumentTag: data.instrumentTag ?? 0,
+//         siteCalibration: data.siteCalibration ?? 0,
+//         incomingConcern: data.incomingConcern ?? 0,
+//         outgoingConcern: data.outgoingConcern ?? 0,
+//         forTyping: data.forTyping ?? 0,
+//         forCheckingOIC: data.forCheckingOIC ?? 0,
+//         forCheckingSig: data.forCheckingSig ?? 0,
+//         forPrintFinal: data.forPrintFinal ?? 0,
 //       });
 //       setStatsError("");
 //     } catch (err) {
@@ -116,6 +130,41 @@
 //       label: "On Going Calibration",
 //       value: stats.ongoingCalibration,
 //       color: "#f59e0b",
+//     },
+//     {
+//       label: "Site Calibration",
+//       value: stats.siteCalibration,
+//       color: "#8b5cf6",
+//     },
+//     {
+//       label: "Incoming Concern",
+//       value: stats.incomingConcern,
+//       color: "#ef4444",
+//     },
+//     {
+//       label: "Outgoing Concern",
+//       value: stats.outgoingConcern,
+//       color: "#dc2626",
+//     },
+//     {
+//       label: "For Typing",
+//       value: stats.forTyping,
+//       color: "#06b6d4",
+//     },
+//     {
+//       label: "For Checking OIC",
+//       value: stats.forCheckingOIC,
+//       color: "#0ea5e9",
+//     },
+//     {
+//       label: "For Checking SIG",
+//       value: stats.forCheckingSig,
+//       color: "#6366f1",
+//     },
+//     {
+//       label: "For Print Final",
+//       value: stats.forPrintFinal,
+//       color: "#84cc16",
 //     },
 //   ];
 
@@ -200,6 +249,7 @@
 //   );
 // }
 import { useState, useEffect } from "react";
+import { STATS_REFRESH_EVENT } from "../utils/statsRefresh"; // adjust path if needed
 
 export default function RightPanel() {
   const [activeUsers, setActiveUsers] = useState([]);
@@ -225,14 +275,34 @@ export default function RightPanel() {
 
   useEffect(() => {
     loadCurrentlyLoggedIn();
-    loadStats();
+    loadStats(true); // show "…" only on the first load
 
     const logInterval = setInterval(loadCurrentlyLoggedIn, 35000);
-    const statsInterval = setInterval(loadStats, 35000);
+    const statsInterval = setInterval(() => loadStats(), 35000);
+
+    // Refresh right after any successful save (debounced so a burst = 1 refresh)
+    let refreshTimer;
+    const onStatsRefresh = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => loadStats(), 400);
+    };
+    window.addEventListener(STATS_REFRESH_EVENT, onStatsRefresh);
+
+    // Refresh when the user comes back to this tab
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        loadStats();
+        loadCurrentlyLoggedIn();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       clearInterval(logInterval);
       clearInterval(statsInterval);
+      clearTimeout(refreshTimer);
+      window.removeEventListener(STATS_REFRESH_EVENT, onStatsRefresh);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
@@ -281,9 +351,9 @@ export default function RightPanel() {
   // ==========================
   // LOAD STATS FROM /api/stats/dashboard
   // ==========================
-  async function loadStats() {
+  async function loadStats(showLoading = false) {
     try {
-      setStatsLoading(true);
+      if (showLoading) setStatsLoading(true);
 
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/stats/dashboard`,

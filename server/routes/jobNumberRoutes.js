@@ -563,7 +563,6 @@ router.put("/update-details", async (req, res) => {
   try {
     const db = getDb();
     const { jobNumber, ...updateData } = req.body;
-    console.log("updateData.photoUrl:", updateData.photoUrl); // temp check
 
     // Snapshot BEFORE the update so we can tell which flags actually changed
     const before = await db.collection("jobnumbers").findOne({ jobNumber });

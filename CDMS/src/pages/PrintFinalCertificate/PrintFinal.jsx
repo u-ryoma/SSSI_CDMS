@@ -79,9 +79,13 @@
 //                 oicBy: job.oicBy || "",
 //                 oicCheckedBy: job.oicCheckedBy || "",
 //                 priority: job.priority || "Normal",
-//                 dateRec: receipt.date || "",
-//                 companyName: receipt.companyName || "",
-//                 contactName: receipt.contactName || "",
+//                 // from receipt — falls back to the job's own date/companyName
+//                 // for jobs that have no jobReceiptID (e.g. jobs added from
+//                 // Site Calibration, which don't go through Job Receipt but
+//                 // carry date/companyName directly on the job record).
+//                 dateRec: receipt.date || job.date || "",
+//                 companyName: receipt.companyName || job.companyName || "",
+//                 contactName: receipt.contactName || job.contactName || "",
 //                 typedBy: job.typedBy || "",
 
 //                 // ---- extra fields needed by ForPrintFinalDetailsModal ----
@@ -216,8 +220,8 @@
 //           onKeyDown={handleSearchKeyDown}
 //         />
 
-//         <button>Re-Log</button>
-//         <button>Quick Log</button>
+//         {/* <button>Re-Log</button>
+//         <button>Quick Log</button> */}
 //         <button onClick={handleRefresh}>Refresh</button>
 //       </div>
 
@@ -354,8 +358,8 @@ const PrintFinal = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  // Local "printed" gate — true once Print Final Certificate has been
-  // clicked for the currently open record. Controls whether the
+  // Local "printed" gate — true once the certificate has been printed /
+  // saved as PDF for the currently open record. Controls whether the
   // Update button is enabled. Not persisted to the backend; resets
   // whenever a (new) modal is opened or closed.
   const [isPrinted, setIsPrinted] = useState(false);
@@ -422,6 +426,8 @@ const PrintFinal = () => {
                 typedBy: job.typedBy || "",
 
                 // ---- extra fields needed by ForPrintFinalDetailsModal ----
+                scId: job.scId || null,
+                customerId: job.customerId || null,
                 sig: job.sig || "",
                 frequency: job.frequency || "",
                 contactCert: job.contactCert || "",
@@ -429,6 +435,16 @@ const PrintFinal = () => {
                 range: job.range || "",
                 dateCal: job.dateCal || "",
                 dateDue: job.dateDue || "",
+                accreditationLogo: job.accreditationLogo || "with",
+                calibrationProcedure: job.calibrationProcedure || "",
+                calibrationStandards: job.calibrationStandards || [],
+                // The saved calibration data the signed certificate is
+                // built from (printed / saved as PDF by "Print Certificate
+                // & PDF File").
+                calibrationData: job.calibrationData || null,
+                // Needed for the certificate's "Submitted By" block.
+                companyAddress:
+                  receipt.companyAddress || job.companyAddress || "",
 
                 // keep the raw job/receipt around in case the modal
                 // or its handlers need something not mapped above
@@ -479,18 +495,19 @@ const PrintFinal = () => {
     setIsPrinted(false);
   };
 
-  // "Print Final Certificate & Print PDF File" doesn't touch the
-  // backend or move the job. It's a local confirmation gate that
-  // unlocks the Update button for this record.
+  // Called by the details modal once the certificate has been printed /
+  // saved as PDF. It doesn't touch the backend or move the job — it's a
+  // local confirmation gate that unlocks the Update button for this
+  // record.
   const handlePrintFinalCertificate = () => {
-    // TODO: hook up actual PDF generation / print flow here
     setIsPrinted(true);
   };
 
   // "Update" is what actually persists the move: stamp the final
   // certificate print date and who printed it, tag the job as ready
   // for the next stage (Delivery Receipt), then drop it out of this
-  // table and close.
+  // table and close. The details modal only calls this after the PDF
+  // upload succeeded and the user confirmed.
   const handleUpdate = async () => {
     if (!selectedJob) return;
     try {
