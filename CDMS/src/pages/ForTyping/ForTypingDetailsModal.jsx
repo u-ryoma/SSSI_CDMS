@@ -1901,6 +1901,7 @@ const ForTypingDetailsModal = ({
               </div>
 
               {/* FOOTER ACTIONS */}
+              {/* FOOTER ACTIONS */}
               <div className="ftd-footer">
                 <div className="ftd-footer-left">
                   <button
@@ -1913,6 +1914,9 @@ const ForTypingDetailsModal = ({
                       ? `✓ ${primaryButtonLabel}`
                       : primaryButtonLabel}
                   </button>
+                </div>
+
+                <div className="ftd-footer-right">
                   <button
                     type="button"
                     onClick={handleUploadReportClick}
@@ -1938,8 +1942,6 @@ const ForTypingDetailsModal = ({
                     style={{ display: "none" }}
                     onChange={handleReportSelected}
                   />
-                </div>
-                <div className="ftd-footer-right">
                   <button
                     type="button"
                     onClick={handleSaveAndAutoBackupClick}

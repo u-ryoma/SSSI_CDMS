@@ -261,6 +261,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AssignTechnicianModal from "./AssignTechnicianModal";
 import AutoScheduleModal from "./AutoScheduleModal";
+import { authHeaders, canEditSchedule } from "../../utils/auth";
 import "./SchedMonitor.css";
 
 const API_BASE = "/api/schedule"; // adjust if your axios instance uses a different base
@@ -302,6 +303,8 @@ function buildWeekGrid(anchorDate) {
 }
 
 export default function SchedMonitor() {
+  const canEdit = canEditSchedule(); // admin/owner only
+
   const [viewMode, setViewMode] = useState("month"); // 'month' | 'week'
   const [anchorDate, setAnchorDate] = useState(new Date());
   const [assignments, setAssignments] = useState([]);
@@ -322,6 +325,7 @@ export default function SchedMonitor() {
     try {
       const res = await fetch(
         `${API_BASE}?start=${toISODate(rangeStart)}&end=${toISODate(rangeEnd)}`,
+        { headers: authHeaders() },
       );
       if (!res.ok) throw new Error("Failed to fetch assignments");
       const data = await res.json();
@@ -338,15 +342,17 @@ export default function SchedMonitor() {
   }, [fetchAssignments]);
 
   const fetchTechnicians = useCallback(async () => {
+    // Only admins need the technician list (for the assign dropdown)
+    if (!canEdit) return;
     try {
-      const res = await fetch(TECHNICIANS_URL);
+      const res = await fetch(TECHNICIANS_URL, { headers: authHeaders() });
       if (!res.ok) throw new Error("Failed to fetch technicians");
       const data = await res.json();
       setTechnicians(data);
     } catch (err) {
       console.error("Failed to fetch technicians:", err);
     }
-  }, []);
+  }, [canEdit]);
 
   useEffect(() => {
     fetchTechnicians();
@@ -357,9 +363,10 @@ export default function SchedMonitor() {
 
   // notes now carries { notes, location } from the modal
   const handleAssign = async (technicianId, notes, location) => {
+    if (!canEdit) throw new Error("Admin access required.");
     const res = await fetch(API_BASE, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({
         date: toISODate(selectedDate),
         technicianId,
@@ -373,11 +380,16 @@ export default function SchedMonitor() {
   };
 
   const handleRemove = async (assignmentId) => {
+    if (!canEdit) return;
     const res = await fetch(`${API_BASE}/${assignmentId}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
     if (res.ok) {
       setAssignments((prev) => prev.filter((a) => a._id !== assignmentId));
+    } else {
+      const data = await res.json().catch(() => ({}));
+      alert(data.message || "Failed to remove assignment.");
     }
   };
 
@@ -428,20 +440,22 @@ export default function SchedMonitor() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() => setShowAutoSchedule(true)}
-            style={{
-              background: "#0a0a0a",
-              color: "#fff",
-              border: "none",
-              borderRadius: 6,
-              padding: "8px 14px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Auto-Schedule
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => setShowAutoSchedule(true)}
+              style={{
+                background: "#0a0a0a",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                padding: "8px 14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Auto-Schedule
+            </button>
+          )}
 
           <div className="sm-view-toggle">
             <button
@@ -532,10 +546,11 @@ export default function SchedMonitor() {
           onAssign={handleAssign}
           onRemove={handleRemove}
           onClose={() => setSelectedDate(null)}
+          canEdit={canEdit}
         />
       )}
 
-      {showAutoSchedule && (
+      {showAutoSchedule && canEdit && (
         <AutoScheduleModal
           apiBase={API_BASE}
           onClose={() => setShowAutoSchedule(false)}
