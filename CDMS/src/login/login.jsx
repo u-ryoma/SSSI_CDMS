@@ -130,6 +130,7 @@ import "./login.css";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
+  const [showForm, setShowForm] = useState(false);
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
@@ -211,42 +212,90 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <h2>Login</h2>
-        <p className="subtitle">Scientific Standard Services</p>
-
-        {error && <div className="error-message">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="login-group">
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter email"
-              value={credentials.email}
-              onChange={handleChange}
-              required
+      {!showForm ? (
+        /* ---------- LANDING ---------- */
+        <div className="hero">
+          <div className="hero-main">
+            <img
+              src="/images/SSSi-Logo.png"
+              alt="Scientific Standards Services Calibration Laboratory"
+              className="hero-logo"
             />
+
+            <div className="hero-content">
+              <h1 className="hero-title">SCIENTIFIC STANDARDS SERVICES</h1>
+              <div className="hero-divider" />
+              <p className="hero-tagline">
+                Our accreditation speaks our expertise and excellence.
+              </p>
+
+              <button
+                type="button"
+                className="hero-login-button"
+                onClick={() => setShowForm(true)}
+              >
+                Login
+              </button>
+            </div>
           </div>
 
-          <div className="login-group">
-            <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter password"
-              value={credentials.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          <footer className="hero-accreditation">
+            <span>Philippine Accreditation Bureau</span>
+            <span>Accredited Calibration Laboratory</span>
+            <span>PNS ISO/IEC 17025:2017</span>
+            <span>LA - 1997 - 014F</span>
+          </footer>
+        </div>
+      ) : (
+        /* ---------- LOGIN CARD ---------- */
+        <div className="login-card">
+          <h2>Login</h2>
+          <p className="subtitle">Scientific Standard Services</p>
 
-          <button type="submit" className="login-button">
-            Sign In
-          </button>
-        </form>
-      </div>
+          {error && <div className="error-message">{error}</div>}
+
+          <form onSubmit={handleSubmit}>
+            <div className="login-group">
+              <label>Email</label>
+              <input
+                type="email"
+                name="email"
+                placeholder="Enter email"
+                value={credentials.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="login-group">
+              <label>Password</label>
+              <input
+                type="password"
+                name="password"
+                placeholder="Enter password"
+                value={credentials.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <button type="submit" className="login-button">
+              Sign In
+            </button>
+
+            <button
+              type="button"
+              className="back-button"
+              onClick={() => {
+                setShowForm(false);
+                setError("");
+              }}
+            >
+              ← Back
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

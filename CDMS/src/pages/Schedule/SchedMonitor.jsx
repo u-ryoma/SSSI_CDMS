@@ -1,5 +1,7 @@
 // import { useEffect, useState, useCallback } from "react";
 // import AssignTechnicianModal from "./AssignTechnicianModal";
+// import AutoScheduleModal from "./AutoScheduleModal";
+// import { authHeaders, canEditSchedule } from "../../utils/auth";
 // import "./SchedMonitor.css";
 
 // const API_BASE = "/api/schedule"; // adjust if your axios instance uses a different base
@@ -41,11 +43,14 @@
 // }
 
 // export default function SchedMonitor() {
+//   const canEdit = canEditSchedule(); // admin/owner only
+
 //   const [viewMode, setViewMode] = useState("month"); // 'month' | 'week'
 //   const [anchorDate, setAnchorDate] = useState(new Date());
 //   const [assignments, setAssignments] = useState([]);
 //   const [technicians, setTechnicians] = useState([]);
 //   const [selectedDate, setSelectedDate] = useState(null);
+//   const [showAutoSchedule, setShowAutoSchedule] = useState(false);
 //   const [loading, setLoading] = useState(false);
 
 //   const days =
@@ -60,6 +65,7 @@
 //     try {
 //       const res = await fetch(
 //         `${API_BASE}?start=${toISODate(rangeStart)}&end=${toISODate(rangeEnd)}`,
+//         { headers: authHeaders() },
 //       );
 //       if (!res.ok) throw new Error("Failed to fetch assignments");
 //       const data = await res.json();
@@ -76,15 +82,17 @@
 //   }, [fetchAssignments]);
 
 //   const fetchTechnicians = useCallback(async () => {
+//     // Only admins need the technician list (for the assign dropdown)
+//     if (!canEdit) return;
 //     try {
-//       const res = await fetch(TECHNICIANS_URL);
+//       const res = await fetch(TECHNICIANS_URL, { headers: authHeaders() });
 //       if (!res.ok) throw new Error("Failed to fetch technicians");
 //       const data = await res.json();
 //       setTechnicians(data);
 //     } catch (err) {
 //       console.error("Failed to fetch technicians:", err);
 //     }
-//   }, []);
+//   }, [canEdit]);
 
 //   useEffect(() => {
 //     fetchTechnicians();
@@ -95,9 +103,10 @@
 
 //   // notes now carries { notes, location } from the modal
 //   const handleAssign = async (technicianId, notes, location) => {
+//     if (!canEdit) throw new Error("Admin access required.");
 //     const res = await fetch(API_BASE, {
 //       method: "POST",
-//       headers: { "Content-Type": "application/json" },
+//       headers: authHeaders(),
 //       body: JSON.stringify({
 //         date: toISODate(selectedDate),
 //         technicianId,
@@ -111,11 +120,16 @@
 //   };
 
 //   const handleRemove = async (assignmentId) => {
+//     if (!canEdit) return;
 //     const res = await fetch(`${API_BASE}/${assignmentId}`, {
 //       method: "DELETE",
+//       headers: authHeaders(),
 //     });
 //     if (res.ok) {
 //       setAssignments((prev) => prev.filter((a) => a._id !== assignmentId));
+//     } else {
+//       const data = await res.json().catch(() => ({}));
+//       alert(data.message || "Failed to remove assignment.");
 //     }
 //   };
 
@@ -165,19 +179,38 @@
 //           <span className="sm-header-label">{headerLabel}</span>
 //         </div>
 
-//         <div className="sm-view-toggle">
-//           <button
-//             className={viewMode === "month" ? "active" : ""}
-//             onClick={() => setViewMode("month")}
-//           >
-//             Month
-//           </button>
-//           <button
-//             className={viewMode === "week" ? "active" : ""}
-//             onClick={() => setViewMode("week")}
-//           >
-//             Week
-//           </button>
+//         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+//           {canEdit && (
+//             <button
+//               onClick={() => setShowAutoSchedule(true)}
+//               style={{
+//                 background: "#0a0a0a",
+//                 color: "#fff",
+//                 border: "none",
+//                 borderRadius: 6,
+//                 padding: "8px 14px",
+//                 fontWeight: 600,
+//                 cursor: "pointer",
+//               }}
+//             >
+//               Auto-Schedule
+//             </button>
+//           )}
+
+//           <div className="sm-view-toggle">
+//             <button
+//               className={viewMode === "month" ? "active" : ""}
+//               onClick={() => setViewMode("month")}
+//             >
+//               Month
+//             </button>
+//             <button
+//               className={viewMode === "week" ? "active" : ""}
+//               onClick={() => setViewMode("week")}
+//             >
+//               Week
+//             </button>
+//           </div>
 //         </div>
 //       </div>
 
@@ -253,6 +286,15 @@
 //           onAssign={handleAssign}
 //           onRemove={handleRemove}
 //           onClose={() => setSelectedDate(null)}
+//           canEdit={canEdit}
+//         />
+//       )}
+
+//       {showAutoSchedule && canEdit && (
+//         <AutoScheduleModal
+//           apiBase={API_BASE}
+//           onClose={() => setShowAutoSchedule(false)}
+//           onConfirmed={fetchAssignments}
 //         />
 //       )}
 //     </div>
@@ -261,6 +303,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AssignTechnicianModal from "./AssignTechnicianModal";
 import AutoScheduleModal from "./AutoScheduleModal";
+import ConfirmDialog from "../../components/ConfirmDialog"; // CHANGED
 import { authHeaders, canEditSchedule } from "../../utils/auth";
 import "./SchedMonitor.css";
 
@@ -312,6 +355,7 @@ export default function SchedMonitor() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [showAutoSchedule, setShowAutoSchedule] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState(null); // CHANGED
 
   const days =
     viewMode === "month"
@@ -388,8 +432,15 @@ export default function SchedMonitor() {
     if (res.ok) {
       setAssignments((prev) => prev.filter((a) => a._id !== assignmentId));
     } else {
+      // CHANGED: was alert(...)
       const data = await res.json().catch(() => ({}));
-      alert(data.message || "Failed to remove assignment.");
+      setDialog({
+        title: "Remove failed",
+        message: data.message || "Failed to remove assignment.",
+        type: "danger",
+        confirmLabel: "OK",
+        onConfirm: () => setDialog(null),
+      });
     }
   };
 
@@ -557,6 +608,9 @@ export default function SchedMonitor() {
           onConfirmed={fetchAssignments}
         />
       )}
+
+      {/* CHANGED */}
+      {dialog && <ConfirmDialog {...dialog} />}
     </div>
   );
 }

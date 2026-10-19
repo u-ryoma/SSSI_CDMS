@@ -115,7 +115,7 @@ const systemAlertRoutes = require("./routes/systemAlertRoutes");
 const predictionRoutes = require("./routes/predictionRoutes");
 const signatureRoutes = require("./routes/signatures"); // NEW
 const driftRoutes = require("./routes/driftRoutes"); // NEW
-
+const activityMiddleware = require("./middleware/activityMiddleware");
 const app = express();
 
 app.use(
@@ -130,7 +130,7 @@ app.use(
 // (equipment photos, xlsx files) — those go through multer's own memory
 // storage and 15MB-per-file limit, defined in middleware/upload.js.
 app.use(express.json({ limit: "10mb" }));
-
+app.use(activityMiddleware);
 // Kick off the DB connection and the presence auto-logout sweep. Not
 // awaited here (same as the original) — route handlers call getDb()
 // lazily at request time, so in practice they never race the connection.

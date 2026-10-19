@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Logs from "./pages/SystemActivity";
+import Logs from "./pages/SystemActivity/SystemActivity";
 
 import "./App.css";
 

@@ -1,15 +1,3 @@
-// // services/stageTracker.js
-// //
-// // Records every stage a job passes through in the "stageevents" collection:
-// //   { jobNumber, stage, enteredAt, exitedAt, durationMin, movedBy,
-// //     queueLength, calibrationProcedure, instrumentType, priority,
-// //     onSite, isSiteJob, hadConcern }
-// // This history is the training data for the turnaround-time prediction.
-// //
-// // Called from:
-// //   - routes/jobNumberRoutes.js       (POST /, PUT /tag, PUT /update-details)
-// //   - routes/deliveryReceiptRoutes.js (POST /, closes the trail)
-
 // const { getDb } = require("../config/db");
 
 // // Flag that becomes true when a job ARRIVES at that stage.
@@ -35,6 +23,27 @@
 //   forPrintFinalTagged: "sigCheckedBy",
 //   forDeliveryTagged: "finalCertPrintedBy",
 // };
+
+// // The furthest stage a job document says it has reached. Used when a job
+// // is CREATED already past the first stages, e.g. jobs that come from Site
+// // Calibration, which go straight to For Typing instead of Instrument
+// // Tagging -> Incoming -> Ongoing Calibration.
+// const FLAG_PRIORITY = [
+//   "forDeliveryTagged",
+//   "forPrintFinalTagged",
+//   "forCheckingSigTagged",
+//   "forCheckingOICTagged",
+//   "forTypingTagged",
+//   "ongoingTagged",
+// ];
+// function stageFromFlags(job) {
+//   for (const flag of FLAG_PRIORITY) {
+//     if (job[flag] === true) return STAGE_FLAGS[flag];
+//   }
+//   if (job.concernTagged === true) return "IncomingConcern";
+//   if (job.tagged === true) return "IncomingCalibration";
+//   return "InstrumentTagging";
+// }
 
 // // Job details captured when a job enters a stage. These become the
 // // features of the prediction model.
@@ -141,24 +150,12 @@
 //   }
 // }
 
-// module.exports = { moveStage, logStageMoves, buildFeatures };
-// services/stageTracker.js
-//
-// Records every stage a job passes through in the "stageevents" collection:
-//   { jobNumber, stage, enteredAt, exitedAt, durationMin, movedBy,
-//     queueLength, calibrationProcedure, instrumentType, priority,
-//     onSite, isSiteJob, hadConcern }
-// This history is the training data for the turnaround-time prediction.
-//
-// Called from:
-//   - routes/jobNumberRoutes.js       (POST /, PUT /tag, PUT /update-details)
-//   - routes/deliveryReceiptRoutes.js (POST /, closes the trail)
-
+// module.exports = { moveStage, logStageMoves, buildFeatures, stageFromFlags };
 const { getDb } = require("../config/db");
 
 // Flag that becomes true when a job ARRIVES at that stage.
 // (IncomingCalibration / IncomingConcern are handled separately in
-// logStageMoves because they come from the /tag route's tagged and
+// detectStageMoves because they come from the /tag route's tagged and
 // concernTagged fields.)
 const STAGE_FLAGS = {
   ongoingTagged: "OngoingCalibration",
@@ -272,26 +269,37 @@ async function moveStage({
 }
 
 // Compares the job as it was BEFORE an update with the fields being
-// saved, and logs a stage move for each flag that just turned on.
+// saved and returns the stage moves that update causes, as an array of
+// [stageName, movedBy]. Pure and synchronous (no database access), so
+// routes can also use it to describe what an update did, e.g. for the
+// System Activity log.
+function detectStageMoves(before, data) {
+  const moves = [];
+  if (!before) return moves;
+
+  if (data.concernTagged === true) {
+    if (!before.concernTagged) moves.push(["IncomingConcern", null]);
+  } else if (data.tagged === true && !before.tagged) {
+    moves.push(["IncomingCalibration", null]);
+  }
+
+  for (const [flag, stage] of Object.entries(STAGE_FLAGS)) {
+    if (data[flag] === true && !before[flag]) {
+      const movedBy = data[MOVED_BY_FIELD[flag]] || null;
+      moves.push([stage, movedBy]);
+    }
+  }
+
+  return moves;
+}
+
+// Logs a stage move for each flag that just turned on.
 // Never throws: a logging problem must not break a real save.
 async function logStageMoves(before, data) {
   try {
     if (!before) return;
     const merged = { ...before, ...data };
-    const moves = [];
-
-    if (data.concernTagged === true) {
-      if (!before.concernTagged) moves.push(["IncomingConcern", null]);
-    } else if (data.tagged === true && !before.tagged) {
-      moves.push(["IncomingCalibration", null]);
-    }
-
-    for (const [flag, stage] of Object.entries(STAGE_FLAGS)) {
-      if (data[flag] === true && !before[flag]) {
-        const movedBy = data[MOVED_BY_FIELD[flag]] || null;
-        moves.push([stage, movedBy]);
-      }
-    }
+    const moves = detectStageMoves(before, data);
 
     for (const [stage, movedBy] of moves) {
       await moveStage({
@@ -306,4 +314,10 @@ async function logStageMoves(before, data) {
   }
 }
 
-module.exports = { moveStage, logStageMoves, buildFeatures, stageFromFlags };
+module.exports = {
+  moveStage,
+  logStageMoves,
+  detectStageMoves,
+  buildFeatures,
+  stageFromFlags,
+};
