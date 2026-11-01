@@ -140,7 +140,11 @@ const Login = () => {
 
   useEffect(() => {
     const role = sessionStorage.getItem("role");
-    if (role) {
+    const token = sessionStorage.getItem("token");
+    // Only skip the login form when the session is complete. A session
+    // that has a role but no token (made before JWT was added) must log
+    // in again to receive one.
+    if (role && token) {
       if (role === "admin" || role === "owner") {
         navigate("/admin", { replace: true });
       } else {
@@ -171,6 +175,16 @@ const Login = () => {
       const data = await res.json();
 
       if (data.success) {
+        // JWT issued by the server; src/utils/auth.js (authHeaders) reads it
+        // from the "token" key.
+        if (data.token) {
+          sessionStorage.setItem("token", data.token);
+        } else {
+          console.error(
+            "Login succeeded but the server response has no `token` field.",
+          );
+        }
+
         sessionStorage.setItem("name", data.name);
         sessionStorage.setItem("username", data.username);
 

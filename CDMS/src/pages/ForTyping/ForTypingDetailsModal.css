@@ -1,107 +1,193 @@
+/* ==========================================================================
+   Draft Report For Typing modal
+   Same design language as IncomingCalibDetailsModal. Tokens are scoped to
+   the overlay so nothing leaks into the rest of the app.
+   ========================================================================== */
+
 .ftd-modal-overlay {
+  --ftd-bg: #f4f5f7;
+  --ftd-surface: #ffffff;
+  --ftd-border: #d5d9e0;
+  --ftd-border-strong: #b6bcc8;
+  --ftd-text: #1c2430;
+  --ftd-text-muted: #5f6b7a;
+  --ftd-accent: #1f5fd6;
+  --ftd-accent-hover: #174cb0;
+  --ftd-accent-soft: rgba(31, 95, 214, 0.18);
+  --ftd-readonly-bg: #eceef2;
+  --ftd-readonly-text: #3b4554;
+  --ftd-radius: 6px;
+
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
   padding: 24px 0;
   z-index: 9999;
+  font-family:
+    "Inter",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: var(--ftd-text);
 }
 
 .ftd-modal-wrapper {
-  background: #f0f0f0;
+  background: var(--ftd-bg);
   width: 1320px;
   max-width: 98vw;
-  border: 1px solid #999;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.45),
+    0 4px 12px rgba(15, 23, 42, 0.2);
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .ftd-modal-scroll {
-  padding: 12px 16px;
+  padding: 18px 22px 18px;
 }
 
+/* ---------- Shared form controls ---------- */
+.ftd-modal-wrapper input[type="text"],
+.ftd-modal-wrapper input[type="date"],
+.ftd-modal-wrapper select,
+.ftd-modal-wrapper textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ftd-text);
+  background: var(--ftd-surface);
+  border: 1px solid var(--ftd-border-strong);
+  border-radius: var(--ftd-radius);
+  padding: 6px 9px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ftd-modal-wrapper textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.ftd-modal-wrapper input:focus,
+.ftd-modal-wrapper select:focus,
+.ftd-modal-wrapper textarea:focus {
+  outline: none;
+  border-color: var(--ftd-accent);
+  box-shadow: 0 0 0 3px var(--ftd-accent-soft);
+}
+
+/* Read-only (disabled) values: flat, muted, but still clearly legible */
+.ftd-modal-wrapper input:disabled,
+.ftd-modal-wrapper select:disabled,
+.ftd-modal-wrapper textarea:disabled {
+  background: var(--ftd-readonly-bg);
+  color: var(--ftd-readonly-text);
+  border-color: var(--ftd-border);
+  cursor: default;
+  -webkit-text-fill-color: var(--ftd-readonly-text);
+  opacity: 1;
+}
+
+.ftd-modal-wrapper input[type="radio"] {
+  accent-color: var(--ftd-accent);
+  margin: 0;
+}
+
+/* ---------- Top meta (job number / date received) ---------- */
 .ftd-top-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .ftd-meta-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ftd-meta-row label {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ftd-text-muted);
   min-width: 100px;
   text-align: right;
-  font-weight: 600;
 }
 
 .ftd-meta-row input {
-  width: 160px;
+  width: 180px;
   max-width: 100%;
   min-width: 0;
+  font-weight: 600;
 }
 
+/* ---------- Layout ---------- */
 .ftd-body {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(
-      0,
-      0.65fr
-    ) minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns:
+    minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.65fr)
+    minmax(0, 1fr);
+  gap: 18px;
 }
 
 .ftd-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 7px;
+  margin-bottom: 11px;
   min-width: 0;
+}
+
+.ftd-field label,
+.ftd-inline-field label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--ftd-text-muted);
 }
 
 .ftd-field label {
-  font-size: 11.5px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.ftd-field input,
-.ftd-field textarea {
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
+  margin-bottom: 4px;
 }
 
 .ftd-inline-field {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
+  gap: 10px;
+  margin-bottom: 11px;
 }
 
 .ftd-inline-field label {
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 60px;
+  min-width: 62px;
 }
 
-.ftd-inline-field input {
+.ftd-inline-field input,
+.ftd-inline-field select {
   flex: 1;
   min-width: 0;
 }
 
 .ftd-input-with-btn {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .ftd-input-with-btn input,
@@ -111,29 +197,30 @@
 }
 
 .ftd-lookup-btn {
-  border: 1px solid #999;
-  background: #e8e8e8;
+  border: 1px solid var(--ftd-border-strong);
+  background: var(--ftd-surface);
+  border-radius: var(--ftd-radius);
   cursor: pointer;
-  padding: 0 8px;
-  transition: background 0.15s ease;
+  padding: 0 10px;
   flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .ftd-lookup-btn:hover:not(:disabled) {
-  background: #d3d3d3;
+  background: #eef3fd;
+  border-color: var(--ftd-accent);
 }
 
 .ftd-lookup-btn:disabled {
+  background: var(--ftd-readonly-bg);
+  border-color: var(--ftd-border);
   cursor: not-allowed;
-  color: #aaa;
+  opacity: 0.6;
 }
 
-input:disabled,
-textarea:disabled {
-  background: #f5f5f5;
-  color: #444;
-}
-
+/* ---------- Calibration standard ---------- */
 .ftd-col-standard {
   display: flex;
   flex-direction: column;
@@ -141,18 +228,30 @@ textarea:disabled {
 }
 
 .ftd-box-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  margin-bottom: 6px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--ftd-text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ftd-border);
+}
+
+/* In the standard column the title sits above the grid, so keep it tight */
+.ftd-col-standard .ftd-box-title {
+  margin-bottom: 8px;
 }
 
 .ftd-standard-grid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px solid #aaa;
-  background: #fff;
-  padding: 8px;
+  gap: 8px;
+  border: 1px solid var(--ftd-border);
+  border-radius: 8px;
+  background: var(--ftd-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  padding: 10px;
 }
 
 .ftd-standard-row {
@@ -163,7 +262,7 @@ textarea:disabled {
 
 .ftd-standard-cell {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -176,95 +275,175 @@ textarea:disabled {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
   flex-wrap: wrap;
 }
 
 .ftd-camera-actions button {
-  padding: 6px 12px;
-  border: 1px solid #999;
-  background: #e8e8e8;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ftd-text);
+  border: 1px solid var(--ftd-border-strong);
+  border-radius: var(--ftd-radius);
+  background: var(--ftd-surface);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .ftd-camera-actions button:hover:not(:disabled) {
-  background: #d3d3d3;
+  background: #eef0f4;
+  border-color: #8b93a1;
 }
 
+.ftd-camera-actions button:disabled {
+  background: var(--ftd-readonly-bg);
+  color: #9aa3b0;
+  border-color: var(--ftd-border);
+  cursor: not-allowed;
+}
+
+.ftd-camera-actions button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ftd-accent-soft);
+}
+
+/* ---------- Mid section cards ---------- */
 .ftd-mid-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 12px;
-  margin-top: 4px;
-  margin-bottom: 10px;
+  gap: 18px;
+  margin-top: 6px;
+  margin-bottom: 16px;
 }
 
 .ftd-accreditation-box,
 .ftd-procedure-box {
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  padding: 7px 10px;
-  background: #fff;
+  border: 1px solid var(--ftd-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--ftd-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   min-width: 0;
 }
 
 .ftd-radio-label {
-  display: block;
-  font-size: 11.5px;
-  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
 }
 
+.ftd-radio-label:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Footer ---------- */
 .ftd-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  position: relative;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
+  justify-content: space-between;
+  border-top: 1px solid var(--ftd-border);
+  padding-top: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ftd-footer-left,
+.ftd-footer-right {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.ftd-primary-btn {
-  padding: 9px 24px;
-  border: 1px solid #1d4fbb;
-  background: #2f6fed;
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: background 0.15s ease;
-}
-
-.ftd-primary-btn:hover:not(:disabled) {
-  background: #255fd6;
-}
-
+/* Right group used to be absolutely positioned; flow it normally now. */
 .ftd-footer-right {
-  position: absolute;
-  right: 0;
-  display: flex;
-  gap: 8px;
+  position: static;
 }
 
-.ftd-footer-right button {
-  padding: 8px 14px;
-  border: 1px solid #999;
-  background: #e8e8e8;
+.ftd-footer button {
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ftd-text);
+  border: 1px solid var(--ftd-border-strong);
+  border-radius: var(--ftd-radius);
+  background: var(--ftd-surface);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-.ftd-footer-right button:hover:not(:disabled) {
-  background: #d3d3d3;
+.ftd-footer button:hover:not(:disabled) {
+  background: #eef0f4;
+  border-color: #8b93a1;
 }
 
-/* MOBILE — stack everything to one column and let the footer's
-   absolutely-positioned right group wrap instead of overlapping */
+.ftd-footer button:disabled {
+  background: var(--ftd-readonly-bg);
+  color: #9aa3b0;
+  border-color: var(--ftd-border);
+  cursor: not-allowed;
+}
+
+.ftd-footer button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ftd-accent-soft);
+}
+
+/* Save and Auto Backup is the 2nd <button> in the right group: give it
+   the accent so the "commit" action stands out from Upload / Exit. */
+.ftd-footer-right button:nth-of-type(2) {
+  background: var(--ftd-accent);
+  border-color: var(--ftd-accent-hover);
+  color: #fff;
+  padding-left: 20px;
+  padding-right: 20px;
+  box-shadow: 0 1px 2px rgba(31, 95, 214, 0.4);
+}
+
+.ftd-footer-right button:nth-of-type(2):hover:not(:disabled) {
+  background: var(--ftd-accent-hover);
+  border-color: var(--ftd-accent-hover);
+}
+
+.ftd-footer-right button:nth-of-type(2):disabled {
+  background: #a9bde6;
+  border-color: #a9bde6;
+  color: #fff;
+  box-shadow: none;
+}
+
+/* Open Calibration Data — outlined accent, left-aligned primary tool */
+.ftd-footer .ftd-primary-btn {
+  background: #eef3fd;
+  border-color: var(--ftd-accent);
+  color: var(--ftd-accent-hover);
+  padding: 8px 20px;
+}
+
+.ftd-footer .ftd-primary-btn:hover:not(:disabled) {
+  background: #dfe9fb;
+  border-color: var(--ftd-accent-hover);
+}
+
+/* ---------- Mobile ---------- */
 @media (max-width: 760px) {
   .ftd-modal-overlay {
     padding: 12px 0;
+  }
+
+  .ftd-modal-scroll {
+    padding: 14px;
   }
 
   .ftd-top-meta {
@@ -275,18 +454,8 @@ textarea:disabled {
     justify-content: space-between;
   }
 
-  .ftd-meta-row input {
-    width: 160px;
-  }
-
-  .ftd-body {
-    grid-template-columns: 1fr;
-  }
-
-  .ftd-mid-section {
-    grid-template-columns: 1fr;
-  }
-
+  .ftd-body,
+  .ftd-mid-section,
   .ftd-standard-row {
     grid-template-columns: 1fr;
   }
@@ -294,16 +463,14 @@ textarea:disabled {
   .ftd-footer {
     flex-direction: column;
     align-items: stretch;
-    padding-bottom: 8px;
   }
 
+  .ftd-footer-left,
   .ftd-footer-right {
-    position: static;
     justify-content: center;
-    flex-wrap: wrap;
   }
 
-  .ftd-primary-btn {
+  .ftd-footer .ftd-primary-btn {
     order: -1; /* main action first on mobile */
   }
 }

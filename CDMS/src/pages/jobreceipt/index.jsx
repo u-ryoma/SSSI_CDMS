@@ -1,12 +1,11 @@
 // import React, { useState, useEffect, useMemo } from "react";
-// import "../jobreceipt.css";
+// import "./jobreceipt.css";
 // import AddReceiptModal from "./AddReceiptModal";
 // import CustomerLookupModal from "./CustomerLookupModal";
 // import JobNumberModal from "./JobNumberModal";
 // import InstrumentListModal from "./InstrumentListModal";
 // import RecallJobModal from "./RecallJobModal";
 // import PrintReceiptModal from "./PrintReceiptModal";
-// import PrintReceiptModalOnSite from "./PrintReceiptModalOnSite";
 
 // const API = import.meta.env.VITE_API_URL;
 
@@ -52,7 +51,8 @@
 //   voltage: "-",
 //   onSite: false, // mode of receipt: false = In-house (default), true = On-Site. Checking On-Site also auto-sets `tagged` (see handleOnSiteChange), since on-site jobs skip Instrument Tagging.
 //   tagged: false, // pipeline-stage flag: true once the job is ready for Incoming Calibration — either it passed Instrument Tagging, or it's an On-Site job (which skips tagging). Must default to false, or every new job skips straight to Incoming Calibration.
-//   photoUrl: "", // base64 data URL of the equipment photo, captured via camera in JobNumberModal
+//   photoUrl: "", // legacy single-photo field, kept in sync with the FIRST photo ever taken (see JobNumberModal's handlePhotoCapture)
+//   photoUrls: [], // equipment photos captured via camera in JobNumberModal, accumulated across capture sessions
 // };
 
 // const currentYear = new Date().getFullYear();
@@ -179,8 +179,16 @@
 //   const handleChange = (e) =>
 //     setFormData({ ...formData, [e.target.name]: e.target.value });
 
+//   // NOTE: uses the functional setState form (prev => ...) rather than
+//   // spreading the `jobForm` closure directly. JobNumberModal's
+//   // handlePhotoCapture fires this twice back-to-back on the first photo
+//   // capture (once for photoUrls, once for photoUrl) — with a non-
+//   // functional update, both calls would read the same stale `jobForm`
+//   // snapshot from render, so the second call would clobber the first and
+//   // silently drop the photoUrls array. The functional form makes each
+//   // call build on the real latest state instead.
 //   const handleJobChange = (e) =>
-//     setJobForm({ ...jobForm, [e.target.name]: e.target.value });
+//     setJobForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
 //   // ON-SITE TOGGLE CHANGE — sets the mode-of-receipt flag (`onSite`) that
 //   // JobNumber.jsx's getMOR() reads.
@@ -274,6 +282,7 @@
 //       onSite: job.onSite ?? false,
 //       tagged: job.tagged ?? false,
 //       photoUrl: job.photoUrl || "",
+//       photoUrls: job.photoUrls || [],
 //     }));
 //     setShowRecall(false);
 //   };
@@ -787,7 +796,7 @@
 // };
 
 // export default JobReceipt;
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import "./jobreceipt.css";
 import AddReceiptModal from "./AddReceiptModal";
 import CustomerLookupModal from "./CustomerLookupModal";
@@ -795,6 +804,7 @@ import JobNumberModal from "./JobNumberModal";
 import InstrumentListModal from "./InstrumentListModal";
 import RecallJobModal from "./RecallJobModal";
 import PrintReceiptModal from "./PrintReceiptModal";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -875,6 +885,13 @@ const JobReceipt = () => {
   // EDIT MODE — true when the modal was opened by clicking an existing row
   const [isEditMode, setIsEditMode] = useState(false);
   const [rowLoading, setRowLoading] = useState(false);
+
+  // SAVE ERROR — message shown in a ConfirmDialog when saving the receipt
+  // or one of its job numbers fails (instead of failing silently).
+  const [saveError, setSaveError] = useState("");
+  // True while handleSave is running, so a double-click on Save/Update can't
+  // submit the same receipt and job numbers twice.
+  const savingRef = useRef(false);
 
   // PRINT COPY — holds the saved receipt + job numbers snapshot shown in
   // PrintReceiptModal. Populated either right after a successful save, or
@@ -1213,109 +1230,167 @@ const JobReceipt = () => {
   };
 
   // SAVE RECEIPT + ALL JOB NUMBERS (handles both create and update)
+  //
+  // Failures are no longer silent: a failed receipt save, or a failed job
+  // number save, shows the server's message in a dialog. If the receipt
+  // itself saved but some jobs did not, the modal stays open in edit mode
+  // (with already-saved jobs marked as existing) so Update can be retried
+  // without creating a duplicate receipt or duplicate jobs.
   const handleSave = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     try {
       const url = isEditMode
         ? `${API}/api/jobreceipts/${encodeURIComponent(formData.jrId)}`
         : `${API}/api/jobreceipts`;
       const method = isEditMode ? "PUT" : "POST";
 
+      // A receipt loaded from the database carries its own `_id` (and `__v`).
+      // Sending those back makes the server's $set try to modify the
+      // immutable `_id` field and the update fails, so they are left out.
+      // eslint-disable-next-line no-unused-vars
+      const { _id: _receiptId, __v: _receiptV, ...receiptBody } = formData;
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, jobNumbers: [] }),
+        body: JSON.stringify({ ...receiptBody, jobNumbers: [] }),
       });
-      if (!res.ok) throw new Error("Failed to save receipt");
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(
+          data.message || `Failed to save the receipt (${res.status}).`,
+        );
+      }
 
-      if (data.success) {
-        const savedJrId = data.jrId || formData.jrId;
-        const savedJobs = [];
+      const savedJrId = data.jrId || formData.jrId;
+      const savedJobs = []; // jobs that saved OK this round
+      const nextJobs = []; // full job list for local state after this round
+      const failedJobs = []; // human-readable failure messages
 
-        for (const job of jobNumbers) {
-          // Existing jobs (loaded from DB, not flagged _isNew) get updated;
-          // newly added jobs in this session get created.
-          const isExistingJob = Boolean(job._id) && !job._isNew;
-          const jobUrl = isExistingJob
-            ? `${API}/api/jobnumbers/${job._id}`
-            : `${API}/api/jobnumbers`;
-          const jobMethod = isExistingJob ? "PUT" : "POST";
+      for (const job of jobNumbers) {
+        // Existing jobs (loaded from DB, not flagged _isNew) get updated;
+        // newly added jobs in this session get created.
+        // A job already in the database is identified by its `_id`. A job
+        // saved earlier in this session may not carry one locally (the
+        // cached copy predates the save), so fall back to finding it by job
+        // number. An existing job is always UPDATED, never created again.
+        const knownId =
+          job._id ||
+          (!job._isNew
+            ? allJobNumbers.find((j) => j.jobNumber === job.jobNumber && j._id)
+                ?._id
+            : undefined);
+        const isExistingJob = Boolean(knownId) && !job._isNew;
+        const jobUrl = isExistingJob
+          ? `${API}/api/jobnumbers/${knownId}`
+          : `${API}/api/jobnumbers`;
+        const jobMethod = isExistingJob ? "PUT" : "POST";
 
+        // Never send the database's own fields back in the body: a PUT that
+        // $sets `_id` is rejected by MongoDB (immutable field), and `_isNew`
+        // is only a client-side marker.
+        // eslint-disable-next-line no-unused-vars
+        const { _id, _isNew, __v, ...jobBody } = job;
+
+        try {
           const jobRes = await fetch(jobUrl, {
             method: jobMethod,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              ...job,
+              ...jobBody,
               jobReceiptID: savedJrId,
               type: job.type,
-              // Who created this job number — the person who prepared
-              // the parent job receipt (same value stamped on
-              // formData.preparedBy). Only set on the initial create; a
-              // PUT for an already-existing job re-sends it too, but
-              // since it never changes after creation that's harmless.
-              recBy: user,
+              // recBy = who created this job number. Only set when the job
+              // is first created, so editing it later doesn't overwrite the
+              // original creator with whoever made the edit.
+              ...(isExistingJob ? {} : { recBy: user }),
             }),
           });
-          const jobData = await jobRes.json();
-          if (jobData.success) {
-            const { _isNew, ...cleanJob } = job;
-            const finalJobNumber = jobData.jobNumber || job.jobNumber;
-
-            savedJobs.push({
-              ...cleanJob,
-              jobNumber: finalJobNumber,
-              _id: jobData._id || job._id,
-            });
-
-            // CLOUDINARY FOLDER — only for brand-new job numbers. Existing
-            // ones already got a folder the first time they were saved, so
-            // there's no reason to re-call this on every Update. Fired
-            // fire-and-forget (not awaited) so a slow or unreachable
-            // Cloudinary never stalls or fails the receipt save itself —
-            // worst case, the folder simply gets created implicitly later,
-            // the first time an equipment photo is uploaded into it via
-            // /api/uploads/equipment-photo/:jobNumber.
-            if (!isExistingJob) {
-              fetch(
-                `${API}/api/uploads/job-folder/${encodeURIComponent(finalJobNumber)}`,
-                { method: "POST" },
-              ).catch((err) =>
-                console.warn(
-                  `Failed to pre-create Cloudinary folder for ${finalJobNumber}:`,
-                  err,
-                ),
-              );
-            }
+          const jobData = await jobRes.json().catch(() => ({}));
+          if (!jobRes.ok || !jobData.success) {
+            throw new Error(jobData.message || `HTTP ${jobRes.status}`);
           }
+
+          const finalJobNumber = jobData.jobNumber || job.jobNumber;
+          const savedJob = {
+            ...jobBody,
+            jobNumber: finalJobNumber,
+            _id: jobData._id || knownId,
+          };
+          savedJobs.push(savedJob);
+          nextJobs.push(savedJob);
+
+          // CLOUDINARY FOLDER — only for brand-new job numbers. Existing
+          // ones already got a folder the first time they were saved, so
+          // there's no reason to re-call this on every Update. Fired
+          // fire-and-forget (not awaited) so a slow or unreachable
+          // Cloudinary never stalls or fails the receipt save itself —
+          // worst case, the folder simply gets created implicitly later,
+          // the first time an equipment photo is uploaded into it via
+          // /api/uploads/equipment-photo/:jobNumber.
+          if (!isExistingJob) {
+            fetch(
+              `${API}/api/uploads/job-folder/${encodeURIComponent(finalJobNumber)}`,
+              { method: "POST" },
+            ).catch((err) =>
+              console.warn(
+                `Failed to pre-create Cloudinary folder for ${finalJobNumber}:`,
+                err,
+              ),
+            );
+          }
+        } catch (jobErr) {
+          console.error(`Failed to save job ${job.jobNumber}:`, jobErr);
+          failedJobs.push(
+            `${job.jobNumber || "(no number)"}: ${jobErr.message}`,
+          );
+          nextJobs.push(job); // keep it as-is so it can be retried
         }
-
-        // Replace any previously-cached jobs for this receipt with the fresh saved set
-        setAllJobNumbers((prev) => {
-          const withoutOld = prev.filter((j) => j.jobReceiptID !== savedJrId);
-          return [...withoutOld, ...savedJobs];
-        });
-
-        await fetchReceipts();
-
-        // PRINT COPY — snapshot the just-saved receipt + its saved job
-        // numbers (with server-generated job number IDs) and open the
-        // printable receipt automatically so there's a physical/PDF copy
-        // on hand right after saving.
-        setPrintData({
-          ...formData,
-          jrId: savedJrId,
-          jobNumbers: savedJobs,
-        });
-        setShowPrintModal(true);
-
-        setFormData(emptyForm);
-        setJobNumbers([]);
-        setContactOptions([]);
-        setIsEditMode(false);
-        setShowModal(false);
       }
+
+      // Replace any previously-cached jobs for this receipt with the latest
+      // known set (jobs that failed to save keep their last known version).
+      setAllJobNumbers((prev) => {
+        const withoutOld = prev.filter((j) => j.jobReceiptID !== savedJrId);
+        return [...withoutOld, ...nextJobs.filter((j) => j._id)];
+      });
+
+      await fetchReceipts();
+
+      if (failedJobs.length > 0) {
+        // Keep the modal open. The receipt exists now, so retrying must be an
+        // update, and jobs that already saved must not be created again.
+        setJobNumbers(nextJobs);
+        setFormData((prev) => ({ ...prev, jrId: savedJrId }));
+        setIsEditMode(true);
+        setSaveError(
+          `The receipt was saved, but these job numbers could not be saved: ${failedJobs.join("; ")}`,
+        );
+        return;
+      }
+
+      // PRINT COPY — snapshot the just-saved receipt + its saved job
+      // numbers (with server-generated job number IDs) and open the
+      // printable receipt automatically so there's a physical/PDF copy
+      // on hand right after saving.
+      setPrintData({
+        ...formData,
+        jrId: savedJrId,
+        jobNumbers: savedJobs,
+      });
+      setShowPrintModal(true);
+
+      setFormData(emptyForm);
+      setJobNumbers([]);
+      setContactOptions([]);
+      setIsEditMode(false);
+      setShowModal(false);
     } catch (err) {
       console.error("Failed to save receipt and job numbers:", err);
+      setSaveError(err.message || "Failed to save. Please try again.");
+    } finally {
+      savingRef.current = false;
     }
   };
 
@@ -1580,6 +1655,17 @@ const JobReceipt = () => {
             }}
           />
         ))}
+
+      {saveError && (
+        <ConfirmDialog
+          title="Could not save"
+          message={saveError}
+          confirmLabel="OK"
+          cancelLabel="Close"
+          onConfirm={() => setSaveError("")}
+          onCancel={() => setSaveError("")}
+        />
+      )}
     </div>
   );
 };

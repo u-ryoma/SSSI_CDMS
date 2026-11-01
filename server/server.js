@@ -113,8 +113,9 @@ const statsRoutes = require("./routes/statsRoutes");
 const siteCalibrationRoutes = require("./routes/siteCalibrationRoutes");
 const systemAlertRoutes = require("./routes/systemAlertRoutes");
 const predictionRoutes = require("./routes/predictionRoutes");
-const signatureRoutes = require("./routes/signatures"); // NEW
-const driftRoutes = require("./routes/driftRoutes"); // NEW
+const signatureRoutes = require("./routes/signatures");
+const driftRoutes = require("./routes/driftRoutes");
+const agreementMailRoutes = require("./routes/agreementMail");
 const activityMiddleware = require("./middleware/activityMiddleware");
 const app = express();
 
@@ -161,8 +162,9 @@ app.use("/api/stats", statsRoutes);
 app.use("/api/sitecalibrations", siteCalibrationRoutes);
 app.use("/api/system-alerts", systemAlertRoutes);
 app.use("/api/predictions", predictionRoutes);
-app.use("/api/drift", driftRoutes); // NEW
-app.use("/api/signatures", signatureRoutes); // NEW
+app.use("/api/drift", driftRoutes);
+app.use("/api/signatures", signatureRoutes);
+app.use("/api/agreements", agreementMailRoutes);
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, closing DB connection");

@@ -1242,6 +1242,1111 @@
 // };
 
 // export default IncomingCalibDetailsModal;
+// import React, { useState, useEffect, useCallback } from "react";
+// import { createPortal } from "react-dom";
+// import "./IncomingCalibDetailsModal.css";
+// import CdmsModalHeader from "./CdmsModalHeader";
+// import CalibrationStandardLookupModal from "./CalibrationStandardLookUpModal";
+// import CalibrationProcedureLookupModal from "./CalibrationProcedureLookUpModal";
+// import CalibrationDataModal from "./CalibrationDataModal";
+// import ConfirmDialog from "../../components/ConfirmDialog";
+// import ReceiptFolderModal from "../jobreceipt/ReceiptFolderModal";
+
+// // Base backend URL — every /api/... fetch in this file must be prefixed
+// // with this (same pattern as OnGoingCalib.jsx / JobReceipt.jsx), or the
+// // request goes to the frontend's own origin (e.g. the Vite dev server)
+// // instead of the actual backend, and 404s with "Cannot POST /api/..."
+// // whenever the two aren't on the same host/port.
+// const API = import.meta.env.VITE_API_URL;
+
+// const ROW_COUNT = 5;
+
+// const emptyStandardRow = () => ({ item1: "", item2: "", item3: "" });
+
+// const CONTACT_CERT_OPTIONS = ["SA", "JPR", "MCJ"];
+
+// const FREQUENCY_MONTHS = {
+//   "6 Months": 6,
+//   "1 Year": 12,
+//   "2 Years": 24,
+//   "3 Years": 36,
+// };
+
+// const toISODate = (date) => {
+//   const d = new Date(date);
+//   const yyyy = d.getFullYear();
+//   const mm = String(d.getMonth() + 1).padStart(2, "0");
+//   const dd = String(d.getDate()).padStart(2, "0");
+//   return `${yyyy}-${mm}-${dd}`;
+// };
+
+// const addMonths = (isoDateStr, months) => {
+//   const d = new Date(isoDateStr);
+//   d.setMonth(d.getMonth() + months);
+//   return toISODate(d);
+// };
+
+// // Converts a base64 dataURL (what CameraCaptureModal produces, from
+// // either canvas.toDataURL or FileReader.readAsDataURL) into a Blob, so it
+// // can be sent as multipart/form-data to the equipment-photo upload route.
+// const dataUrlToBlob = async (dataUrl) => {
+//   const res = await fetch(dataUrl);
+//   return res.blob();
+// };
+
+// const IncomingCalibDetailsModal = ({
+//   jobForm,
+//   onClose,
+//   onUpdate,
+//   onConcernFlagged,
+//   onOpenCamera,
+//   onLoadTemplate,
+//   onLoadAndConnect,
+//   onOpenCalProcedureLookup,
+//   onOpenCalStandardLookup,
+//   title = "INCOMING CALIBRATION DETAILS",
+//   // true  (default, Incoming Calibration): calibration data can be saved
+//   //        even when empty/partial — it's stored as a draft
+//   //        (complete: false) and the job can still be moved on.
+//   // false (On-Going Calibration): calibration data must be complete
+//   //        (all 6 points filled in) before it can be saved, and Update
+//   //        stays locked until it is.
+//   allowIncompleteCalibData = true,
+// }) => {
+//   const [form, setForm] = useState(() => ({
+//     jobNumber: jobForm.jobNumber || "",
+//     dateRec: jobForm.dateRec || "",
+//     companyName: jobForm.companyName || "",
+//     companyAddress: jobForm.companyAddress || "",
+//     contactName: jobForm.contactName || "",
+//     description: jobForm.description || "",
+//     brand: jobForm.brand || "",
+//     model: jobForm.model || "",
+//     serialNo: jobForm.serialNo || "",
+//     remarks: jobForm.remarks || "",
+//     concern: jobForm.concern || "",
+//     range: jobForm.range || "",
+//     uncertainty: jobForm.uncertainty || "",
+//     contactCert: jobForm.contactCert || "",
+//     frequency: jobForm.frequency || "1 Year",
+//     priority: jobForm.priority || "Normal",
+//     oicBy: sessionStorage.getItem("username") || "",
+
+//     sig: jobForm.sig || "",
+//     dateCal: jobForm.dateCal || toISODate(new Date()),
+//     dateDue: jobForm.dateDue || "",
+//     accreditationLogo: jobForm.accreditationLogo || "with",
+//     calibrationProcedure: jobForm.calibrationProcedure || "",
+//     calibrationProcedureTemplate: jobForm.calibrationProcedureTemplate || null,
+//     calibrationStandards:
+//       jobForm.calibrationStandards?.length === ROW_COUNT
+//         ? jobForm.calibrationStandards
+//         : Array.from({ length: ROW_COUNT }, emptyStandardRow),
+
+//     // CALIBRATION DATA — everything the SSS-CP-020 workbook used to hold
+//     // (readings, uncertainty inputs, standards used, computed certificate
+//     // values). Filled in through CalibrationDataModal instead of
+//     // downloading/re-uploading the xlsx. null until saved at least once.
+//     calibrationData: jobForm.calibrationData || null,
+
+//     // PHOTOS — the job may have several equipment photos captured across
+//     // sessions (CameraCaptureModal supports multi-shot capture). Prefers
+//     // jobForm.photoUrls (the array); falls back to wrapping the older
+//     // singular jobForm.photoUrl in a one-item array so records saved
+//     // before this change still display their photo. This is only the
+//     // INITIAL seed — the useEffect below (fetch job-folder files) tops
+//     // this up with every equipment photo saved under this job number
+//     // across every stage, not just what jobForm happened to carry.
+//     photoUrls: jobForm.photoUrls?.length
+//       ? jobForm.photoUrls
+//       : jobForm.photoUrl
+//         ? [jobForm.photoUrl]
+//         : [],
+//   }));
+
+//   useEffect(() => {
+//     if (!form.dateCal) return;
+//     const months = FREQUENCY_MONTHS[form.frequency] ?? 12;
+//     const computedDue = addMonths(form.dateCal, months);
+//     setForm((prev) =>
+//       prev.dateDue === computedDue ? prev : { ...prev, dateDue: computedDue },
+//     );
+//   }, [form.dateCal, form.frequency]);
+
+//   const handleChange = (e) => {
+//     const { name, value } = e.target;
+//     setForm((prev) => ({ ...prev, [name]: value }));
+//   };
+
+//   const handleStandardChange = (rowIndex, columnKey, value) => {
+//     setForm((prev) => {
+//       const next = [...prev.calibrationStandards];
+//       next[rowIndex] = { ...next[rowIndex], [columnKey]: value };
+//       return { ...prev, calibrationStandards: next };
+//     });
+//   };
+
+//   const [dialog, setDialog] = useState({
+//     show: false,
+//     title: "",
+//     message: "",
+//     onConfirm: null,
+//     onCancel: null,
+//     confirmLabel: "Confirm",
+//     cancelLabel: "Cancel",
+//     type: "default",
+//   });
+
+//   const hideDialog = () => setDialog((prev) => ({ ...prev, show: false }));
+
+//   const showConfirm = (title, message, onConfirm, type = "default") => {
+//     setDialog({
+//       show: true,
+//       title,
+//       message,
+//       onConfirm,
+//       onCancel: hideDialog,
+//       confirmLabel: "Confirm",
+//       cancelLabel: "Cancel",
+//       type,
+//     });
+//   };
+
+//   const showError = (title, message) => {
+//     setDialog({
+//       show: true,
+//       title,
+//       message,
+//       onConfirm: hideDialog,
+//       onCancel: null,
+//       confirmLabel: "OK",
+//       cancelLabel: "Cancel",
+//       type: "danger",
+//     });
+//   };
+
+//   // --- Calibration data (replaces the xlsx download / re-upload) -----
+//   // Update stays locked until the calibration data has been saved at
+//   // least once through CalibrationDataModal.
+//   //
+//   // Draft vs complete: in Incoming Calibration the data can be saved as a
+//   // draft (complete: false). Records saved before the draft feature have
+//   // no `complete` field — they were only saved after passing validation,
+//   // so `complete !== false` correctly treats them as complete.
+//   //   - hasCalibrationData: saved at least once (draft or complete)
+//   //   - calibrationComplete: saved AND not a draft
+//   //   - canUpdate: Incoming only needs it saved; On-Going needs it complete
+//   const [showCalibData, setShowCalibData] = useState(false);
+//   const hasCalibrationData = Boolean(form.calibrationData?.savedAt);
+//   const calibrationComplete =
+//     hasCalibrationData && form.calibrationData.complete !== false;
+//   const canUpdate = allowIncompleteCalibData
+//     ? hasCalibrationData
+//     : calibrationComplete;
+//   const calibStatus = !hasCalibrationData
+//     ? null
+//     : calibrationComplete
+//       ? "Complete"
+//       : "Draft";
+
+//   const handleOpenCalibData = () => {
+//     const missing = [];
+
+//     if (!form.calibrationProcedure?.trim()) {
+//       missing.push("Calibration Procedure");
+//     }
+
+//     const hasStandard = form.calibrationStandards.some((row) =>
+//       Object.values(row).some((v) => v?.trim()),
+//     );
+//     if (!hasStandard) {
+//       missing.push("Calibration Standard");
+//     }
+
+//     if (missing.length > 0) {
+//       showError(
+//         "Missing Information",
+//         `Please fill out the ${missing.join(" and ")} before entering the calibration data.`,
+//       );
+//       return;
+//     }
+
+//     setShowCalibData(true);
+//   };
+
+//   const handleSaveCalibrationData = (data) => {
+//     setForm((prev) => ({ ...prev, calibrationData: data }));
+//     setShowCalibData(false);
+//   };
+
+//   const handleUpdateClick = () => {
+//     if (!canUpdate) {
+//       showError(
+//         "Calibration Data Required",
+//         hasCalibrationData
+//           ? "The calibration data is still a draft. Open the Calibration Data window and fill in all 6 points before you can update this job."
+//           : "You must enter and save the calibration data before you can update this job. Use the Calibration Data button next to Calibration Procedure.",
+//       );
+//       return;
+//     }
+
+//     showConfirm(
+//       "Confirm Update",
+//       `Are you sure you want to update Job Number ${form.jobNumber}? This will save the calibration details you've entered.`,
+//       () => {
+//         hideDialog();
+//         onUpdate?.(form);
+//       },
+//       "default",
+//     );
+//   };
+
+//   const handleExitClick = () => {
+//     showConfirm(
+//       "Confirm Exit",
+//       "Are you sure you want to exit? Any unsaved changes will be lost.",
+//       () => {
+//         hideDialog();
+//         onClose();
+//       },
+//     );
+//   };
+
+//   // --- Job Number With Concern ---------------------------------------
+//   // Flags this job as a concern via the existing PUT /api/jobnumbers/tag
+//   // route (same one InstrumentTag.jsx presumably calls to move a job
+//   // into Incoming Calibration in the first place). Sending
+//   // concernTagged: true here is what the dashboard analytics aggregation
+//   // in server.js already reads as the "Concern" stage (tagged: true,
+//   // concernTagged: true, ongoingTagged not true) — so this job will show
+//   // up in the Incoming Concern list without needing any new backend
+//   // route. tagged: true is sent alongside it since this job already
+//   // reached Incoming Calibration, so it should already be tagged, but
+//   // it's included explicitly rather than assumed.
+//   //
+//   // concernSource: "calibration" — marks that this concern was flagged
+//   // from HERE (Incoming Calibration Details), not straight from
+//   // Instrument Tagging, so this job already has a real OIC/SIG on it.
+//   // JobDetailsModal / ConcernIncoming.jsx use this to decide whether to
+//   // show the OIC/SIG fields. See InstrumentTag.jsx for the other source.
+//   //
+//   // onConcernFlagged — lets the parent screen (e.g. OnGoingCalib.jsx)
+//   // remove this job from ITS list immediately on success, rather than
+//   // relying on the parent's next refetch to notice concernTagged flipped
+//   // to true. Parents that don't need this (e.g. plain Incoming
+//   // Calibration, if it doesn't render concern-tagged jobs anyway) can
+//   // simply not pass the prop — it's optional and a no-op if omitted.
+//   const [isMarkingConcern, setIsMarkingConcern] = useState(false);
+
+//   const handleMarkAsConcernClick = () => {
+//     showConfirm(
+//       "Job Number With Concern",
+//       `Are you sure you want to flag Job Number ${form.jobNumber} as a concern? It will move to the Incoming Concern list.`,
+//       async () => {
+//         hideDialog();
+//         setIsMarkingConcern(true);
+//         try {
+//           const res = await fetch(`${API}/api/jobnumbers/tag`, {
+//             method: "PUT",
+//             headers: { "Content-Type": "application/json" },
+//             body: JSON.stringify({
+//               jobNumber: form.jobNumber,
+//               tagged: true,
+//               concernTagged: true,
+//               concernSource: "calibration",
+//               // Without these, the OIC/SIG typed into this form were
+//               // never actually persisted to the job document — only
+//               // clicking "Update" saved them (via onUpdate), and "Job
+//               // Number With Concern" bypasses that entirely. This is
+//               // why the Incoming Concern table showed OIC blank even
+//               // when it was visibly filled in on screen.
+//               oicBy: form.oicBy,
+//               sig: form.sig,
+//             }),
+//           });
+//           const data = await res.json();
+//           if (!res.ok || data.success === false) {
+//             throw new Error(data?.message || "Failed to flag job as concern");
+//           }
+//           onConcernFlagged?.(form.jobNumber);
+//           onClose();
+//         } catch (err) {
+//           console.error("Failed to mark job as concern:", err);
+//           showError(
+//             "Update Failed",
+//             "This job could not be flagged as a concern. Please try again.",
+//           );
+//         } finally {
+//           setIsMarkingConcern(false);
+//         }
+//       },
+//       "default",
+//     );
+//   };
+
+//   const [standardLookupTarget, setStandardLookupTarget] = useState(null);
+
+//   const openStandardLookup = (rowIndex, columnKey) => {
+//     setStandardLookupTarget({ rowIndex, columnKey });
+//     onOpenCalStandardLookup?.(rowIndex, columnKey);
+//   };
+
+//   const handleUseStandard = (standardRecord) => {
+//     if (!standardLookupTarget) return;
+//     handleStandardChange(
+//       standardLookupTarget.rowIndex,
+//       standardLookupTarget.columnKey,
+//       standardRecord.code,
+//     );
+//     setStandardLookupTarget(null);
+//   };
+
+//   const [showProcedureLookup, setShowProcedureLookup] = useState(false);
+
+//   const openProcedureLookup = () => {
+//     setShowProcedureLookup(true);
+//     onOpenCalProcedureLookup?.();
+//   };
+
+//   const handleSelectTemplate = (template) => {
+//     setForm((prev) => ({
+//       ...prev,
+//       calibrationProcedure: template.name,
+//       calibrationProcedureTemplate: template,
+//     }));
+//     setShowProcedureLookup(false);
+//   };
+
+//   useEffect(() => {
+//     if (form.calibrationProcedureTemplate || !form.calibrationProcedure) {
+//       return;
+//     }
+//     let cancelled = false;
+
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API}/api/uploads/templates`);
+//         const data = await res.json();
+//         if (cancelled || !res.ok || data.success === false) return;
+
+//         const match = (data.templates || []).find(
+//           (t) =>
+//             t.code?.toLowerCase() === form.calibrationProcedure.toLowerCase(),
+//         );
+//         if (match) {
+//           setForm((prev) =>
+//             prev.calibrationProcedureTemplate
+//               ? prev
+//               : { ...prev, calibrationProcedureTemplate: match },
+//           );
+//         }
+//       } catch (err) {
+//         console.error("Failed to recover calibration procedure template:", err);
+//       }
+//     })();
+
+//     return () => {
+//       cancelled = true;
+//     };
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, []);
+
+//   // --- Fetch valid SIG signers (technicians + admins) ----------------
+//   // The SIG field is a code (initials) — it must be one of the actual
+//   // technician/admin account usernames, not a fixed value.
+//   // GET /api/accounts returns every account with no role filter, so
+//   // filter down to role === "technician" OR "admin" here — both roles
+//   // are eligible signers. Each option's value is the username (the
+//   // initials code); the label shows the full name for readability.
+//   // The same list is handed to CalibrationDataModal so it can resolve
+//   // OIC / SIG initials into full names on the certificate.
+//   const [signerOptions, setSignerOptions] = useState([]);
+
+//   useEffect(() => {
+//     let cancelled = false;
+//     (async () => {
+//       try {
+//         const res = await fetch(`${API}/api/accounts`);
+//         const accounts = await res.json();
+//         if (cancelled || !Array.isArray(accounts)) return;
+//         const eligible = accounts.filter(
+//           (u) => u.role === "technician" || u.role === "admin",
+//         );
+//         setSignerOptions(eligible);
+//       } catch (err) {
+//         console.error("Failed to fetch signer options:", err);
+//       }
+//     })();
+//     return () => {
+//       cancelled = true;
+//     };
+//   }, []);
+
+//   // --- Fetch ALL equipment photos saved for this job number ----------
+//   // jobForm.photoUrls/photoUrl only covers what THIS stage's camera flow
+//   // captured. Other stages (e.g. JobNumberModal) may have added more
+//   // photos into the same Cloudinary folder
+//   // (cdms/job-numbers/<jobNumber>/equipment-photos/). On mount, pull the
+//   // job's full file listing — the same GET /job-folder/:jobNumber/files
+//   // endpoint ReceiptFolderModal's "View Files" already uses — and merge
+//   // in just the photo subset, so the carousel shows every equipment
+//   // photo saved under this job number, regardless of which stage
+//   // uploaded it, not just this stage's local subset.
+//   useEffect(() => {
+//     if (!form.jobNumber) return;
+//     let cancelled = false;
+
+//     (async () => {
+//       try {
+//         const res = await fetch(
+//           `${API}/api/uploads/job-folder/${encodeURIComponent(form.jobNumber)}/files`,
+//         );
+//         const data = await res.json();
+//         if (cancelled || !res.ok || data.success === false) return;
+
+//         // resourceType is the reliable signal here — Cloudinary image
+//         // uploads don't carry their extension in publicId (that's a
+//         // separate `format` field, so the old extension regex never
+//         // matched), and on Dynamic Folder mode accounts the Search API's
+//         // legacy `folder` string can come back empty/inconsistent even
+//         // for files that really do live under .../equipment-photos/. The
+//         // backend's job-folder/files route already returns resourceType
+//         // per file (set at upload time to "image" for equipment photos,
+//         // "raw" for PDFs/documents/templates), so filter on that first.
+//         const files = data.files || [];
+//         const remotePhotoUrls = files
+//           .filter(
+//             (f) =>
+//               f.resourceType === "image" ||
+//               f.folder?.includes("/equipment-photos") ||
+//               /\.(jpe?g|png|gif|webp)$/i.test(f.publicId || ""),
+//           )
+//           .map((f) => f.url);
+
+//         if (remotePhotoUrls.length === 0) return;
+
+//         setForm((prev) => {
+//           const merged = Array.from(
+//             new Set([...prev.photoUrls, ...remotePhotoUrls]),
+//           );
+//           return merged.length === prev.photoUrls.length
+//             ? prev
+//             : { ...prev, photoUrls: merged };
+//         });
+//       } catch (err) {
+//         console.error("Failed to fetch job equipment photos:", err);
+//       }
+//     })();
+
+//     return () => {
+//       cancelled = true;
+//     };
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//   }, [form.jobNumber]);
+
+//   // OPEN CAMERA — onOpenCamera is expected to resolve either a single
+//   // dataURL/uploaded-URL (older callers) or an ARRAY of them (multi-shot
+//   // capture, matching CameraCaptureModal's onCapture(photos) contract).
+//   //
+//   // IMPORTANT: what CameraCaptureModal actually hands back are raw
+//   // base64 dataURLs — nothing has uploaded them to Cloudinary yet. Those
+//   // dataURLs are NOT stored directly into form.photoUrls (that used to
+//   // be the bug: photos never made it past local component state).
+//   //
+//   // So each dataURL is uploaded here, immediately, via
+//   // POST /api/uploads/equipment-photo/:jobNumber (see uploadRoutes.js),
+//   // and only the URL Cloudinary actually returns is appended to
+//   // form.photoUrls. That's what makes captured photos survive
+//   // regardless of what the user does afterwards (Update, Concern, or
+//   // just closing the modal) — they're already saved server-side the
+//   // moment they're taken.
+//   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+
+//   const handleOpenCamera = async () => {
+//     const result = await onOpenCamera?.();
+//     if (!result) return;
+//     const newDataUrls = Array.isArray(result) ? result : [result];
+//     if (newDataUrls.length === 0) return;
+
+//     if (!form.jobNumber) {
+//       showError(
+//         "Missing Job Number",
+//         "This job has no job number yet, so the photo can't be saved. Please try again once the job number is set.",
+//       );
+//       return;
+//     }
+
+//     setIsUploadingPhotos(true);
+//     try {
+//       const uploadedUrls = [];
+//       for (const dataUrl of newDataUrls) {
+//         const blob = await dataUrlToBlob(dataUrl);
+//         const formData = new FormData();
+//         formData.append("photo", blob, `photo_${Date.now()}.jpg`);
+
+//         const res = await fetch(
+//           `${API}/api/uploads/equipment-photo/${encodeURIComponent(form.jobNumber)}`,
+//           { method: "POST", body: formData },
+//         );
+//         const data = await res.json();
+//         if (!res.ok || data.success === false) {
+//           throw new Error(data?.message || "Photo upload failed");
+//         }
+//         uploadedUrls.push(data.url);
+//       }
+
+//       setForm((prev) => ({
+//         ...prev,
+//         photoUrls: [...prev.photoUrls, ...uploadedUrls],
+//       }));
+//       setActivePhotoIndex(form.photoUrls.length); // jump to first newly added photo
+//     } catch (err) {
+//       console.error("Failed to upload captured photo(s):", err);
+//       showError(
+//         "Upload Failed",
+//         "One or more captured photos could not be saved. Please try taking the photo again.",
+//       );
+//     } finally {
+//       setIsUploadingPhotos(false);
+//     }
+//   };
+
+//   const contactCertOptions = CONTACT_CERT_OPTIONS.includes(form.contactCert)
+//     ? CONTACT_CERT_OPTIONS
+//     : [form.contactCert, ...CONTACT_CERT_OPTIONS].filter(Boolean);
+
+//   // --- Photo carousel (inline, in the icd-image-viewer box) ----------
+//   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+//   // Keep the active index in range whenever the photo list changes
+//   // (e.g. new photos captured, or a record loads with fewer photos).
+//   useEffect(() => {
+//     setActivePhotoIndex((i) =>
+//       Math.min(i, Math.max(form.photoUrls.length - 1, 0)),
+//     );
+//   }, [form.photoUrls.length]);
+
+//   const goToPrevPhoto = useCallback(() => {
+//     setActivePhotoIndex(
+//       (i) => (i - 1 + form.photoUrls.length) % form.photoUrls.length,
+//     );
+//   }, [form.photoUrls.length]);
+
+//   const goToNextPhoto = useCallback(() => {
+//     setActivePhotoIndex((i) => (i + 1) % form.photoUrls.length);
+//   }, [form.photoUrls.length]);
+
+//   // --- View Files modal --------------------------------------------
+//   const [showViewFiles, setShowViewFiles] = useState(false);
+
+//   const handleViewFilesClick = () => {
+//     setShowViewFiles(true);
+//   };
+
+//   return createPortal(
+//     <div className="icd-modal-overlay" onClick={handleExitClick}>
+//       <div className="icd-modal-wrapper" onClick={(e) => e.stopPropagation()}>
+//         <CdmsModalHeader
+//           title={title}
+//           subtitleBottom={form.companyName}
+//           onClose={handleExitClick}
+//         />
+
+//         <div className="icd-modal-scroll">
+//           <div className="icd-body">
+//             <div className="icd-col icd-col-left">
+//               <div className="icd-field">
+//                 <label>Company</label>
+//                 <textarea
+//                   name="companyName"
+//                   value={form.companyName}
+//                   onChange={handleChange}
+//                   rows={3}
+//                 />
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Description</label>
+//                 <div className="icd-input-with-btn">
+//                   <textarea
+//                     name="description"
+//                     value={form.description}
+//                     onChange={handleChange}
+//                     rows={3}
+//                   />
+//                   <button type="button" className="icd-lookup-btn">
+//                     🔍
+//                   </button>
+//                 </div>
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Brand</label>
+//                 <input
+//                   type="text"
+//                   name="brand"
+//                   value={form.brand}
+//                   onChange={handleChange}
+//                 />
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Model</label>
+//                 <input
+//                   type="text"
+//                   name="model"
+//                   value={form.model}
+//                   onChange={handleChange}
+//                 />
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Serial No.</label>
+//                 <input
+//                   type="text"
+//                   name="serialNo"
+//                   value={form.serialNo}
+//                   onChange={handleChange}
+//                 />
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Remarks</label>
+//                 <textarea
+//                   name="remarks"
+//                   value={form.remarks}
+//                   onChange={handleChange}
+//                   rows={2}
+//                 />
+//               </div>
+//             </div>
+
+//             <div className="icd-col icd-col-mid">
+//               <div className="icd-inline-field">
+//                 <label>OIC</label>
+//                 <input type="text" value={form.oicBy} disabled />
+//               </div>
+
+//               <div className="icd-inline-field">
+//                 <label>SIG</label>
+//                 <select name="sig" value={form.sig} onChange={handleChange}>
+//                   <option value="">-- Select --</option>
+//                   {signerOptions.map((u) => (
+//                     <option key={u.username} value={u.username}>
+//                       {u.username} — {u.name}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+
+//               <div className="icd-inline-field">
+//                 <label>Frequency</label>
+//                 <select
+//                   name="frequency"
+//                   value={form.frequency}
+//                   onChange={handleChange}
+//                 >
+//                   <option>6 Months</option>
+//                   <option>1 Year</option>
+//                   <option>2 Years</option>
+//                   <option>3 Years</option>
+//                 </select>
+//               </div>
+
+//               <div className="icd-inline-field">
+//                 <label>Con Cert</label>
+//                 <select
+//                   name="contactCert"
+//                   value={form.contactCert}
+//                   onChange={handleChange}
+//                 >
+//                   <option value="">-- Select --</option>
+//                   {contactCertOptions.map((opt) => (
+//                     <option key={opt} value={opt}>
+//                       {opt}
+//                     </option>
+//                   ))}
+//                 </select>
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Uncertainty</label>
+//                 <textarea
+//                   name="uncertainty"
+//                   value={form.uncertainty}
+//                   onChange={handleChange}
+//                   rows={2}
+//                 />
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Range</label>
+//                 <textarea
+//                   name="range"
+//                   value={form.range}
+//                   onChange={handleChange}
+//                   rows={3}
+//                 />
+//               </div>
+
+//               <div className="icd-field">
+//                 <label>Concern</label>
+//                 <textarea
+//                   name="concern"
+//                   value={form.concern}
+//                   onChange={handleChange}
+//                   rows={3}
+//                 />
+//               </div>
+//             </div>
+
+//             <div className="icd-col icd-col-dates">
+//               <div className="icd-inline-field">
+//                 <label>Date Cal</label>
+//                 <input
+//                   type="date"
+//                   name="dateCal"
+//                   value={form.dateCal}
+//                   onChange={handleChange}
+//                 />
+//               </div>
+
+//               <div className="icd-inline-field">
+//                 <label>Date Due</label>
+//                 <input
+//                   type="date"
+//                   name="dateDue"
+//                   value={form.dateDue}
+//                   onChange={handleChange}
+//                 />
+//               </div>
+
+//               <div className="icd-inline-field">
+//                 <label>Priority</label>
+//                 <select
+//                   name="priority"
+//                   value={form.priority}
+//                   onChange={handleChange}
+//                 >
+//                   <option>Normal</option>
+//                   <option>Rush</option>
+//                   <option>On Hold</option>
+//                 </select>
+//               </div>
+//             </div>
+
+//             <div className="icd-col icd-col-image">
+//               <div className="icd-meta-row">
+//                 <label>Job Number</label>
+//                 <input type="text" value={form.jobNumber} disabled />
+//               </div>
+//               <div className="icd-meta-row">
+//                 <label>Date Received</label>
+//                 <input
+//                   type="text"
+//                   name="dateRec"
+//                   value={form.dateRec}
+//                   onChange={handleChange}
+//                 />
+//               </div>
+
+//               {/* IMAGE VIEWER — carousel over form.photoUrls (seeded from
+//                   jobForm, then topped up with every equipment photo
+//                   found under this job number via the job-folder fetch
+//                   above). Shows the currently active photo with ‹ › nav
+//                   buttons and a counter whenever there's more than one. */}
+//               <div
+//                 className="icd-image-viewer"
+//                 style={{ position: "relative" }}
+//               >
+//                 {form.photoUrls.length > 0 ? (
+//                   <>
+//                     <img
+//                       src={form.photoUrls[activePhotoIndex]}
+//                       alt={`Unit photo ${activePhotoIndex + 1} of ${form.photoUrls.length}`}
+//                     />
+//                     {form.photoUrls.length > 1 && (
+//                       <>
+//                         <button
+//                           type="button"
+//                           onClick={goToPrevPhoto}
+//                           title="Previous photo"
+//                           style={{
+//                             position: "absolute",
+//                             top: "50%",
+//                             left: 4,
+//                             transform: "translateY(-50%)",
+//                             width: 28,
+//                             height: 28,
+//                             borderRadius: "50%",
+//                             border: "1px solid #999",
+//                             background: "rgba(255,255,255,0.85)",
+//                             cursor: "pointer",
+//                             fontSize: 14,
+//                             lineHeight: 1,
+//                           }}
+//                         >
+//                           &lsaquo;
+//                         </button>
+//                         <button
+//                           type="button"
+//                           onClick={goToNextPhoto}
+//                           title="Next photo"
+//                           style={{
+//                             position: "absolute",
+//                             top: "50%",
+//                             right: 4,
+//                             transform: "translateY(-50%)",
+//                             width: 28,
+//                             height: 28,
+//                             borderRadius: "50%",
+//                             border: "1px solid #999",
+//                             background: "rgba(255,255,255,0.85)",
+//                             cursor: "pointer",
+//                             fontSize: 14,
+//                             lineHeight: 1,
+//                           }}
+//                         >
+//                           &rsaquo;
+//                         </button>
+//                         <div
+//                           style={{
+//                             position: "absolute",
+//                             bottom: 4,
+//                             left: "50%",
+//                             transform: "translateX(-50%)",
+//                             background: "rgba(0,0,0,0.6)",
+//                             color: "#fff",
+//                             fontSize: 11,
+//                             padding: "1px 6px",
+//                             borderRadius: 10,
+//                           }}
+//                         >
+//                           {activePhotoIndex + 1} / {form.photoUrls.length}
+//                         </div>
+//                       </>
+//                     )}
+//                   </>
+//                 ) : (
+//                   <div className="icd-image-placeholder">No Image</div>
+//                 )}
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="icd-mid-section">
+//             <div className="icd-accreditation-box">
+//               <div className="icd-box-title">Accreditation Logo</div>
+//               <label className="icd-radio-label">
+//                 <input
+//                   type="radio"
+//                   name="accreditationLogo"
+//                   value="with"
+//                   checked={form.accreditationLogo === "with"}
+//                   onChange={handleChange}
+//                 />{" "}
+//                 With PAB Logo
+//               </label>
+//               <label className="icd-radio-label">
+//                 <input
+//                   type="radio"
+//                   name="accreditationLogo"
+//                   value="none"
+//                   checked={form.accreditationLogo === "none"}
+//                   onChange={handleChange}
+//                 />{" "}
+//                 No PAB Logo
+//               </label>
+//             </div>
+
+//             <div className="icd-procedure-box">
+//               <div className="icd-box-title">Calibration Procedure :</div>
+//               <div className="icd-procedure-row">
+//                 <input
+//                   type="text"
+//                   name="calibrationProcedure"
+//                   value={form.calibrationProcedure}
+//                   onChange={handleChange}
+//                   className="icd-procedure-input"
+//                 />
+//                 <div className="icd-procedure-btn-col">
+//                   <button
+//                     type="button"
+//                     className="icd-lookup-btn"
+//                     onClick={openProcedureLookup}
+//                   >
+//                     🔍
+//                   </button>
+//                   <button
+//                     type="button"
+//                     className="icd-download-btn"
+//                     onClick={handleOpenCalibData}
+//                     title="Enter the readings and uncertainty inputs, and preview the certificate"
+//                   >
+//                     {hasCalibrationData
+//                       ? "✓ Calibration Data"
+//                       : "📋 Calibration Data"}
+//                   </button>
+//                   {calibStatus && (
+//                     <span
+//                       className={`cdm-status cdm-status-${calibStatus.toLowerCase()}`}
+//                     >
+//                       {calibStatus}
+//                     </span>
+//                   )}
+//                 </div>
+//               </div>
+//             </div>
+//           </div>
+
+//           <div className="icd-standard-section">
+//             <div className="icd-box-title">Calibration Standard</div>
+//             <div className="icd-standard-grid">
+//               {(() => {
+//                 const columns = ["item1", "item2", "item3"];
+//                 const flatValues = form.calibrationStandards.flatMap((row) =>
+//                   columns.map((col) => row[col]),
+//                 );
+
+//                 return form.calibrationStandards.map((row, idx) => (
+//                   <div className="icd-standard-row" key={idx}>
+//                     {columns.map((col, colIdx) => {
+//                       const flatIndex = idx * columns.length + colIdx;
+//                       const isLocked =
+//                         flatIndex > 0 && !flatValues[flatIndex - 1]?.trim();
+//                       return (
+//                         <div className="icd-standard-cell" key={col}>
+//                           <input
+//                             type="text"
+//                             value={row[col]}
+//                             disabled={isLocked}
+//                             onChange={(e) =>
+//                               handleStandardChange(idx, col, e.target.value)
+//                             }
+//                           />
+//                           <button
+//                             type="button"
+//                             className="icd-lookup-btn"
+//                             disabled={isLocked}
+//                             onClick={() => openStandardLookup(idx, col)}
+//                           >
+//                             🔍
+//                           </button>
+//                         </div>
+//                       );
+//                     })}
+//                   </div>
+//                 ));
+//               })()}
+//             </div>
+//           </div>
+
+//           <div className="icd-footer">
+//             <div className="icd-footer-left">
+//               <button
+//                 type="button"
+//                 onClick={handleOpenCamera}
+//                 disabled={isUploadingPhotos}
+//               >
+//                 {isUploadingPhotos
+//                   ? "Saving Photo..."
+//                   : form.photoUrls.length > 0
+//                     ? `Add More Photos (${form.photoUrls.length})`
+//                     : "Open Camera"}
+//               </button>
+//               <button type="button" onClick={handleViewFilesClick}>
+//                 View Files
+//               </button>
+//             </div>
+//             <div className="icd-footer-right">
+//               <button
+//                 type="button"
+//                 onClick={handleMarkAsConcernClick}
+//                 disabled={isMarkingConcern}
+//               >
+//                 {isMarkingConcern ? "Flagging..." : "Job Number With Concern"}
+//               </button>
+//               <button
+//                 type="button"
+//                 className="icd-update-btn"
+//                 onClick={handleUpdateClick}
+//                 disabled={!canUpdate}
+//                 title={
+//                   canUpdate
+//                     ? undefined
+//                     : hasCalibrationData
+//                       ? "Complete all 6 calibration points before updating"
+//                       : "Enter and save the calibration data before updating"
+//                 }
+//               >
+//                 Update
+//               </button>
+//               <button type="button" onClick={handleExitClick}>
+//                 Exit
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       </div>
+
+//       {standardLookupTarget && (
+//         <CalibrationStandardLookupModal
+//           onCancel={() => setStandardLookupTarget(null)}
+//           onUseStandard={handleUseStandard}
+//         />
+//       )}
+//       {showProcedureLookup && (
+//         <CalibrationProcedureLookupModal
+//           onCancel={() => setShowProcedureLookup(false)}
+//           onSelectTemplate={handleSelectTemplate}
+//         />
+//       )}
+
+//       {/* CALIBRATION DATA — in-app replacement for the SSS-CP-020.xlsx
+//           download / fill-in / re-upload flow. allowIncompleteSave lets
+//           Incoming Calibration save a blank/partial draft; On-Going
+//           passes allowIncompleteCalibData={false} to keep full validation. */}
+//       {showCalibData && (
+//         <CalibrationDataModal
+//           job={form}
+//           standards={form.calibrationStandards}
+//           accounts={signerOptions}
+//           initialData={form.calibrationData}
+//           allowIncompleteSave={allowIncompleteCalibData}
+//           onSave={handleSaveCalibrationData}
+//           onCancel={() => setShowCalibData(false)}
+//         />
+//       )}
+
+//       {/* VIEW FILES — Cloudinary-fetched job files, plus this modal's own
+//           locally-tracked photoUrls shown as an extra "Unit Photo" section
+//           (with its own carousel/lightbox) up top. */}
+//       {showViewFiles && (
+//         <ReceiptFolderModal
+//           jobNumber={form.jobNumber}
+//           title="JOB FILES"
+//           unitPhotoUrls={form.photoUrls}
+//           onClose={() => setShowViewFiles(false)}
+//         />
+//       )}
+
+//       {dialog.show && (
+//         <ConfirmDialog
+//           title={dialog.title}
+//           message={dialog.message}
+//           onConfirm={dialog.onConfirm}
+//           onCancel={dialog.onCancel}
+//           confirmLabel={dialog.confirmLabel}
+//           cancelLabel={dialog.cancelLabel}
+//           type={dialog.type}
+//         />
+//       )}
+//     </div>,
+//     document.body,
+//   );
+// };
+
+// export default IncomingCalibDetailsModal;
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import "./IncomingCalibDetailsModal.css";
@@ -1349,14 +2454,10 @@ const IncomingCalibDetailsModal = ({
     // downloading/re-uploading the xlsx. null until saved at least once.
     calibrationData: jobForm.calibrationData || null,
 
-    // PHOTOS — the job may have several equipment photos captured across
-    // sessions (CameraCaptureModal supports multi-shot capture). Prefers
-    // jobForm.photoUrls (the array); falls back to wrapping the older
-    // singular jobForm.photoUrl in a one-item array so records saved
-    // before this change still display their photo. This is only the
-    // INITIAL seed — the useEffect below (fetch job-folder files) tops
-    // this up with every equipment photo saved under this job number
-    // across every stage, not just what jobForm happened to carry.
+    // PHOTOS — prefers jobForm.photoUrls (the array); falls back to
+    // wrapping the older singular jobForm.photoUrl in a one-item array.
+    // This is only the INITIAL seed — the job-folder fetch below tops it
+    // up with every equipment photo saved under this job number.
     photoUrls: jobForm.photoUrls?.length
       ? jobForm.photoUrls
       : jobForm.photoUrl
@@ -1426,9 +2527,6 @@ const IncomingCalibDetailsModal = ({
   };
 
   // --- Calibration data (replaces the xlsx download / re-upload) -----
-  // Update stays locked until the calibration data has been saved at
-  // least once through CalibrationDataModal.
-  //
   // Draft vs complete: in Incoming Calibration the data can be saved as a
   // draft (complete: false). Records saved before the draft feature have
   // no `complete` field — they were only saved after passing validation,
@@ -1513,29 +2611,12 @@ const IncomingCalibDetailsModal = ({
   };
 
   // --- Job Number With Concern ---------------------------------------
-  // Flags this job as a concern via the existing PUT /api/jobnumbers/tag
-  // route (same one InstrumentTag.jsx presumably calls to move a job
-  // into Incoming Calibration in the first place). Sending
-  // concernTagged: true here is what the dashboard analytics aggregation
-  // in server.js already reads as the "Concern" stage (tagged: true,
-  // concernTagged: true, ongoingTagged not true) — so this job will show
-  // up in the Incoming Concern list without needing any new backend
-  // route. tagged: true is sent alongside it since this job already
-  // reached Incoming Calibration, so it should already be tagged, but
-  // it's included explicitly rather than assumed.
-  //
-  // concernSource: "calibration" — marks that this concern was flagged
-  // from HERE (Incoming Calibration Details), not straight from
-  // Instrument Tagging, so this job already has a real OIC/SIG on it.
-  // JobDetailsModal / ConcernIncoming.jsx use this to decide whether to
-  // show the OIC/SIG fields. See InstrumentTag.jsx for the other source.
-  //
-  // onConcernFlagged — lets the parent screen (e.g. OnGoingCalib.jsx)
-  // remove this job from ITS list immediately on success, rather than
-  // relying on the parent's next refetch to notice concernTagged flipped
-  // to true. Parents that don't need this (e.g. plain Incoming
-  // Calibration, if it doesn't render concern-tagged jobs anyway) can
-  // simply not pass the prop — it's optional and a no-op if omitted.
+  // Flags this job as a concern via PUT /api/jobnumbers/tag.
+  // concernSource: "calibration" marks that the concern was flagged from
+  // HERE (so the job already has a real OIC/SIG). oicBy/sig are sent
+  // because "Job Number With Concern" bypasses onUpdate, which would
+  // otherwise be the only thing persisting them.
+  // onConcernFlagged lets the parent drop this job from its list at once.
   const [isMarkingConcern, setIsMarkingConcern] = useState(false);
 
   const handleMarkAsConcernClick = () => {
@@ -1554,12 +2635,6 @@ const IncomingCalibDetailsModal = ({
               tagged: true,
               concernTagged: true,
               concernSource: "calibration",
-              // Without these, the OIC/SIG typed into this form were
-              // never actually persisted to the job document — only
-              // clicking "Update" saved them (via onUpdate), and "Job
-              // Number With Concern" bypasses that entirely. This is
-              // why the Incoming Concern table showed OIC blank even
-              // when it was visibly filled in on screen.
               oicBy: form.oicBy,
               sig: form.sig,
             }),
@@ -1653,13 +2728,9 @@ const IncomingCalibDetailsModal = ({
 
   // --- Fetch valid SIG signers (technicians + admins) ----------------
   // The SIG field is a code (initials) — it must be one of the actual
-  // technician/admin account usernames, not a fixed value.
-  // GET /api/accounts returns every account with no role filter, so
-  // filter down to role === "technician" OR "admin" here — both roles
-  // are eligible signers. Each option's value is the username (the
-  // initials code); the label shows the full name for readability.
-  // The same list is handed to CalibrationDataModal so it can resolve
-  // OIC / SIG initials into full names on the certificate.
+  // technician/admin account usernames. The same list is handed to
+  // CalibrationDataModal so it can resolve OIC / SIG initials into full
+  // names on the certificate.
   const [signerOptions, setSignerOptions] = useState([]);
 
   useEffect(() => {
@@ -1683,15 +2754,11 @@ const IncomingCalibDetailsModal = ({
   }, []);
 
   // --- Fetch ALL equipment photos saved for this job number ----------
-  // jobForm.photoUrls/photoUrl only covers what THIS stage's camera flow
-  // captured. Other stages (e.g. JobNumberModal) may have added more
-  // photos into the same Cloudinary folder
-  // (cdms/job-numbers/<jobNumber>/equipment-photos/). On mount, pull the
-  // job's full file listing — the same GET /job-folder/:jobNumber/files
-  // endpoint ReceiptFolderModal's "View Files" already uses — and merge
-  // in just the photo subset, so the carousel shows every equipment
-  // photo saved under this job number, regardless of which stage
-  // uploaded it, not just this stage's local subset.
+  // Other stages (e.g. JobNumberModal) may have added more photos into
+  // the same Cloudinary folder, so on mount pull the job's full file
+  // listing and merge in the photo subset. resourceType is the reliable
+  // signal (Cloudinary image publicIds don't carry the extension, and the
+  // legacy `folder` string can be empty on Dynamic Folder accounts).
   useEffect(() => {
     if (!form.jobNumber) return;
     let cancelled = false;
@@ -1704,15 +2771,6 @@ const IncomingCalibDetailsModal = ({
         const data = await res.json();
         if (cancelled || !res.ok || data.success === false) return;
 
-        // resourceType is the reliable signal here — Cloudinary image
-        // uploads don't carry their extension in publicId (that's a
-        // separate `format` field, so the old extension regex never
-        // matched), and on Dynamic Folder mode accounts the Search API's
-        // legacy `folder` string can come back empty/inconsistent even
-        // for files that really do live under .../equipment-photos/. The
-        // backend's job-folder/files route already returns resourceType
-        // per file (set at upload time to "image" for equipment photos,
-        // "raw" for PDFs/documents/templates), so filter on that first.
         const files = data.files || [];
         const remotePhotoUrls = files
           .filter(
@@ -1744,22 +2802,11 @@ const IncomingCalibDetailsModal = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.jobNumber]);
 
-  // OPEN CAMERA — onOpenCamera is expected to resolve either a single
-  // dataURL/uploaded-URL (older callers) or an ARRAY of them (multi-shot
-  // capture, matching CameraCaptureModal's onCapture(photos) contract).
-  //
-  // IMPORTANT: what CameraCaptureModal actually hands back are raw
-  // base64 dataURLs — nothing has uploaded them to Cloudinary yet. Those
-  // dataURLs are NOT stored directly into form.photoUrls (that used to
-  // be the bug: photos never made it past local component state).
-  //
-  // So each dataURL is uploaded here, immediately, via
-  // POST /api/uploads/equipment-photo/:jobNumber (see uploadRoutes.js),
-  // and only the URL Cloudinary actually returns is appended to
-  // form.photoUrls. That's what makes captured photos survive
-  // regardless of what the user does afterwards (Update, Concern, or
-  // just closing the modal) — they're already saved server-side the
-  // moment they're taken.
+  // OPEN CAMERA — onOpenCamera resolves either a single dataURL or an
+  // ARRAY of them (multi-shot capture). Each dataURL is uploaded
+  // immediately via POST /api/uploads/equipment-photo/:jobNumber and only
+  // the URL Cloudinary returns is appended to form.photoUrls, so photos
+  // survive whatever the user does next (Update, Concern, or closing).
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
 
   const handleOpenCamera = async () => {
@@ -1818,8 +2865,7 @@ const IncomingCalibDetailsModal = ({
   // --- Photo carousel (inline, in the icd-image-viewer box) ----------
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
-  // Keep the active index in range whenever the photo list changes
-  // (e.g. new photos captured, or a record loads with fewer photos).
+  // Keep the active index in range whenever the photo list changes.
   useEffect(() => {
     setActivePhotoIndex((i) =>
       Math.min(i, Math.max(form.photoUrls.length - 1, 0)),
@@ -1836,12 +2882,70 @@ const IncomingCalibDetailsModal = ({
     setActivePhotoIndex((i) => (i + 1) % form.photoUrls.length);
   }, [form.photoUrls.length]);
 
+  // --- Full-screen image lightbox ------------------------------------
+  // Clicking the image viewer opens the active photo full screen.
+  //   - Esc closes (and only the lightbox — not the modal behind it)
+  //   - ← / → move between photos
+  //   - clicking the photo toggles actual-size zoom; clicking the dark
+  //     backdrop closes
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxZoomed, setLightboxZoomed] = useState(false);
+
+  const openLightbox = () => {
+    if (form.photoUrls.length === 0) return;
+    setLightboxZoomed(false);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = useCallback(() => {
+    setLightboxOpen(false);
+    setLightboxZoomed(false);
+  }, []);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        closeLightbox();
+      } else if (e.key === "ArrowLeft" && form.photoUrls.length > 1) {
+        setLightboxZoomed(false);
+        goToPrevPhoto();
+      } else if (e.key === "ArrowRight" && form.photoUrls.length > 1) {
+        setLightboxZoomed(false);
+        goToNextPhoto();
+      }
+    };
+
+    // Capture phase so Esc is handled here before any other listener.
+    window.addEventListener("keydown", onKeyDown, true);
+
+    // Stop the page behind the lightbox from scrolling.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [
+    lightboxOpen,
+    form.photoUrls.length,
+    closeLightbox,
+    goToPrevPhoto,
+    goToNextPhoto,
+  ]);
+
   // --- View Files modal --------------------------------------------
   const [showViewFiles, setShowViewFiles] = useState(false);
 
   const handleViewFilesClick = () => {
     setShowViewFiles(true);
   };
+
+  const hasPhotos = form.photoUrls.length > 0;
+  const multiplePhotos = form.photoUrls.length > 1;
 
   return createPortal(
     <div className="icd-modal-overlay" onClick={handleExitClick}>
@@ -2050,78 +3154,59 @@ const IncomingCalibDetailsModal = ({
                 />
               </div>
 
-              {/* IMAGE VIEWER — carousel over form.photoUrls (seeded from
-                  jobForm, then topped up with every equipment photo
-                  found under this job number via the job-folder fetch
-                  above). Shows the currently active photo with ‹ › nav
-                  buttons and a counter whenever there's more than one. */}
+              {/* IMAGE VIEWER — carousel over form.photoUrls. Clicking the
+                  box (or pressing Enter/Space when focused) opens the
+                  active photo in the full-screen lightbox. */}
               <div
-                className="icd-image-viewer"
-                style={{ position: "relative" }}
+                className={`icd-image-viewer${hasPhotos ? " has-image" : ""}`}
+                role={hasPhotos ? "button" : undefined}
+                tabIndex={hasPhotos ? 0 : undefined}
+                title={hasPhotos ? "Click to view full screen" : undefined}
+                onClick={hasPhotos ? openLightbox : undefined}
+                onKeyDown={
+                  hasPhotos
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          openLightbox();
+                        }
+                      }
+                    : undefined
+                }
               >
-                {form.photoUrls.length > 0 ? (
+                {hasPhotos ? (
                   <>
                     <img
                       src={form.photoUrls[activePhotoIndex]}
                       alt={`Unit photo ${activePhotoIndex + 1} of ${form.photoUrls.length}`}
+                      draggable={false}
                     />
-                    {form.photoUrls.length > 1 && (
+                    <span className="icd-zoom-hint">⤢ Full screen</span>
+                    {multiplePhotos && (
                       <>
                         <button
                           type="button"
-                          onClick={goToPrevPhoto}
-                          title="Previous photo"
-                          style={{
-                            position: "absolute",
-                            top: "50%",
-                            left: 4,
-                            transform: "translateY(-50%)",
-                            width: 28,
-                            height: 28,
-                            borderRadius: "50%",
-                            border: "1px solid #999",
-                            background: "rgba(255,255,255,0.85)",
-                            cursor: "pointer",
-                            fontSize: 14,
-                            lineHeight: 1,
+                          className="icd-nav-btn icd-nav-prev"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goToPrevPhoto();
                           }}
+                          title="Previous photo"
                         >
                           &lsaquo;
                         </button>
                         <button
                           type="button"
-                          onClick={goToNextPhoto}
-                          title="Next photo"
-                          style={{
-                            position: "absolute",
-                            top: "50%",
-                            right: 4,
-                            transform: "translateY(-50%)",
-                            width: 28,
-                            height: 28,
-                            borderRadius: "50%",
-                            border: "1px solid #999",
-                            background: "rgba(255,255,255,0.85)",
-                            cursor: "pointer",
-                            fontSize: 14,
-                            lineHeight: 1,
+                          className="icd-nav-btn icd-nav-next"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            goToNextPhoto();
                           }}
+                          title="Next photo"
                         >
                           &rsaquo;
                         </button>
-                        <div
-                          style={{
-                            position: "absolute",
-                            bottom: 4,
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            background: "rgba(0,0,0,0.6)",
-                            color: "#fff",
-                            fontSize: 11,
-                            padding: "1px 6px",
-                            borderRadius: 10,
-                          }}
-                        >
+                        <div className="icd-photo-counter">
                           {activePhotoIndex + 1} / {form.photoUrls.length}
                         </div>
                       </>
@@ -2144,7 +3229,7 @@ const IncomingCalibDetailsModal = ({
                   value="with"
                   checked={form.accreditationLogo === "with"}
                   onChange={handleChange}
-                />{" "}
+                />
                 With PAB Logo
               </label>
               <label className="icd-radio-label">
@@ -2154,13 +3239,13 @@ const IncomingCalibDetailsModal = ({
                   value="none"
                   checked={form.accreditationLogo === "none"}
                   onChange={handleChange}
-                />{" "}
+                />
                 No PAB Logo
               </label>
             </div>
 
             <div className="icd-procedure-box">
-              <div className="icd-box-title">Calibration Procedure :</div>
+              <div className="icd-box-title">Calibration Procedure</div>
               <div className="icd-procedure-row">
                 <input
                   type="text"
@@ -2250,7 +3335,7 @@ const IncomingCalibDetailsModal = ({
               >
                 {isUploadingPhotos
                   ? "Saving Photo..."
-                  : form.photoUrls.length > 0
+                  : hasPhotos
                     ? `Add More Photos (${form.photoUrls.length})`
                     : "Open Camera"}
               </button>
@@ -2261,6 +3346,7 @@ const IncomingCalibDetailsModal = ({
             <div className="icd-footer-right">
               <button
                 type="button"
+                className="icd-concern-btn"
                 onClick={handleMarkAsConcernClick}
                 disabled={isMarkingConcern}
               >
@@ -2303,9 +3389,9 @@ const IncomingCalibDetailsModal = ({
       )}
 
       {/* CALIBRATION DATA — in-app replacement for the SSS-CP-020.xlsx
-          download / fill-in / re-upload flow. allowIncompleteSave lets
-          Incoming Calibration save a blank/partial draft; On-Going
-          passes allowIncompleteCalibData={false} to keep full validation. */}
+          flow. allowIncompleteSave lets Incoming Calibration save a
+          blank/partial draft; On-Going passes
+          allowIncompleteCalibData={false} to keep full validation. */}
       {showCalibData && (
         <CalibrationDataModal
           job={form}
@@ -2319,8 +3405,7 @@ const IncomingCalibDetailsModal = ({
       )}
 
       {/* VIEW FILES — Cloudinary-fetched job files, plus this modal's own
-          locally-tracked photoUrls shown as an extra "Unit Photo" section
-          (with its own carousel/lightbox) up top. */}
+          locally-tracked photoUrls shown as an extra "Unit Photo" section. */}
       {showViewFiles && (
         <ReceiptFolderModal
           jobNumber={form.jobNumber}
@@ -2340,6 +3425,103 @@ const IncomingCalibDetailsModal = ({
           cancelLabel={dialog.cancelLabel}
           type={dialog.type}
         />
+      )}
+
+      {/* FULL-SCREEN LIGHTBOX. React synthetic events bubble up the React
+          tree, so every handler here stops propagation — otherwise a
+          click would reach .icd-modal-overlay and trigger the
+          "Confirm Exit" dialog. */}
+      {lightboxOpen && hasPhotos && (
+        <div
+          className={`icd-lightbox${lightboxZoomed ? " is-zoomed" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Equipment photo viewer"
+          onClick={(e) => {
+            e.stopPropagation();
+            closeLightbox();
+          }}
+        >
+          <div className="icd-lightbox-topbar">
+            <div className="icd-lightbox-caption">
+              Job {form.jobNumber}
+              <small>
+                Photo {activePhotoIndex + 1} of {form.photoUrls.length}
+              </small>
+            </div>
+            <div className="icd-lightbox-actions">
+              <button
+                type="button"
+                className="icd-lightbox-btn"
+                title={lightboxZoomed ? "Fit to screen" : "Actual size"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxZoomed((z) => !z);
+                }}
+              >
+                {lightboxZoomed ? "⤡" : "⤢"}
+              </button>
+              <button
+                type="button"
+                className="icd-lightbox-btn"
+                title="Close (Esc)"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closeLightbox();
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="icd-lightbox-stage">
+            <img
+              className="icd-lightbox-img"
+              src={form.photoUrls[activePhotoIndex]}
+              alt={`Unit photo ${activePhotoIndex + 1} of ${form.photoUrls.length}`}
+              draggable={false}
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxZoomed((z) => !z);
+              }}
+            />
+          </div>
+
+          {multiplePhotos && (
+            <>
+              <button
+                type="button"
+                className="icd-lightbox-btn icd-lightbox-arrow prev"
+                title="Previous (←)"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxZoomed(false);
+                  goToPrevPhoto();
+                }}
+              >
+                &lsaquo;
+              </button>
+              <button
+                type="button"
+                className="icd-lightbox-btn icd-lightbox-arrow next"
+                title="Next (→)"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setLightboxZoomed(false);
+                  goToNextPhoto();
+                }}
+              >
+                &rsaquo;
+              </button>
+            </>
+          )}
+
+          <div className="icd-lightbox-hint">
+            Click photo to zoom · {multiplePhotos ? "← → to browse · " : ""}Esc
+            to close
+          </div>
+        </div>
       )}
     </div>,
     document.body,

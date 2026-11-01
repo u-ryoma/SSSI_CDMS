@@ -67,6 +67,9 @@
   min-width: 0;
   padding: 8px;
   border: 1px solid #ccc;
+  background: #fff;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
 .outgoing-search button {
@@ -74,6 +77,7 @@
   border: 1px solid #ccc;
   background: white;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 /* TABLE */
@@ -106,12 +110,33 @@
 @media (max-width: 480px) {
   .outgoing-search {
     flex-direction: column;
+    flex-wrap: nowrap;
     align-items: stretch;
+    gap: 10px;
+    padding: 15px 20px;
   }
 
+  /* IMPORTANT: in a column, flex-basis controls HEIGHT.
+     Reset it so fields use their natural height instead of 140px. */
   .outgoing-search select,
   .outgoing-search input,
   .outgoing-search button {
+    flex: 0 0 auto;
     width: 100%;
+    height: auto;
+    margin: 0;
+  }
+
+  .outgoing-search select,
+  .outgoing-search input {
+    padding: 8px 10px;
+  }
+
+  .outgoing-search button {
+    padding: 8px 14px;
+  }
+
+  .outgoing-table-wrapper {
+    padding: 10px 0 20px;
   }
 }

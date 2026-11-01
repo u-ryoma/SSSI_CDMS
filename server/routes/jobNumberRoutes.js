@@ -11,6 +11,7 @@
 // const {
 //   moveStage,
 //   logStageMoves,
+//   detectStageMoves,
 //   buildFeatures,
 //   stageFromFlags,
 // } = require("../services/stageTracker");
@@ -162,6 +163,12 @@
 //         .json({ success: false, message: "Job number not found" });
 //     }
 
+//     // NEW: tell the System Activity logger which stage(s) this save moved
+//     // the job into (read by middleware/activityMiddleware.js).
+//     res.locals.activityStages = detectStageMoves(before, setFields).map(
+//       ([stage]) => stage,
+//     );
+
 //     // Stage log (not awaited; never blocks or breaks the response)
 //     logStageMoves(before, setFields);
 
@@ -189,6 +196,12 @@
 //         .status(404)
 //         .json({ success: false, message: "Job number not found" });
 //     }
+
+//     // NEW: tell the System Activity logger which stage(s) this save moved
+//     // the job into (read by middleware/activityMiddleware.js).
+//     res.locals.activityStages = detectStageMoves(before, updateData).map(
+//       ([stage]) => stage,
+//     );
 
 //     // Stage log (not awaited; never blocks or breaks the response)
 //     logStageMoves(before, updateData);
@@ -297,13 +310,34 @@ router.post("/", async (req, res) => {
       finalJobNumber = `${prefix}/${pad4(seq)}/${currentYearSuffix()}`;
     }
 
+    // A job number must be unique. If this number is already saved (a
+    // double-click, or a retry after a partly failed save), update the
+    // existing job's details instead of inserting a second copy. The
+    // original creator (recBy) and creation time are left untouched.
+    const existing = await db
+      .collection("jobnumbers")
+      .findOne({ jobNumber: finalJobNumber });
+    if (existing) {
+      // eslint-disable-next-line no-unused-vars
+      const { _id, createdAt, recBy, ...details } = rest;
+      await db
+        .collection("jobnumbers")
+        .updateOne({ _id: existing._id }, { $set: details });
+      return res.json({
+        success: true,
+        jobNumber: finalJobNumber,
+        _id: existing._id,
+        updated: true,
+      });
+    }
+
     const newJob = {
       ...rest,
       jobNumber: finalJobNumber,
       createdAt: new Date().toISOString(),
     };
 
-    await db.collection("jobnumbers").insertOne(newJob);
+    const inserted = await db.collection("jobnumbers").insertOne(newJob);
 
     // Stage log: the job starts at whatever stage its flags say. Normal jobs
     // start at Instrument Tagging; jobs created from Site Calibration arrive
@@ -319,8 +353,21 @@ router.post("/", async (req, res) => {
       console.error("Stage logging failed:", e.message);
     }
 
-    res.status(201).json({ success: true, jobNumber: finalJobNumber });
+    res.status(201).json({
+      success: true,
+      jobNumber: finalJobNumber,
+      _id: inserted.insertedId,
+    });
   } catch (err) {
+    // 11000 = duplicate key, raised if a unique index on jobNumber exists and
+    // two saves raced past the check above.
+    if (err.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "This job number already exists.",
+      });
+    }
+    console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });

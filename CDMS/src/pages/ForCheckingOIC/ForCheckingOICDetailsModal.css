@@ -1,97 +1,168 @@
+/* ==========================================================================
+   Draft Report For Checking OIC modal
+   Same design language as IncomingCalibDetailsModal / ForTypingDetailsModal.
+   Tokens are scoped to the overlay so nothing leaks into the rest of the app.
+   ========================================================================== */
+
 .foc-modal-overlay {
+  --foc-bg: #f4f5f7;
+  --foc-surface: #ffffff;
+  --foc-border: #d5d9e0;
+  --foc-border-strong: #b6bcc8;
+  --foc-text: #1c2430;
+  --foc-text-muted: #5f6b7a;
+  --foc-accent: #1f5fd6;
+  --foc-accent-hover: #174cb0;
+  --foc-accent-soft: rgba(31, 95, 214, 0.18);
+  --foc-readonly-bg: #eceef2;
+  --foc-readonly-text: #3b4554;
+  --foc-radius: 6px;
+
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
   padding: 24px 0;
   z-index: 9999;
+  font-family:
+    "Inter",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  color: var(--foc-text);
 }
 
 .foc-modal-wrapper {
-  background: #f0f0f0;
+  background: var(--foc-bg);
   width: 1320px;
   max-width: 98vw;
-  border: 1px solid #999;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.45),
+    0 4px 12px rgba(15, 23, 42, 0.2);
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .foc-modal-scroll {
-  padding: 12px 16px;
+  padding: 18px 22px;
 }
 
+/* ---------- Read-only form controls ---------- */
+.foc-modal-wrapper input[type="text"],
+.foc-modal-wrapper textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--foc-text);
+  background: var(--foc-surface);
+  border: 1px solid var(--foc-border-strong);
+  border-radius: var(--foc-radius);
+  padding: 6px 9px;
+}
+
+.foc-modal-wrapper textarea {
+  resize: vertical;
+  line-height: 1.4;
+}
+
+/* Everything on this screen is read-only: flat, muted, but legible */
+.foc-modal-wrapper input:disabled,
+.foc-modal-wrapper textarea:disabled {
+  background: var(--foc-readonly-bg);
+  color: var(--foc-readonly-text);
+  border-color: var(--foc-border);
+  cursor: default;
+  -webkit-text-fill-color: var(--foc-readonly-text);
+  opacity: 1;
+}
+
+.foc-modal-wrapper input[type="radio"] {
+  accent-color: var(--foc-accent);
+  margin: 0;
+}
+
+/* ---------- Top meta ---------- */
 .foc-top-meta {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 14px;
 }
 
 .foc-meta-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .foc-meta-row label {
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--foc-text-muted);
   min-width: 100px;
   text-align: right;
-  font-weight: 600;
 }
 
 .foc-meta-row input {
-  width: 160px;
+  width: 180px;
   max-width: 100%;
   min-width: 0;
+  font-weight: 600;
 }
 
+/* ---------- Layout ---------- */
 .foc-body {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(
-      0,
-      0.65fr
-    ) minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns:
+    minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.65fr)
+    minmax(0, 1fr);
+  gap: 18px;
 }
 
 .foc-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 7px;
+  margin-bottom: 11px;
   min-width: 0;
+}
+
+.foc-field label,
+.foc-inline-field label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--foc-text-muted);
 }
 
 .foc-field label {
-  font-size: 11.5px;
-  font-weight: 600;
-  margin-bottom: 2px;
-}
-
-.foc-field input,
-.foc-field textarea {
-  min-width: 0;
-  width: 100%;
-  box-sizing: border-box;
+  margin-bottom: 4px;
 }
 
 .foc-inline-field {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
+  gap: 10px;
+  margin-bottom: 11px;
 }
 
 .foc-inline-field label {
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 60px;
+  min-width: 62px;
 }
 
 .foc-inline-field input {
@@ -101,7 +172,7 @@
 
 .foc-input-with-btn {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .foc-input-with-btn input,
@@ -111,29 +182,30 @@
 }
 
 .foc-lookup-btn {
-  border: 1px solid #999;
-  background: #e8e8e8;
+  border: 1px solid var(--foc-border-strong);
+  background: var(--foc-surface);
+  border-radius: var(--foc-radius);
   cursor: pointer;
-  padding: 0 8px;
-  transition: background 0.15s ease;
+  padding: 0 10px;
   flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .foc-lookup-btn:hover:not(:disabled) {
-  background: #d3d3d3;
+  background: #eef3fd;
+  border-color: var(--foc-accent);
 }
 
 .foc-lookup-btn:disabled {
+  background: var(--foc-readonly-bg);
+  border-color: var(--foc-border);
   cursor: not-allowed;
-  color: #aaa;
+  opacity: 0.6;
 }
 
-.foc-modal-scroll input:disabled,
-.foc-modal-scroll textarea:disabled {
-  background: #f5f5f5;
-  color: #444;
-}
-
+/* ---------- Calibration standard ---------- */
 .foc-col-standard {
   display: flex;
   flex-direction: column;
@@ -141,18 +213,29 @@
 }
 
 .foc-box-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
-  margin-bottom: 6px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--foc-text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--foc-border);
+}
+
+.foc-col-standard .foc-box-title {
+  margin-bottom: 8px;
 }
 
 .foc-standard-grid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px solid #aaa;
-  background: #fff;
-  padding: 8px;
+  gap: 8px;
+  border: 1px solid var(--foc-border);
+  border-radius: 8px;
+  background: var(--foc-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  padding: 10px;
 }
 
 .foc-standard-row {
@@ -163,7 +246,7 @@
 
 .foc-standard-cell {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -176,51 +259,81 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
   flex-wrap: wrap;
 }
 
 .foc-camera-actions button {
-  padding: 6px 12px;
-  border: 1px solid #999;
-  background: #e8e8e8;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foc-text);
+  border: 1px solid var(--foc-border-strong);
+  border-radius: var(--foc-radius);
+  background: var(--foc-surface);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .foc-camera-actions button:hover:not(:disabled) {
-  background: #d3d3d3;
+  background: #eef0f4;
+  border-color: #8b93a1;
 }
 
+.foc-camera-actions button:disabled {
+  background: var(--foc-readonly-bg);
+  color: #9aa3b0;
+  border-color: var(--foc-border);
+  cursor: not-allowed;
+}
+
+.foc-camera-actions button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--foc-accent-soft);
+}
+
+/* ---------- Mid section cards ---------- */
 .foc-mid-section {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  gap: 12px;
-  margin-top: 4px;
-  margin-bottom: 10px;
+  gap: 18px;
+  margin-top: 6px;
+  margin-bottom: 16px;
 }
 
 .foc-accreditation-box,
 .foc-procedure-box {
-  border: 1px solid #aaa;
-  border-radius: 4px;
-  padding: 7px 10px;
-  background: #fff;
+  border: 1px solid var(--foc-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--foc-surface);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
   min-width: 0;
 }
 
 .foc-radio-label {
-  display: block;
-  font-size: 11.5px;
-  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 8px;
 }
 
+.foc-radio-label:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Footer ---------- */
 .foc-footer {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
+  border-top: 1px solid var(--foc-border);
+  padding-top: 14px;
 }
 
 .foc-footer-row {
@@ -231,45 +344,76 @@
   flex-wrap: wrap;
 }
 
-.foc-footer-row-secondary {
-  padding-top: 2px;
+/* The secondary row is currently empty (Log for Re-Typing is commented
+   out), so hide it instead of leaving a gap. It reappears automatically
+   when a button is added back. */
+.foc-footer-row-secondary:empty {
+  display: none;
 }
 
 .foc-footer-row button {
-  padding: 8px 16px;
-  border: 1px solid #999;
-  background: #e8e8e8;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foc-text);
+  border: 1px solid var(--foc-border-strong);
+  border-radius: var(--foc-radius);
+  background: var(--foc-surface);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .foc-footer-row button:hover:not(:disabled) {
-  background: #d3d3d3;
+  background: #eef0f4;
+  border-color: #8b93a1;
 }
 
 .foc-footer-row button:disabled {
-  color: #aaa;
+  background: var(--foc-readonly-bg);
+  color: #9aa3b0;
+  border-color: var(--foc-border);
   cursor: not-allowed;
-  background: #ededed;
 }
 
-.foc-primary-btn {
-  border: 1px solid #1d4fbb;
-  background: #2f6fed;
+.foc-footer-row button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--foc-accent-soft);
+}
+
+/* Check and Sign Report — the main action on this screen */
+.foc-footer-row .foc-primary-btn {
+  background: var(--foc-accent);
+  border-color: var(--foc-accent-hover);
   color: #fff;
-  font-weight: 700;
-  border-radius: 3px;
-  transition: background 0.15s ease;
+  padding-left: 22px;
+  padding-right: 22px;
+  box-shadow: 0 1px 2px rgba(31, 95, 214, 0.4);
 }
 
-.foc-primary-btn:hover:not(:disabled) {
-  background: #255fd6;
+.foc-footer-row .foc-primary-btn:hover:not(:disabled) {
+  background: var(--foc-accent-hover);
+  border-color: var(--foc-accent-hover);
 }
 
-/* MOBILE — stack everything to one column */
+.foc-footer-row .foc-primary-btn:disabled {
+  background: #a9bde6;
+  border-color: #a9bde6;
+  color: #fff;
+  box-shadow: none;
+}
+
+/* ---------- Mobile ---------- */
 @media (max-width: 760px) {
   .foc-modal-overlay {
     padding: 12px 0;
+  }
+
+  .foc-modal-scroll {
+    padding: 14px;
   }
 
   .foc-top-meta {
@@ -280,18 +424,8 @@
     justify-content: space-between;
   }
 
-  .foc-meta-row input {
-    width: 160px;
-  }
-
-  .foc-body {
-    grid-template-columns: 1fr;
-  }
-
-  .foc-mid-section {
-    grid-template-columns: 1fr;
-  }
-
+  .foc-body,
+  .foc-mid-section,
   .foc-standard-row {
     grid-template-columns: 1fr;
   }

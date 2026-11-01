@@ -867,6 +867,7 @@ import {
   formatQuotationDate,
 } from "../QuotationList/quotationPdf";
 import { fetchSignatureUrl } from "../QuotationList/quotationSignatures";
+import { authHeaders } from "../../utils/auth";
 import "./QuotationDetailsModal.css";
 
 const API = import.meta.env.VITE_API_URL;
@@ -1032,21 +1033,41 @@ const QuotationDetailsModal = ({
   }, [stage, quotation, selectedApproverUsername, approvers]);
 
   // Fetch accounts eligible to approve (admin + technician roles).
+  // /api/users is a protected route (it answered 401 without credentials).
+  // It is behind the JWT middleware, so it needs the Authorization header
+  // from authHeaders() (the x-user-* headers are kept for the older
+  // role-header middleware).
   useEffect(() => {
     if (stage !== "check") return;
     const fetchApprovers = async () => {
       setLoadingApprovers(true);
       try {
-        const res = await fetch(`${API}/api/users`);
-        if (!res.ok) throw new Error("Failed to load approvers");
-        const all = await res.json();
-        const eligible = (Array.isArray(all) ? all : []).filter(
-          (u) => u.role === "admin" || u.role === "technician",
+        const res = await fetch(`${API}/api/users`, {
+          headers: {
+            ...authHeaders(),
+            "x-user-role": sessionStorage.getItem("userRole") || "",
+            "x-user-name": sessionStorage.getItem("username") || "",
+          },
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            body.message
+              ? `Failed to load approvers (${res.status}): ${body.message}`
+              : `Failed to load approvers (${res.status})`,
+          );
+        }
+        const data = await res.json();
+        // Accept a plain array or a wrapped response.
+        const all = Array.isArray(data) ? data : data.users || data.data || [];
+        const eligible = all.filter((u) =>
+          ["admin", "technician"].includes(String(u.role || "").toLowerCase()),
         );
         setApprovers(eligible);
       } catch (err) {
         console.error("Failed to fetch approvers:", err);
         setApprovers([]);
+        setError(err.message || "Failed to load approvers. Please try again.");
       } finally {
         setLoadingApprovers(false);
       }

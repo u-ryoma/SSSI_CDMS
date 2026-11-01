@@ -1,6 +1,7 @@
 // import { useEffect, useState, useCallback } from "react";
 // import AssignTechnicianModal from "./AssignTechnicianModal";
 // import AutoScheduleModal from "./AutoScheduleModal";
+// import ConfirmDialog from "../../components/ConfirmDialog"; // CHANGED
 // import { authHeaders, canEditSchedule } from "../../utils/auth";
 // import "./SchedMonitor.css";
 
@@ -52,6 +53,7 @@
 //   const [selectedDate, setSelectedDate] = useState(null);
 //   const [showAutoSchedule, setShowAutoSchedule] = useState(false);
 //   const [loading, setLoading] = useState(false);
+//   const [dialog, setDialog] = useState(null); // CHANGED
 
 //   const days =
 //     viewMode === "month"
@@ -128,8 +130,15 @@
 //     if (res.ok) {
 //       setAssignments((prev) => prev.filter((a) => a._id !== assignmentId));
 //     } else {
+//       // CHANGED: was alert(...)
 //       const data = await res.json().catch(() => ({}));
-//       alert(data.message || "Failed to remove assignment.");
+//       setDialog({
+//         title: "Remove failed",
+//         message: data.message || "Failed to remove assignment.",
+//         type: "danger",
+//         confirmLabel: "OK",
+//         onConfirm: () => setDialog(null),
+//       });
 //     }
 //   };
 
@@ -297,6 +306,9 @@
 //           onConfirmed={fetchAssignments}
 //         />
 //       )}
+
+//       {/* CHANGED */}
+//       {dialog && <ConfirmDialog {...dialog} />}
 //     </div>
 //   );
 // }
@@ -330,11 +342,14 @@ const toISODate = (d) =>
     d.getDate(),
   ).padStart(2, "0")}`;
 
+// CHANGED: builds only as many weeks as the month needs (4, 5 or 6)
 function buildMonthGrid(anchorDate) {
   const first = startOfMonth(anchorDate);
+  const last = endOfMonth(anchorDate);
   const gridStart = startOfWeek(first);
+  const weeks = Math.ceil((first.getDay() + last.getDate()) / 7);
   const days = [];
-  for (let i = 0; i < 42; i++) days.push(addDays(gridStart, i));
+  for (let i = 0; i < weeks * 7; i++) days.push(addDays(gridStart, i));
   return days;
 }
 
@@ -363,6 +378,7 @@ export default function SchedMonitor() {
       : buildWeekGrid(anchorDate);
   const rangeStart = days[0];
   const rangeEnd = days[days.length - 1];
+  const weekCount = days.length / 7; // CHANGED: 4, 5 or 6 for month view, 1 for week view
 
   const fetchAssignments = useCallback(async () => {
     setLoading(true);
@@ -541,7 +557,11 @@ export default function SchedMonitor() {
           &gt;
         </button>
 
-        <div className={`sm-grid ${viewMode}`}>
+        {/* CHANGED: passes the week count to the CSS */}
+        <div
+          className={`sm-grid ${viewMode}`}
+          style={{ "--sm-weeks": weekCount }}
+        >
           {WEEKDAY_LABELS.map((label) => (
             <div key={label} className="sm-weekday-label">
               {label}
